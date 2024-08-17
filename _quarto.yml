@@ -3,18 +3,23 @@ project:
   output-dir: docs
 
 website:
-  title: "pclambert"
   navbar:
+    title: "Paul Lambert"
     left:
       - href: index.qmd
         text: Home
       - about.qmd
+      - publications.qmd
+      - software.qmd
+      - talks.qmd
+      - href: interactive_graphs.qmd
+        text: Interactive graphs
 
 format:
   html:
-    theme: cosmo
+    theme: 
+      light: minty
+      dark: solar    
     css: styles.css
     toc: true
-
-editor: visual
-
+    page-layout: full

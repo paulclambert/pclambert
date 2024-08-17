@@ -1,11 +1,40 @@
 ---
-title: "pclambert"
+title: "Paul Lambert"
+image: media/headshot.jpg
+
+toc: false
+about: 
+  template: trestles
+  image-shape: round
+  image-width: 15em
+  links:
+    - icon: github
+      text: GitHub
+      href: https://github.com/paulclambert
+    - icon: twitter
+      text: Twitter
+      href: https://twitter.com/pclambert123      
+    - icon: envelope
+      text: Email
+      href: mailto:pclt@kreftregisteret.no
+
 ---
 
-This is a Quarto website.
 
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
 
-```{r}
-1 + 1
-```
+
+# About me
+
+I am a biostatistician working at the [Cancer Registry of Norway (Kreftregisteret)](https://www.kreftregisteret.no/). 
+I also work part-time as a Guest Professor in the [Biostatistics Group](https://ki.se/en/meb/research/meb-biostatistics-group) in the Department of Medical Epidemiology and Biostatistics, Karolinska Institutet, Stockholm, Sweden. Previously, I worked at the [Biostatistics Research Group](https://le.ac.uk/biostatistics/biostatistics-research-group) at the University of Leicester, UK.
+
+I have a variety of interests, mainly in the area of survival analysis in epidemiology. Much of my work focuses on the analysis from data from national cancer registries. I particularly enjoy writing software (mainly in Stata) to enable transferal of new methods into practice.
+
+My teaching is now mainly specialist courses (link). and have developed some interactive graphs(link) to help with communication.
+
+
+# Education
+
+  - **PhD in Biostatistics** (1999). University of Leicester, UK
+
+  -  **MSc in Medical Statistics** (1992). University of Leicester, UK

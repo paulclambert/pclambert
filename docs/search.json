@@ -1,10 +1,17 @@
 [
   {
+    "objectID": "publications.html",
+    "href": "publications.html",
+    "title": "Publications",
+    "section": "",
+    "text": "A full list of my publications can be found here [Link]"
+  },
+  {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "pclambert",
+    "title": "Paul Lambert",
     "section": "",
-    "text": "This is a Quarto website.\nTo learn more about Quarto websites visit https://quarto.org/docs/websites.\n\n1 + 1\n\n[1] 2"
+    "text": "About me\nI am a biostatistician working at the Cancer Registry of Norway (Kreftregisteret). I also work part-time as a Guest Professor in the Biostatistics Group in the Department of Medical Epidemiology and Biostatistics, Karolinska Institutet, Stockholm, Sweden. Previously, I worked at the Biostatistics Research Group at the University of Leicester, UK.\nI have a variety of interests, mainly in the area of survival analysis in epidemiology. Much of my work focuses on the analysis from data from national cancer registries. I particularly enjoy writing software (mainly in Stata) to enable transferal of new methods into practice.\nMy teaching is now mainly specialist courses (link). and have developed some interactive graphs(link) to help with communication.\n\n\nEducation\n\nPhD in Biostatistics (1999). University of Leicester, UK\nMSc in Medical Statistics (1992). University of Leicester, UK"
   },
   {
     "objectID": "about.html",
@@ -12,5 +19,12 @@
     "title": "About",
     "section": "",
     "text": "About this site\n\n1 + 1\n\n[1] 2"
+  },
+  {
+    "objectID": "software.html",
+    "href": "software.html",
+    "title": "Software",
+    "section": "",
+    "text": "I have developed a number of Stata commands. I have added some examples/tutorials. I occasionally add to these.\nBelow is a list of my main Stata commands."
   }
 ]

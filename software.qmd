@@ -1,0 +1,8 @@
+---
+title: "Software"
+---
+
+I have developed a number of Stata commands. I have added some examples/tutorials.
+I occasionally add to these.
+
+Below is a list of my main Stata commands.

@@ -1,3 +1,28 @@
 ---
 title: "Talks"
 ---
+
+**Recent (and not so recent) Talks:**  
+
+7 June 2024 [Recent developments in the fitting and assessment of flexible parametric survival models](pdf/Stata2024_Germany_Paul_Lambert.pdf) 2024 German Stata Conference, Mannheim, Germany.
+
+14th November 2023 [Reference adjusted cancer survival measures What are they and when should they be used?](pdf/IACR2023_Lambert.pdf) 2023 ENCR-IACR Scientific Conference, Granada, Spain.
+
+12 October 2022 [Improving fitting and predictions for flexible parametric survival models](Improving fitting and predictions for flexible parametric survival models) Northern European Stata Conference, Oslo, Norway.
+
+9 September 2022 [Improving fitting and predictions for flexible parametric survival models](http://repec.org/lsug2022/uk2022_lambert.html#/title-slide)
+2022 UK Stata Conference, London, UK
+
+6 August 2021. [Making Stata estimation commands faster through automatic differentiation and integration with Python](pdf/Stata2021_Paul_Lambert.pdf). 2021 Stata Conference (online)
+
+18 February 2021. [Regression standardization with time-to-event data to estimate marginal measures of association and causal effects using the `standsurv` command.](/pdf/Stata_biostatsepi_2021_Paul_Lambert.pdf). Stata Biostatistics and Epidemiology Virtual Symposium.
+
+22 September 2020. [Standardised and reference adjusted all-cause and crude probabilities in the relative survival framework](pdf/Biometric_Society_Sept2020.pdf). Advances in Survival Analysis. International Biometric Society - British and Irish Region.
+
+August 2020 [A marginal model for relative survival.](pdf/IBC_PCL.pdf). International Biometric Society 2020
+
+26 September 2019. [Issues in Standardization](pdf/Stockholm_workshop_Sept2019_Lambert.pdf). Symposium for statisticians working in register-based cancer epidemiology 2019, Stockholm, Sweden
+
+29 August 2019. [Standardised crude probabilities of death to improve understanding of national and international cancer survival comparisons](pdf/ANCR2019_Lambert.pdf). Association of the Nordic Cancer Registries meeting 2019, Stockholm Sweden
+
+30 August 2019. [Marginal estimates through regression standardization in competing risks and relative survival models](pdf/Stata_Nordic2019_Lambert.pdf). Nordic and Baltic Stata Users Group meeting 2019, Stockholm, Sweden.

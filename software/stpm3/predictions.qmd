@@ -1,0 +1,244 @@
+---
+title: "Using `frames` for predictions"
+---
+
+
+
+
+## `stpm3` makes use of `frames` for predictions
+
+Predictions are much improved in `stpm3`. 
+
+
+We first load the Rotterdam breast cancer data and then use `stset` to declare the survival time and event indicator.
+
+```stata
+. use https://www.pclambert.net/data/rott3, clear
+(Rotterdam breast cancer data (augmented with cause of death))
+
+. stset os, f(osi==1) scale(12) exit(time 120)
+
+Survival-time data settings
+
+         Failure event: osi==1
+Observed time interval: (0, os]
+     Exit on or before: time 120
+     Time for analysis: time/12
+
+--------------------------------------------------------------------------
+      2,982  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+      2,982  observations remaining, representing
+      1,171  failures in single-record/single-failure data
+ 20,002.424  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =        10
+
+```
+
+I will fit a simple proportional hazards model just include `hormon` and `age`.
+
+```stata
+. stpm3 i.hormon age, scale(lncumhazard) df(5) 
+
+Iteration 0:  Log likelihood = -2909.4582  
+Iteration 1:  Log likelihood = -2908.4666  
+Iteration 2:  Log likelihood = -2908.4635  
+Iteration 3:  Log likelihood = -2908.4635  
+
+                                                        Number of obs =  2,982
+                                                        Wald chi2(2)  =  64.07
+Log likelihood = -2908.4635                             Prob > chi2   = 0.0000
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+xb           |
+      hormon |
+        yes  |   .3229905   .0876157     3.69   0.000     .1512669    .4947141
+         age |   .0149851    .002374     6.31   0.000     .0103322    .0196381
+-------------+----------------------------------------------------------------
+time         |
+        _ns1 |  -24.01501   1.921081   -12.50   0.000    -27.78026   -20.24976
+        _ns2 |   6.695913   1.028047     6.51   0.000     4.680978    8.710849
+        _ns3 |  -1.221354   .0499264   -24.46   0.000    -1.319208   -1.123501
+        _ns4 |  -.8156036   .0389592   -20.93   0.000    -.8919622   -.7392449
+        _ns5 |  -.5046344   .0422296   -11.95   0.000     -.587403   -.4218658
+       _cons |  -1.391522   .1368464   -10.17   0.000    -1.659736   -1.123308
+------------------------------------------------------------------------------
+
+```
+
+We can predict the survival function for a 60 year old women who did not take hormon therapy using,
+
+```stata
+. predict S, survival ci                 ///
+>            at1(age 60 hormon 0)        ///
+>            timevar(0 10, step(0.1)) 
+Predictions are stored in frame - stpm3_pred
+
+```
+
+The `predict` command has requested a survival function with a 95% confidence interval.
+The values of the covariates to predict at are given in the `at1()` option.
+It is possible to have multiple `at` options.
+The predictions will be at times between 0 and 10 in steps of 0.1, leading to  101 observations.
+
+We can list or plot the results in frame `stpm3_pred`.
+
+```stata
+. frame stpm3_pred: list in 1/21, noobs
+
+  +-----------------------------------------+
+  |  tt           S       S_lci       S_uci |
+  |-----------------------------------------|
+  |   0           1           1           1 |
+  |  .1   .99987272   .99948675   .99996844 |
+  |  .2   .99939144   .99844378   .99976209 |
+  |  .3   .99849308    .9969857   .99924694 |
+  |  .4   .99715658   .99513109   .99834016 |
+  |-----------------------------------------|
+  |  .5   .99537771   .99288014   .99700048 |
+  |  .6   .99316099   .99022634    .9952166 |
+  |  .7   .99051598   .98716155   .99299707 |
+  |  .8   .98745529   .98367965   .99036174 |
+  |  .9   .98399346   .97977945   .98733494 |
+  |-----------------------------------------|
+  |   1   .98014617   .97546655   .98394053 |
+  | 1.1   .97592979    .9707539   .98019903 |
+  | 1.2   .97136109   .96566103    .9761267 |
+  | 1.3   .96645696   .96021236   .97173595 |
+  | 1.4   .96123425   .95443524   .96703632 |
+  |-----------------------------------------|
+  | 1.5   .95570969   .94835805   .96203579 |
+  | 1.6   .94989974    .9420086   .95674187 |
+  | 1.7   .94382061   .93541289   .95116257 |
+  | 1.8   .93748813   .92859406   .94530721 |
+  | 1.9   .93091774   .92157156   .93918715 |
+  |-----------------------------------------|
+  |   2   .92412448   .91436051   .93281647 |
+  +-----------------------------------------+
+
+```
+
+`stpm3` saves predictions to a new frame by default. The default name for the prediction frame is `stpm3_pred`, 
+but you can, and generally should, choose a frame name using the `frame()` option.
+
+```stata
+. predict S1, survival ci               ///
+>             at1(age 60 hormon 0)      ///
+>             timevar(0 10, step(0.1))  ///
+>             frame(f1)
+Predictions are stored in frame - f1
+
+```
+
+## Merging to an existing frame
+
+One feature is that you can merge new predictions to an existing frame.
+When you do this the time variable stored in the existing frame will be used.
+For example, we could predict for a 70 year old woman and merge with frame `f1`.
+
+```stata
+. predict S2, survival ci                 ///
+>             at1(age 70 hormon 0)        ///
+>             frame(f1, merge)
+Predictions are stored in frame - f1
+
+```
+
+## Plotting from a frame 
+
+
+It is simple to plot the predictions stored in a frame.
+
+
+```stata
+. frame f1 {
+.   twoway line S1 S2 tt,                        ///
+>          xtitle(Years since surgery)           ///
+>          ytitle(Survival function)             ///
+>          ylabel(0(0.2)1, format(%3.1f))        ///
+>          legend(order(1 "Age 60" 2 "Age 70"))
+. }
+
+```
+
+
+![](/statasvg/stpm3_predict_eg_plot.svg)
+
+
+## Using multiple `at' options
+
+Note that when using `predict` you can specify multiple `at()` options, which is often easier 
+than having multiple `predict` commands. Below I use `frame(f1, replace)` to replace the
+existing frame `f1`. 
+
+```stata
+. predict S1 S2, survival ci                 ///
+>                at1(age 60 hormon 0)        ///
+>                at2(age 70 hormon 0)        ///
+>                timevar(0 10, step(0.1))    ///
+>                frame(f1, replace)
+Predictions are stored in frame - f1
+
+```
+
+I will cover more details about multiple `at()` options when I discuss contrasts.
+
+## Merging a different type of prediction
+
+Using `frame(..., merge)` is useful when you require predictions of different types,
+for example when requiring predictions of both survival and hazard functions.
+The predictions for the hazard functions are merged with the survival predictions below.
+
+```stata
+. predict h1 h2, hazard ci                   ///
+>                at1(age 60 hormon 0)        ///
+>                at2(age 70 hormon 0)        ///
+>                frame(f1, merge)
+Predictions are stored in frame - f1
+
+```
+
+Alternatively you may want to predict the hazard function to a new frame.
+
+## Predicting to the active frame
+
+Sometimes you may want to merge the predictions into the active frame rather than create a new frame.
+You can do this with the `merge` option. This could be useful if you wanted to predict at each
+observed value in a dataset, for example at the observed event/censoring times (`_t`), 
+or at a specific value of time.
+
+The code below, predicts 10 year survival for each observation in the dataset.
+
+```stata
+. predict S10, survival ci          ///
+>              at1(.)               ///
+>              timevar(10)          ///
+>              merge
+
+```
+
+Note that only one value of time has been specified in the `timevar()` option
+The default is to `predict` at this time for all individuals. 
+The `at1(.)` option means that predictions will be at observed values of covariates 
+rather than values specifed by the user.
+
+We could plot a histogram of the 10 year survival probabilities.
+```stata
+. hist S10
+(bin=34, start=.2766368, width=.01245414)
+
+```
+
+
+
+![](/statasvg/stpm3_predict_hist.svg)
+
+
+
+
+

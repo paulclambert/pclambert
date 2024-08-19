@@ -1,0 +1,146 @@
+---
+title: "Change to the `scale()` option"
+---
+
+# The `scale()` option has changed
+
+In `stpm2` the choice of options when using the `scale()` option included `hazard` and `odds`.
+These really meant **log** cumulative hazard and **log** odds respectively.
+
+In `stpm3` you need to refer to these models as `scale(lncumhazard)` or
+`scale(lnodds)`. This is because `stpm3` allows models to be fitted on 
+the log hazard scale (`scale(lnhazard)`) and thus there is a need to distinguish between models
+on the log cumulative hazard and log hazard scales.
+
+
+We first load the example Rotterdam breast cancer data (`rott3.dta`)
+and then use `stset` to declare the survival time and event indicator.
+
+```stata
+. use https://www.pclambert.net/data/rott2b, clear
+(Rotterdam breast cancer data (augmented with cause of death))
+
+. stset os, f(osi==1) scale(12) exit(time 120)
+
+Survival-time data settings
+
+         Failure event: osi==1
+Observed time interval: (0, os]
+     Exit on or before: time 120
+     Time for analysis: time/12
+
+--------------------------------------------------------------------------
+      2,982  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+      2,982  observations remaining, representing
+      1,171  failures in single-record/single-failure data
+ 20,002.424  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =        10
+
+```
+
+The `scale(12)` option converts the times recorded in months to years.
+
+To fit an `stpm2` model we would use,
+
+```stata
+. stpm2 hormon, scale(hazard) df(5) 
+
+Iteration 0:  Log likelihood = -2929.2995  
+Iteration 1:  Log likelihood = -2928.2998  
+Iteration 2:  Log likelihood = -2928.2966  
+Iteration 3:  Log likelihood = -2928.2966  
+
+Log likelihood = -2928.2966                              Number of obs = 2,982
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+xb           |
+      hormon |   .4321954   .0861189     5.02   0.000     .2634054    .6009854
+       _rcs1 |    .914158   .0273548    33.42   0.000     .8605436    .9677725
+       _rcs2 |   .1672938   .0273886     6.11   0.000     .1136131    .2209746
+       _rcs3 |   .0360402   .0154393     2.33   0.020     .0057797    .0663006
+       _rcs4 |  -.0113638    .007644    -1.49   0.137    -.0263459    .0036182
+       _rcs5 |   .0058281   .0049328     1.18   0.237    -.0038401    .0154963
+       _cons |  -1.225443   .0332548   -36.85   0.000    -1.290622   -1.160265
+------------------------------------------------------------------------------
+
+```
+
+The equivalent model in `stpm3` is, 
+
+```stata
+. stpm3 hormon, scale(lncumhazard) df(5) 
+
+Iteration 0:  Log likelihood = -2929.2995  
+Iteration 1:  Log likelihood = -2928.2998  
+Iteration 2:  Log likelihood = -2928.2966  
+Iteration 3:  Log likelihood = -2928.2966  
+
+                                                        Number of obs =  2,982
+                                                        Wald chi2(1)  =  25.19
+Log likelihood = -2928.2966                             Prob > chi2   = 0.0000
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+xb           |
+      hormon |   .4321954   .0861189     5.02   0.000     .2634054    .6009854
+-------------+----------------------------------------------------------------
+time         |
+        _ns1 |   -23.9834    1.92113   -12.48   0.000    -27.74874   -20.21805
+        _ns2 |   6.695765   1.027919     6.51   0.000     4.681082    8.710449
+        _ns3 |  -1.214676   .0497438   -24.42   0.000    -1.312172    -1.11718
+        _ns4 |  -.8095755   .0387379   -20.90   0.000    -.8855004   -.7336505
+        _ns5 |  -.4994385   .0418591   -11.93   0.000    -.5814808   -.4173963
+       _cons |  -.5713643   .0332128   -17.20   0.000    -.6364603   -.5062684
+------------------------------------------------------------------------------
+
+```
+
+Note the log-likelihoods are identical as are the coefficients/standard errors for `hormon`.
+Note that different basis functions are used, so the coefficients for the spline terms
+are different. However, predicted values for the same covariate pattern will not differ.
+
+
+To fit a model on the log hazard scale use `scale(lnhazard)`,
+
+```stata
+. stpm3 hormon, scale(lnhazard) df(5) 
+
+Iteration 0:  Log likelihood = -15102.783  
+Iteration 1:  Log likelihood = -3027.1718  
+Iteration 2:  Log likelihood = -2947.4369  
+Iteration 3:  Log likelihood = -2932.3794  
+Iteration 4:  Log likelihood =  -2930.192  
+Iteration 5:  Log likelihood = -2930.1318  
+Iteration 6:  Log likelihood = -2930.1318  
+
+                                                        Number of obs =  2,982
+                                                        Wald chi2(1)  =  25.25
+Log likelihood = -2930.1318                             Prob > chi2   = 0.0000
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+xb           |
+      hormon |    .432754   .0861241     5.02   0.000     .2639539    .6015541
+-------------+----------------------------------------------------------------
+time         |
+        _ns1 |  -8.918703   1.582022    -5.64   0.000    -12.01941   -5.817997
+        _ns2 |     4.3015   .9609478     4.48   0.000     2.418077    6.184923
+        _ns3 |   .3920384    .185592     2.11   0.035     .0282847     .755792
+        _ns4 |   .1022445   .1620363     0.63   0.528    -.2153409    .4198298
+        _ns5 |   .0909831   .3382751     0.27   0.788     -.572024    .7539901
+       _cons |  -2.913227   .1465419   -19.88   0.000    -3.200443    -2.62601
+------------------------------------------------------------------------------
+Quadrature method: tanh-sinh with 30 nodes.
+Analytical integration before first and after last knot.
+
+```
+
+

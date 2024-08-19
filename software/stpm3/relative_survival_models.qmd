@@ -1,0 +1,416 @@
+---
+title: "Relative Survival Models"
+---
+
+
+
+> This is just a draft at present
+
+## Relative survival(excess mortality) models
+
+Relative survival(excess mortality) models are used to analyses population-based
+cancer survival data. As in `stpm2` this is done through using the `bhazard()`
+option when fitting an `stpm3` model.
+
+`stpm3` has better predictions than `stpm2` through the use of an `expsurv()`
+option.
+
+This guide is really aimed at those who are familiar with relative survival models.
+
+The code below loads the example colon cancer data set and merges in the 
+expected mortality rates at the event/censoring times.
+
+```stata
+. use "https://pclambert.net/data/colon.dta", clear
+(Colon carcinoma, diagnosed 1975-94, follow-up to 1995)
+
+. stset surv_mm,f(status=1,2) id(id) scale(12) exit(time 120.5)
+
+Survival-time data settings
+
+           ID variable: id
+         Failure event: status==1 2
+Observed time interval: (surv_mm[_n-1], surv_mm]
+     Exit on or before: time 120.5
+     Time for analysis: time/12
+
+--------------------------------------------------------------------------
+     15,564  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+     15,564  observations remaining, representing
+     15,564  subjects
+     10,459  failures in single-failure-per-subject data
+ 51,685.667  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =  10.04167
+
+. gen _age = floor(min(age+_t,99))
+
+. gen _year = floor(yydx +_t)
+
+. gen male = sex==1
+
+. merge m:1 _age _year sex using "https://pclambert.net/data/popmort.dta", keep(match master)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                            15,564  (_merge==3)
+    -----------------------------------------
+
+```
+
+To illusrate the prediction options I will fit a model with an 
+interaction between age and sex for both main and time-dependent effects,
+where the effect of age is modelled using natural splines.
+I will also use winsoring at the 2nd and 98th centiles of age.
+
+```stata
+. stpm3 i.male##@ns(age,df(3) winsor(2 98)), ///
+>       tvc(i.male##@ns(age,df(3) winsor(2 98))) dftvc(2) ///
+>       df(5) scale(lncumhazard)  bhazard(rate)
+
+Iteration 0:  Log likelihood = -21354.047  
+Iteration 1:  Log likelihood =  -20769.05  
+Iteration 2:  Log likelihood = -20726.739  
+Iteration 3:  Log likelihood = -20725.951  
+Iteration 4:  Log likelihood = -20725.949  
+Iteration 5:  Log likelihood = -20725.949  
+
+                                                        Number of obs = 15,564
+                                                        Wald chi2(7)  =  17.94
+Log likelihood = -20725.949                             Prob > chi2   = 0.0123
+
+-----------------------------------------------------------------------------------------------
+                              | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+------------------------------+----------------------------------------------------------------
+xb                            |
+                       1.male |  -.3529372   .2438788    -1.45   0.148    -.8309309    .1250566
+                  _ns_f1_age1 |  -.9225446   .4701276    -1.96   0.050    -1.843978   -.0011114
+                  _ns_f1_age2 |   .2828585   .1945014     1.45   0.146    -.0983573    .6640743
+                  _ns_f1_age3 |  -.0417452   .2264952    -0.18   0.854    -.4856676    .4021771
+                              |
+           male#c._ns_f1_age1 |
+                           1  |   1.240154    .847648     1.46   0.143     -.421206    2.901513
+                              |
+           male#c._ns_f1_age2 |
+                           1  |   .0103073   .2858799     0.04   0.971     -.550007    .5706216
+                              |
+           male#c._ns_f1_age3 |
+                           1  |    .486169   .4344473     1.12   0.263    -.3653321     1.33767
+------------------------------+----------------------------------------------------------------
+time                          |
+                         _ns1 |  -7.658599   .4600483   -16.65   0.000    -8.560277   -6.756921
+                         _ns2 |   2.685312   .1249449    21.49   0.000     2.440425    2.930199
+                         _ns3 |  -.2397703   .1295897    -1.85   0.064    -.4937614    .0142209
+                         _ns4 |   .0815264   .1095782     0.74   0.457    -.1332429    .2962956
+                         _ns5 |   .2678154   .0959583     2.79   0.005     .0797406    .4558901
+                              |
+              male#c._ns_tvc1 |
+                           1  |   .9938131   .4540786     2.19   0.029     .1038354    1.883791
+                              |
+              male#c._ns_tvc2 |
+                           1  |   1.111332   .5122449     2.17   0.030     .1073506    2.115314
+                              |
+     c._ns_f1_age1#c._ns_tvc1 |  -17.30983   2.373232    -7.29   0.000    -21.96128   -12.65838
+                              |
+     c._ns_f1_age1#c._ns_tvc2 |  -5.081748    1.12152    -4.53   0.000    -7.279888   -2.883609
+                              |
+     c._ns_f1_age2#c._ns_tvc1 |   3.098712   1.430068     2.17   0.030     .2958309    5.901593
+                              |
+     c._ns_f1_age2#c._ns_tvc2 |  -.3393347   .5099432    -0.67   0.506    -1.338805    .6601357
+                              |
+     c._ns_f1_age3#c._ns_tvc1 |  -3.389762    .565698    -5.99   0.000    -4.498509   -2.281014
+                              |
+     c._ns_f1_age3#c._ns_tvc2 |  -2.109922   .5190539    -4.06   0.000    -3.127249   -1.092595
+                              |
+male#c._ns_f1_age1#c._ns_tvc1 |
+                           1  |   1.102057   3.237953     0.34   0.734    -5.244215    7.448329
+                              |
+male#c._ns_f1_age1#c._ns_tvc2 |
+                           1  |  -2.844073   1.856685    -1.53   0.126    -6.483108    .7949625
+                              |
+male#c._ns_f1_age2#c._ns_tvc1 |
+                           1  |  -2.353453   1.906681    -1.23   0.217     -6.09048    1.383573
+                              |
+male#c._ns_f1_age2#c._ns_tvc2 |
+                           1  |  -.2610123   .7417512    -0.35   0.725    -1.714818    1.192793
+                              |
+male#c._ns_f1_age3#c._ns_tvc1 |
+                           1  |  -.2141621   .9766446    -0.22   0.826     -2.12835    1.700026
+                              |
+male#c._ns_f1_age3#c._ns_tvc2 |
+                           1  |  -2.073735    .944128    -2.20   0.028    -3.924192   -.2232782
+                              |
+                        _cons |  -.1063001   .1227919    -0.87   0.387    -.3469678    .1343676
+-----------------------------------------------------------------------------------------------
+Extended functions
+ (1) @ns(age, df(3) winsor(2 98))
+
+```      
+
+The use of `bhazard(rate)` makes this a relative survival model. 
+This means that relative survival will be predicted when using the `survival`
+option of the `predict` command.
+Similarly, the excess mortality (hazard) rate will
+be predicted when uing the `hazard` option of the predict command.
+
+Some predictions require use of the `expsurv()` option to merge in the 
+expected mortality rates.
+
+The various predictions will be for males and females aged 70.
+
+### Relative Survival
+
+First I will predict relative survival and the difference between males and females.
+
+```stata
+. predict Rm Rf, at1(male 1 age 70)         ///
+>                at2(male 0 age 70)         ///
+>                surv  ci                   ///
+>                timevar(0 10, step(0.1))   ///
+>                contrast(difference)       ///
+>                contrastvar(Rdiff)         ///
+>                frame(f1)
+Predictions are stored in frame - f1
+
+```   
+
+The predictions are saved in frame `f1`, and can be plotted.
+               
+               
+```stata
+. frame f1 {
+.   line Rm Rf tt, name(RS, replace)    ///
+>        xtitle("Time since diagnosis") ///
+>        ytitle(R(t))
+.   twoway (rarea Rdiff_lci Rdiff_uci tt, color(red%30)) ///
+>          (line Rdiff tt, color(red)),                 ///
+>          xtitle("Time since diagnosis")                ///
+>          ytitle(Difference in R(t))                    /// 
+>          legend(off)                                   ///
+>          name(RSdiff, replace)
+. }
+
+```   
+
+
+
+![](/statasvg/stpm3_relative_survival_RS.svg)
+![](/statasvg/stpm3_relative_survival_RSdiff.svg)
+
+
+### All-cause survival
+
+Using the `expsurv()` option allows all-cause survival to be calculated.
+
+$$
+S(t|X) = S^*(t|X)R(t|X)
+$$
+
+```stata
+. predict Sm Sf, surv  ci ///
+>                at1(male 1 age 70)   ///
+>                at2(male 0 age 70)   ///
+>                contrast(difference) ///
+>                contrastvar(Sdiff)   ///               
+>                frame(f1, merge)     ///
+>                expsurv(using("https://www.pclambert.net/data/popmort") ///  Popmort file
+>                        agediag(70)        ///  Age at diagnosis in the dataset
+>                        datediag(1990-1-1) ///  Date of diagnosis in the dataset
+>                        pmother(sex)       ///  Other variables included in the popmort file
+>                        pmrate(rate)       ///  Rate variable in the popmort file  
+>                        at1(sex 1)         ///
+>                        at2(sex 2)         ///
+>                        )                
+Predictions are stored in frame - f1
+
+. frame f1 {
+.   line Sm Sf tt, name(S, replace)     ///
+>        xtitle("Time since diagnosis") ///
+>        ytitle(S(t))
+.   twoway (rarea Sdiff_lci Sdiff_uci tt, color(red%30)) ///
+>          (line Sdiff tt, color(red)),                 ///
+>          xtitle("Time since diagnosis")                ///
+>          ytitle(Difference in S(t))                    /// 
+>          legend(off)                                   ///
+>          name(Sdiff, replace)  
+. }
+
+```   
+
+
+![](/statasvg/stpm3_relative_survival_AC.svg)
+![](/statasvg/stpm3_relative_survival_ACdiff.svg)
+
+### Marginal all-cause hazard
+
+This is the same as above, but replace the `survival' option with `hazard`.
+
+```stata
+. predict hm hf, hazard  ci ///
+>                at1(male 1 age 70)   ///
+>                at2(male 0 age 70)   ///
+>                contrast(difference) ///
+>                contrastvar(hdiff)   ///               
+>                frame(f1, merge)     ///
+>                expsurv(using("https://www.pclambert.net/data/popmort") ///  Popmort file
+>                        agediag(70)        ///  Age at diagnosis in the dataset
+>                        datediag(1990-1-1) ///  Date of diagnosis in the dataset
+>                        pmother(sex)       ///  Other variables included in the popmort file
+>                        pmrate(rate)       ///  Rate variable in the popmort file  
+>                        at1(sex 1)         ///
+>                        at2(sex 2)         ///
+>                        )                
+Predictions are stored in frame - f1
+
+. frame f1 {
+.   line hm hf tt, name(S, replace)     ///
+>        xtitle("Time since diagnosis") ///
+>        ytitle(h(t))
+.   twoway (rarea hdiff_lci hdiff_uci tt, color(red%30)) ///
+>          (line hdiff tt, color(red)),                 ///
+>          xtitle("Time since diagnosis")                ///
+>          ytitle(Difference in h(t))                    /// 
+>          legend(off)                                   ///
+>          name(Sdiff, replace)    
+.   line hm hf tt, name(h, replace)
+.   line hdiff* tt, name(hdiff, replace)
+. }
+
+```   
+
+
+![](/statasvg/stpm3_relative_survival_hazard.svg)
+![](/statasvg/stpm3_relative_survival_hdiff.svg)
+
+
+### Crude Probabilities
+
+The default is to only give crude probability of death due to cancer.
+You can use the `expvar` option to option crude probablities of death due to other causes.
+
+```stata
+. predict Ccm Ccf, crudeprob ci ///
+>                at1(male 1 age 70)  ///
+>                at2(male 0 age 70)  ///
+>                contrast(difference) ///
+>                contrastvar(Ccdiff)   ///               
+>                frame(f1, merge)    ///
+>                expsurv(using("https://www.pclambert.net/data/popmort") ///  Popmort file
+>                        agediag(70)      ///  Age at diagnosis in the dataset
+>                        datediag(1990-1-1)      ///  Date of diagnosis in the dataset
+>                        pmother(sex)       ///  Other variables included in the popmort file
+>                        pmrate(rate)       ///  Rate variable in the popmort file  
+>                        at1(sex 1)         ///
+>                        at2(sex 2)         ///
+>                        expvar(Com Cof) ///
+>                        )                      
+Predictions are stored in frame - f1
+
+```  
+
+### Life expectancy
+
+This is obtained through separate extrpolation of the relative and expected survival.
+
+
+```stata
+. gen t80 = 80 in 1
+(15,563 missing values generated)
+
+. predict LEf LEm, rmst ci            ///
+>                at1(male 1 age 70)   ///
+>                at2(male 0 age 70)   ///
+>                contrast(difference) ///
+>                contrastvar(Ccdiff)  /// 
+>                timevar(t80)         ///
+>                frame(f2)            ///
+>                expsurv(using("https://www.pclambert.net/data/popmort") ///  Popmort file
+>                        agediag(70)      ///  Age at diagnosis in the dataset
+>                        datediag(1990-1-1)      ///  Date of diagnosis in the dataset
+>                        pmother(sex)       ///  Other variables included in the popmort file
+>                        pmrate(rate)       ///  Rate variable in the popmort file  
+>                        pmmaxyear(2000)    ///
+>                        at1(sex 1)         ///
+>                        at2(sex 2)         ///
+>                        expvar(ELEm ELEf) ///
+>                        )
+Predictions are stored in frame - f2
+
+.                        
+. frame f2: {
+.   list LEf* ELEf                       
+
+     +---------------------------------------------+
+     |      LEf     LEf_lci    LEf_uci        ELEf |
+     |---------------------------------------------|
+  1. | 5.652845   5.3925576   5.925696   14.658482 |
+     +---------------------------------------------+
+.   list LEm* ELEm                       
+
+     +-----------------------------------------------+
+     |       LEm     LEm_lci     LEm_uci        ELEm |
+     |-----------------------------------------------|
+  1. | 7.0845352   6.8264632   7.3523635   11.328775 |
+     +-----------------------------------------------+
+. }                
+
+```  
+                       
+### Life expectancy over a range of ages
+
+The code below creates a frame with a range of ages to predict life expectencty.
+
+```stata
+. capture frame drop ageLEL
+
+. frame create ageLEL
+
+. frame ageLEL {
+.   range age 50 99 50
+Number of observations (_N) was 0, now 50.
+.   gen male = .
+(50 missing values generated)
+.   gen sex = .
+(50 missing values generated)
+.   predict LEm LEf, rmst ci                ///
+>                  at1(male 1, obsvalues)   ///
+>                  at2(male 0, obsvalues)   ///
+>                  timevar(80)              ///
+>                  merge                    ///
+>                  expsurv(using("https://www.pclambert.net/data/popmort") ///  Popmort file
+>                          agediag(age)       ///  Age at diagnosis in the dataset
+>                          datediag(1990-1-1) ///  Date of diagnosis in the dataset
+>                          pmother(sex)       ///  Other variables included in the popmort file
+>                          pmrate(rate)       ///  Rate variable in the popmort file  
+>                          pmmaxyear(2000)    ///
+>                          at1(sex 1)         ///
+>                          at2(sex 2)         ///
+>                          expvar(ELEm ELEf)  ///
+>                          )
+.  gen LELm = ELEm - LEm                         
+.  gen LELf = ELEf - LEf                         
+. }
+
+```  
+
+The predicted values can now be plotted.
+
+```stata
+. frame ageLEL {
+.   line LEf ELEf LELf age,                             ///
+>        xtitle("Age at diagnosis")                 ///
+>        ytitle(Life Expectency)                        ///
+>        legend(order(1 "Life Expectancy"               ///
+>                     2 "Expected Life Expectancy"      ///
+>                     3 "Reduction in Life Expectancy")  ///
+>               ring(0) cols(1) pos(1))
+. }              
+
+```  
+                  
+
+![](/statasvg/stpm3_relative_survival_LEL_age.svg)

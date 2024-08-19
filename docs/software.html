@@ -95,10 +95,6 @@ ul.task-list li input[type="checkbox"] {
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./about.html"> 
-<span class="menu-text">About</span></a>
-  </li>  
-  <li class="nav-item">
     <a class="nav-link" href="./publications.html"> 
 <span class="menu-text">Publications</span></a>
   </li>  
@@ -109,6 +105,10 @@ ul.task-list li input[type="checkbox"] {
   <li class="nav-item">
     <a class="nav-link" href="./talks.html"> 
 <span class="menu-text">Talks</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./courses.html"> 
+<span class="menu-text">Courses</span></a>
   </li>  
   <li class="nav-item">
     <a class="nav-link" href="./interactive_graphs.html"> 
@@ -126,11 +126,18 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#my-main-stata-commands." id="toc-my-main-stata-commands." class="nav-link active" data-scroll-target="#my-main-stata-commands.">My main Stata commands.</a></li>
+  <li><a href="#older-and-less-used-now" id="toc-older-and-less-used-now" class="nav-link" data-scroll-target="#older-and-less-used-now">Older (and less used now)</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
-<main class="content column-page" id="quarto-document-content">
+<main class="content column-page-left" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
@@ -139,7 +146,7 @@ ul.task-list li input[type="checkbox"] {
 
 
 
-<div class="quarto-title-meta column-page">
+<div class="quarto-title-meta column-page-left">
 
     
   
@@ -152,9 +159,32 @@ ul.task-list li input[type="checkbox"] {
 
 
 <p>I have developed a number of Stata commands. I have added some examples/tutorials. I occasionally add to these.</p>
-<p>Below is a list of my main Stata commands.</p>
+<section id="my-main-stata-commands." class="level2">
+<h2 class="anchored" data-anchor-id="my-main-stata-commands.">My main Stata commands.</h2>
+<ul>
+<li><a href="./software/stpm3.html"><strong>stpm3</strong></a> - flexible parametric survival models</li>
+<li><a href="./software/standsurv.html"><strong>standsurv</strong></a> - standardized survival curves and more after fitting various types of survival models.</li>
+<li><a href="./software/mrsprep.html"><strong>mrsprep</strong></a> - prepare data to directly fit marginal relative survival models.</li>
+<li><a href="./software/stpp.html"><strong>stpp</strong></a> - Non-parametric marginal relative (net) survival using Pohar Perme estimator</li>
+<li><a href="./software/mlad.html"><strong>mlad</strong></a> - Maximum likelIhood estimation with automatic differentiation using Python</li>
+<li><a href="./software/stcrprep.html"><strong>stcrprep</strong></a> - data-preparation command to fit a range of competing risks models.</li>
+<li><a href="./software/gensplines.html"><strong>gensplines</strong></a> - obtain basis functions for various types of splines.</li>
+</ul>
+</section>
+<section id="older-and-less-used-now" class="level2">
+<h2 class="anchored" data-anchor-id="older-and-less-used-now">Older (and less used now)</h2>
+<ul>
+<li><a href=".\software/stpm2/"><strong>stpm2</strong></a> - flexible parametric survival models</li>
+<li><a href=".\software/stpm2_standsurv"><strong>stpm2_standsurv</strong></a> - standardized survival curves after fitting an <code>stpm2</code> model</li>
+<li><a href=".\software/rcsgen"><strong>rcsgen</strong></a> - generate restricted cubic splines</li>
+<li><strong>strcs</strong> - flexible parametric models on log hazard scale</li>
+<li><strong>stpm2cif</strong> - cause-specific cumulative incidence function after fitting a stpm2 competing risks model</li>
+<li><strong>partpred</strong> - partial predictions</li>
+</ul>
+<p>I have worked with <a href="http://pauldickman.com/">Paul Dickman</a>, who has written some excellent <a href="http://pauldickman.com/software/stata/">Stata tutorials</a>, many of which use my commands.</p>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

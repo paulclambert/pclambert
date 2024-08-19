@@ -2,8 +2,23 @@
 title: "Publications"
 ---
 
-**A full list of my publications can be found here** [Link]
+## Flexible parametric survival models using Stata: Beyond the Cox Model
+
+I have written a book with Patrick Royston titled [Flexible parametric survival models using Stata: Beyond the Cox model](https://www.stata.com/bookstore/flexible-parametric-survival-analysis-stata/).
+
+![](media/fpsaus_front.jpg){width=15%}
+
+You can [download the datasets and code](https://www.stata-press.com/data/fpsaus.html) used in the book.
+
+A review of the book can be found [here](https://www.stata-journal.com/sjpdf.html?articlenum=gn0057).
+
+We are writing a second addition of the book with [Mark Rutherford](https://le.ac.uk/people/mark-rutherford) included as an additional author.
+
+## My publications
 
 
+{{< include scripts/allrefs.html >}}
 
 
+::: {refs}
+:::

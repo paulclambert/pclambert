@@ -1,0 +1,220 @@
+---
+title: "Factor Variables"
+---
+
+
+# `stpm3` fully supports factor variables
+
+In `stpm3` there is now full support for factor variables including for time-dependent effects.
+This makes predictions much easier. In addition, `standsurv` has been updated to be compatible 
+with `stpm3` making marginal predictions also much easier.
+
+We first load the Rotterdam breast cancer data and then use `stset` to declare the survival time and event indicator.
+
+```stata
+. use https://www.pclambert.net/data/rott3, clear
+(Rotterdam breast cancer data (augmented with cause of death))
+
+. stset os, f(osi==1) scale(12) exit(time 120)
+
+Survival-time data settings
+
+         Failure event: osi==1
+Observed time interval: (0, os]
+     Exit on or before: time 120
+     Time for analysis: time/12
+
+--------------------------------------------------------------------------
+      2,982  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+      2,982  observations remaining, representing
+      1,171  failures in single-record/single-failure data
+ 20,002.424  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =        10
+
+```
+
+The `scale(12)` option converts the times recorded in months to years.
+
+To fit an `stpm3` model with a binary covariate  we could use,
+
+```stata
+. stpm3 hormon, scale(lncumhazard) df(5) 
+
+Iteration 0:  Log likelihood = -2929.2995  
+Iteration 1:  Log likelihood = -2928.2998  
+Iteration 2:  Log likelihood = -2928.2966  
+Iteration 3:  Log likelihood = -2928.2966  
+
+                                                        Number of obs =  2,982
+                                                        Wald chi2(1)  =  25.19
+Log likelihood = -2928.2966                             Prob > chi2   = 0.0000
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+xb           |
+      hormon |   .4321954   .0861189     5.02   0.000     .2634054    .6009854
+-------------+----------------------------------------------------------------
+time         |
+        _ns1 |   -23.9834    1.92113   -12.48   0.000    -27.74874   -20.21805
+        _ns2 |   6.695765   1.027919     6.51   0.000     4.681082    8.710449
+        _ns3 |  -1.214676   .0497438   -24.42   0.000    -1.312172    -1.11718
+        _ns4 |  -.8095755   .0387379   -20.90   0.000    -.8855004   -.7336505
+        _ns5 |  -.4994385   .0418591   -11.93   0.000    -.5814808   -.4173963
+       _cons |  -.5713643   .0332128   -17.20   0.000    -.6364603   -.5062684
+------------------------------------------------------------------------------
+
+```
+
+The equivalent model using factor variables is, 
+
+```stata
+. stpm3 i.hormon, scale(lncumhazard) df(5) 
+
+Iteration 0:  Log likelihood = -2929.2995  
+Iteration 1:  Log likelihood = -2928.2998  
+Iteration 2:  Log likelihood = -2928.2966  
+Iteration 3:  Log likelihood = -2928.2966  
+
+                                                        Number of obs =  2,982
+                                                        Wald chi2(1)  =  25.19
+Log likelihood = -2928.2966                             Prob > chi2   = 0.0000
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+xb           |
+      hormon |
+        yes  |   .4321954   .0861189     5.02   0.000     .2634054    .6009854
+-------------+----------------------------------------------------------------
+time         |
+        _ns1 |   -23.9834    1.92113   -12.48   0.000    -27.74874   -20.21805
+        _ns2 |   6.695765   1.027919     6.51   0.000     4.681082    8.710449
+        _ns3 |  -1.214676   .0497438   -24.42   0.000    -1.312172    -1.11718
+        _ns4 |  -.8095755   .0387379   -20.90   0.000    -.8855004   -.7336505
+        _ns5 |  -.4994385   .0418591   -11.93   0.000    -.5814808   -.4173963
+       _cons |  -.5713643   .0332128   -17.20   0.000    -.6364603   -.5062684
+------------------------------------------------------------------------------
+
+```
+
+You can also include factor variables as a time-dependent effect.
+
+```stata
+. stpm3 i.hormon, scale(lncumhazard) df(5) ///
+>                 tvc(i.hormon) dftvc(3)
+
+Iteration 0:  Log likelihood = -2928.8322  
+Iteration 1:  Log likelihood = -2926.8607  
+Iteration 2:  Log likelihood = -2926.8409  
+Iteration 3:  Log likelihood = -2926.8409  
+
+                                                        Number of obs =  2,982
+                                                        Wald chi2(1)  =  20.88
+Log likelihood = -2926.8409                             Prob > chi2   = 0.0000
+
+-----------------------------------------------------------------------------------
+                  | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+------------------+----------------------------------------------------------------
+xb                |
+           hormon |
+             yes  |   .4766542   .1043107     4.57   0.000     .2722089    .6810995
+------------------+----------------------------------------------------------------
+time              |
+             _ns1 |  -25.11479   2.156221   -11.65   0.000     -29.3409   -20.88867
+             _ns2 |   7.297905    1.13577     6.43   0.000     5.071836    9.523974
+             _ns3 |  -1.195295   .0516705   -23.13   0.000    -1.296567   -1.094023
+             _ns4 |  -.7997134   .0402802   -19.85   0.000    -.8786612   -.7207657
+             _ns5 |  -.4954146   .0427173   -11.60   0.000    -.5791388   -.4116903
+                  |
+hormon#c._ns_tvc1 |
+             yes  |   4.943174   3.778547     1.31   0.191    -2.462642    12.34899
+                  |
+hormon#c._ns_tvc2 |
+             yes  |  -2.952286   1.995084    -1.48   0.139    -6.862579    .9580062
+                  |
+hormon#c._ns_tvc3 |
+             yes  |  -.0773513   .1778044    -0.44   0.664    -.4258415    .2711389
+                  |
+            _cons |  -.5740705   .0333738   -17.20   0.000    -.6394819   -.5086591
+-----------------------------------------------------------------------------------
+
+```
+
+You can incorporate interactions into both the main effect and interactions with time using `tvc()`.
+
+```stata
+. stpm3 i.hormon##i.grade, scale(lncumhazard) df(5) ///
+>                 tvc(i.hormon##i.grade) dftvc(3) baselevels
+
+Iteration 0:  Log likelihood = -2901.3265  
+Iteration 1:  Log likelihood = -2895.1769  
+Iteration 2:  Log likelihood = -2895.0066  
+Iteration 3:  Log likelihood = -2895.0059  
+Iteration 4:  Log likelihood = -2895.0059  
+
+                                                        Number of obs =  2,982
+                                                        Wald chi2(3)  =  60.61
+Log likelihood = -2895.0059                             Prob > chi2   = 0.0000
+
+-----------------------------------------------------------------------------------------
+                        | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+------------------------+----------------------------------------------------------------
+xb                      |
+                 hormon |
+                    no  |          0  (base)
+                   yes  |   .4135919   .2951852     1.40   0.161    -.1649605    .9921443
+                        |
+                  grade |
+                     2  |          0  (base)
+                     3  |    .483797   .0805037     6.01   0.000     .3260126    .6415814
+                        |
+           hormon#grade |
+                 yes#3  |   .0284316    .315761     0.09   0.928    -.5904485    .6473117
+------------------------+----------------------------------------------------------------
+time                    |
+                   _ns1 |  -27.62422   5.730659    -4.82   0.000    -38.85611   -16.39234
+                   _ns2 |   7.583979   2.721378     2.79   0.005     2.250176    12.91778
+                   _ns3 |  -1.385614   .1121938   -12.35   0.000     -1.60551   -1.165718
+                   _ns4 |  -.8489422   .0796837   -10.65   0.000    -1.005119   -.6927651
+                   _ns5 |  -.4786468   .0735986    -6.50   0.000    -.6228974   -.3343963
+                        |
+      hormon#c._ns_tvc1 |
+                   yes  |  -2.771489   16.45089    -0.17   0.866    -35.01463    29.47165
+                        |
+      hormon#c._ns_tvc2 |
+                   yes  |   2.425308   8.628728     0.28   0.779    -14.48669     19.3373
+                        |
+      hormon#c._ns_tvc3 |
+                   yes  |  -.7069334    .573263    -1.23   0.218    -1.830508    .4166415
+                        |
+       grade#c._ns_tvc1 |
+                     3  |   2.757887   5.847325     0.47   0.637    -8.702659    14.21843
+                        |
+       grade#c._ns_tvc2 |
+                     3  |   -.285027   3.030253    -0.09   0.925    -6.224213    5.654159
+                        |
+       grade#c._ns_tvc3 |
+                     3  |  -.0467859   .1288623    -0.36   0.717    -.2993512    .2057795
+                        |
+hormon#grade#c._ns_tvc1 |
+                 yes#3  |   8.162556   16.89039     0.48   0.629      -24.942    41.26711
+                        |
+hormon#grade#c._ns_tvc2 |
+                 yes#3  |  -5.885373   8.860398    -0.66   0.507    -23.25143    11.48069
+                        |
+hormon#grade#c._ns_tvc3 |
+                 yes#3  |   .7162528   .6030515     1.19   0.235    -.4657065    1.898212
+                        |
+                  _cons |  -.9320134   .0710511   -13.12   0.000    -1.071271   -.7927559
+-----------------------------------------------------------------------------------------
+
+```
+
+I strongly recommend using factor variables. When the model becomes complex, with interactions, time-dependent effects etc, 
+then  predictions usinff `predict` or `standsurv` become much simpler. 
+

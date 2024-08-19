@@ -1,0 +1,218 @@
+---
+title: "Contrasts"
+---
+<<dd_do: quietly >>
+frames reset
+set scheme fpsaus_c
+<</dd_do>>
+
+
+## Multiple `at` options
+
+If you have more than one `at` option then you can perform contrasts.
+For example, if you predict survival curves for more than one covariate pattern 
+you can take differences or ratios of these predictions. 
+
+This is best shown through example. I first load the Rotterdam breast cancer data.
+
+```stata
+<<dd_do>>
+use https://www.pclambert.net/data/rott3, clear
+stset os, f(osi==1) scale(12) exit(time 60)
+<</dd_do>>
+```
+
+I will fit a simple model including the effect of `hormon` and use a
+natural spline for `age`.
+
+```stata
+<<dd_do>>
+stpm3 i.hormon @ns(age, df(3)), scale(lncumhazard) df(5) 
+estimates store stpm3_ns
+<</dd_do>>
+```
+
+I will now predict the survival function for a 70 year woman with and without hormonal treatment.
+
+```stata
+<<dd_do>>
+predict S70h0 S70h1, survival ci          ///
+              at1(age 70 hormon 0)        ///
+              at2(age 70 hormon 1)        ///
+              timevar(0 5, step(0.1))     ///
+              frame(f1)
+<</dd_do>>
+```
+
+The predicted survival functions are plotted below.
+
+```stata
+<<dd_do>>
+frame f1 {
+  twoway (line S70h0 S70h1 tt) ///
+         , xtitle("Years since surgery") ///
+         ytitle("S(t)")                  ///
+         legend(order(1 "hormon=0" 2 "hormon=1") ring(0) pos(1) cols(1))
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/stpm3_predict_contrast_survival1.svg, replace 
+<</dd_do>>
+
+![](/statasvg/stpm3_predict_contrast_survival1.svg)
+
+Visually we can see the difference in the lines which is over
+10 percentage points at 5 years. We can calculate the difference using
+the `contrast(difference)` option. We can name the contrast variable 
+using the `contrastvar()` option rather than rely on the default names.
+
+```stata
+<<dd_do>>
+predict S70h0 S70h1, survival ci          ///
+              at1(age 70 hormon 0)        ///
+              at2(age 70 hormon 1)        ///
+              contrast(difference)        ///
+              contrastvar(Sdiff)          ///
+              timevar(0 5, step(0.1))     ///
+              frame(f1, replace)
+<</dd_do>>
+```
+
+Once the contrast is stored, it can be plotted together with a 95% confidence interval.
+
+```stata
+<<dd_do>>
+frame f1 {
+  twoway (rarea Sdiff_lci Sdiff_uci tt, color(red%30)) ///
+         (line Sdiff tt, color(red))                   ///
+         , xtitle("Years since surgery")               ///
+         ytitle("Difference in S(t)")                  ///
+         ylabel(,format(%3.2f))                        ///
+         legend(off)
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/stpm3_predict_contrast_survival_diff1.svg, replace 
+<</dd_do>>
+
+![](/statasvg/stpm3_predict_contrast_survival_diff1.svg)
+
+By default `at1()` is the reference, so the difference is `at2()` - `at1()`.
+The reference level can be changed using the `atreference()` option.
+
+```stata
+<<dd_do>>
+predict S70h0 S70h1, survival ci          ///
+              at1(age 70 hormon 0)        ///
+              at2(age 70 hormon 1)        ///
+              atreference(2)              ///
+              contrast(difference)        ///
+              contrastvar(Sdiff)          ///
+              timevar(0 5, step(0.1))     ///
+              frame(f1, replace)
+<</dd_do>>
+```
+
+Once the contrast is stored, it can be plotted together with a 95% confidence interval.
+
+```stata
+<<dd_do>>
+frame f1 {
+  twoway (rarea Sdiff_lci Sdiff_uci tt, color(red%30)) ///
+         (line Sdiff tt, color(red))                   ///
+         , xtitle("Years since surgery")               ///
+         ytitle("Difference in S(t)")                  ///
+         ylabel(,format(%3.2f))                        ///
+         legend(off)
+}
+<</dd_do>>
+```
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/stpm3_predict_contrast_survival_diff2.svg, replace 
+<</dd_do>>
+
+![](/statasvg/stpm3_predict_contrast_survival_diff2.svg)
+
+## More than two `at` options
+
+You can have as many `at` options as you want. The following predicts survival
+at 10 year intervals between 40 and 90 years at diagnosis.
+
+```stata
+<<dd_do>>
+local j 1
+foreach a of numlist  40(10)90 {
+  local atlist `atlist' at`j'(age `a' hormon 0)
+  local ++j
+} 
+predict S*, survival ci              ///
+            `atlist'                 ///
+            timevar(0 5, step(0.1))  ///
+            frame(f2, replace)
+<</dd_do>>
+```
+
+```stata
+<<dd_do>>
+frame f2 {
+  twoway (line S? tt, ) ///
+         , xtitle("Years since surgery")                         ///
+         ytitle("S(t)")                                          ///
+         ylabel(,format(%3.2f))                                  ///
+         legend(order(1 "40" 2 "50" 3 "60" 4 "70" 5 "80" 6 "90") ///
+                ring(0) pos(7) cols(1))
+}
+<</dd_do>>
+```
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/stpm3_predict_contrast_survival_age.svg, replace 
+<</dd_do>>
+
+![](/statasvg/stpm3_predict_contrast_survival_age.svg)
+
+
+
+If you want to make contrasts between the different ages 
+then we need to make one of the `at` options the reference.
+Below I make the 2nd `at` option the reference, which is for 50 year olds (they have the best survival).
+
+```stata
+<<dd_do>>
+local atlist
+local j 1
+foreach a of numlist  40(10)90 {
+  local atlist `atlist' at`j'(age `a' hormon 0)
+  local ++j
+} 
+predict S*, survival ci                 ///
+            `atlist'                    ///
+            contrast(difference)        ///
+            contrastvar(Sdiff*)         ///
+            atreference(2)              ///
+            timevar(0 5, step(0.1))     ///
+            frame(f2, replace)
+<</dd_do>>
+```
+
+```stata
+<<dd_do>>
+frame f2 {
+  twoway (line Sdiff? tt, ) ///
+         , xtitle("Years since surgery")                         ///
+         ytitle("S(t)")                                          ///
+         ylabel(,format(%3.2f))                                  ///
+         title("Difference in survival compared to 50 year old") ///
+         legend(order(1 "40" 2 "60" 3 "70" 4 "80" 5 "90")        ///
+                ring(0) pos(7) cols(1))
+}
+<</dd_do>>
+```
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/stpm3_predict_contrast_survival_age_diff.svg, replace 
+<</dd_do>>
+
+![](/statasvg/stpm3_predict_contrast_survival_age_diff.svg)

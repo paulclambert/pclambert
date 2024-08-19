@@ -1,0 +1,46 @@
+---
+title: "`stpm3`"
+---
+
+`stpm3` fits flexible parametric survival models. These models use splines to model the effect of the time scale. 
+`stpm3` replaces `stpm2`, though `stpm2` will continue to be available on SSC.
+
+I have added some examples to explain some of the features of `stpm3` and differences to `stpm2`.
+
+> **Installing**
+You will need to install the `stpm3`, `standsurv` and `gensplines` packages.
+You can install from within Stata from SSC using
+the code below. 
+If you have already installed earler test versions from my website then I recommend first 
+removing these versions using `ado uninstall` before installing the version from SSC.
+Stata does not always refresh the mata libraries when using `ado update`, so I 
+suggest restarting Stata after updating.
+
+```stata
+ssc install stpm3
+ssc install standsurv
+ssc install gensplines
+```
+
+## Fitting `stpm3` models.
+- [Change to the scale option](/software/stpm3/scale_option.qmd)
+- [Use of factor variables](/software/stpm3/factor_variables.qmd)
+
+## Predictions (conditional on covariate values)
+- [Frames for prediction](/software/stpm3/predictions.qmd)
+- [Extended functions](/software/stpm3/extended_functions.qmd)
+- [Multiple `at` options and contrasts](/software/stpm3/contrasts.qmd)
+- [Relative survival models](/software/stpm3/relative_survival_models.qmd)
+
+
+## Marginal predictions 
+- [Using `standsurv` with factor variables](/software/stpm3/standsurv/)
+
+## Other Details
+- [Numerical integration for models on log hazard scale]
+
+
+## Releases
+
+See [stpm3_releases.txt](/software/stpm3/stpm3_releases.txt)
+

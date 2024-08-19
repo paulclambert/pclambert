@@ -1,8 +1,30 @@
 ---
 title: "Software"
+bread-crumbs: true
 ---
 
 I have developed a number of Stata commands. I have added some examples/tutorials.
 I occasionally add to these.
 
-Below is a list of my main Stata commands.
+## My main Stata commands.
+
+- [**stpm3**](software/stpm3.qmd) - flexible parametric survival models
+- [**standsurv**](software/standsurv.qmd) - standardized survival curves and more after fitting various types of survival models.
+- [**mrsprep**](software/mrsprep.qmd) - prepare data to directly fit marginal relative survival models.
+- [**stpp**](software/stpp.qmd) - Non-parametric marginal relative (net) survival using Pohar Perme estimator
+- [**mlad**](software/mlad.qmd) - Maximum likelIhood estimation with automatic differentiation using Python
+- [**stcrprep**](software/stcrprep.qmd) - data-preparation command to fit a range of competing risks models.
+- [**gensplines**](software/gensplines.qmd) - obtain basis functions for various types of splines.
+
+## Older (and less used now)
+
+
+- [**stpm2**](/software/stpm2/) - flexible parametric survival models
+- [**stpm2_standsurv**](/software/stpm2_standsurv) - standardized survival curves after fitting an `stpm2` model
+- [**rcsgen**](/software/rcsgen)  - generate restricted cubic splines
+- **strcs** - flexible parametric models on log hazard scale
+- **stpm2cif** - cause-specific cumulative incidence function after fitting a stpm2 competing risks model
+- **partpred** - partial predictions
+
+
+I have worked with [Paul Dickman](http://pauldickman.com/), who has written some excellent [Stata tutorials](http://pauldickman.com/software/stata/), many of which use my commands.

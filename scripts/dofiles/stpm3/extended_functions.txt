@@ -1,0 +1,212 @@
+---
+title: "Extended Functions"
+---
+
+<<dd_do: quietly >>
+frames reset
+set scheme fpsaus_c
+<</dd_do>>
+
+## Include non-linear function in a `varlist`
+
+A new addition to `stpm3` is the use of *extended functions* within a model `varlist`.
+This allows you to specify various spline, polynomials, fractional polynomials functions
+directly when specifying the model. This makes fitting the model slightly easier,
+but the main advantage is the ease at which you can get predictions from complex models.
+
+We first load the Rotterdam 2 breast cancer data and then use `stset` to declare the survival time and event indicator.
+
+```stata
+<<dd_do>>
+use https://www.pclambert.net/data/rott2b, clear
+stset os, f(osi==1) scale(12) exit(time 60)
+<</dd_do>>
+```
+
+If you want to include a non-linear effect for a covariate in a model, 
+the usual approach would be to generate some new derived variables 
+and then include these in the model. For example, by generating a quadratic and cubic term or
+generating spline basis functions using `mkspline` or `rcsgen`.
+
+The code below shows how to include non-linear effects using 
+restricted cubic splines with `rcsgen` with 4 knots, 
+which equates to 3 spline variables.
+
+```stata
+<<dd_do>>
+rcsgen age, gen(agercs) df(3)
+global ageknots `r(knots)'
+stpm3 i.hormon agercs1-agercs3, scale(lncumhazard) df(5) 
+estimates store stpm3_rcsgen
+<</dd_do>>
+```
+I have stored the knot locations as these will be needed for certain predictions.
+
+To fit an identical model, but using extended function we can use
+`@rcs(age, df(3))` within an `stpm3` `varlist`.
+
+```stata
+<<dd_do>>
+stpm3 i.hormon @rcs(age, df(3)), scale(lncumhazard) df(5) 
+<</dd_do>>
+```
+
+If you compare the model coefficients and log-likelihoods you will see they are identical.
+
+From here on I will use natural splines - these will give the same predicted values
+as when using restricted cubic splines, but have some useful additional properties.
+
+```stata
+<<dd_do>>
+stpm3 i.hormon @ns(age, df(3)), scale(lncumhazard) df(5) 
+estimates store stpm3_ns
+<</dd_do>>
+```
+
+The coefficients for the spline variables are now different, but if you predict
+for a specified covariate pattern, the predictions will be identical.
+
+## Predictions with extended functions
+
+If we generated the spline variables for age at diagnosis 
+and then included these in the model, we would have to work out the values of the spline variables 
+at the age at diagnosis of interest. For example, using the `scalar` option of `rcsgen` to predict
+survival for a 70 year old on hormonal treatment the code below can be used.
+
+```stata
+<<dd_do>>
+estimates restore stpm3_rcsgen
+rcsgen, scalar(70) gen(c) knots(${ageknots})
+predict S70a, survival ci                                             ///
+              at1(agercs1 `=c1' agercs2 `=c2' agercs3 `=c3' hormon 1) ///
+              timevar(0 5, step(0.1))                                 ///
+              frame(f1)
+<</dd_do>>
+```
+
+By storing the knots and passing these to `rcsgen` combined with the `scalar` option,
+the values of the restricted cubic spline variables for a 70 year old are obtained.
+These can then be passed to the `predict` command.
+
+If you use an extended function to fit an equivalent model this simplifies
+the predictions. For example predicting for a 70 year old woman on hormonal treatment
+we can use the following predict command.
+
+```stata
+<<dd_do>>
+estimates restore stpm3_ns
+predict S70b, survival ci          ///
+              at1(age 70 hormon 1) ///
+              frame(f1, merge)
+<</dd_do>>
+```
+
+These predictions have been merged into frame `f1`, so we can compare the predictions.
+
+```stata
+<<dd_do>>
+frame f1: list in 1/21, noobs
+<</dd_do>>
+```
+
+The predictions are identical, but obtaining the predictions using extended functions was much easier. 
+If the model includes interactions then I would say it is much, much easier and less prone to coding errors.
+
+The current extended functions are
+
+|      |          |
+|-----------|----------------------------|
+| `@bs()`   |  B-splines |
+| `@fn()`   |  general transformation |
+| `@fp()`   |  fractional polynomials        |
+| `@ns()`   |  natural cubic splines        |
+| `@poly()` |  polynomials         |
+| `@rcs()`  |  restricted cubic splines
+
+
+See the help file for options for each of these functions. For example,
+with the spline functions you specify knots positions or the degree for B-splines. 
+For fractional polynomials there are `scale` and `center` options. For all 
+extended functions, except fractional polynomials, it is possible to perform
+winsorising before the derived variables are generated using the `winsor()` option.
+
+## Predictions in more complex models
+
+If the model get complex with numerous interactions and non-linear effects and 
+interactions with time, the predictions remain simple.
+
+Consider the model below with main effects and an interaction between 
+`hormon` and a natural spline function for `age`. `stpm3` stores the details
+of the extended function and so when predictions are made the appropriate values
+of the derived variables can be obtained.
+
+In the code below, I obtain predictions for 70 year old women with and without hormonal treatment.
+
+```stata
+<<dd_do>>
+stpm3 i.hormon##@ns(age, df(3)), scale(lncumhazard) df(5) 
+
+predict S70h0 S70h1, survival ci              ///
+                     at1(age 70 hormon 0)     ///
+                     at2(age 70 hormon 1)     ///
+                     timevar(0 5, step(0.1))  ///
+                     frame(f2)
+<</dd_do>>
+```
+
+The nice thing here is that thehe `predict` command would be identical 
+if there was no interaction.
+
+Even if there are time-dependent effects, the `predict` statement does not change.
+The model below adds an interaction for the time-dependent effects for `hormon`
+and `age`.
+
+```stata
+<<dd_do>>
+stpm3 i.hormon##@ns(age, df(3)),                 ///
+      tvc(i.hormon##@ns(age, df(2))) dftvc(2)    ///
+      scale(lncumhazard) df(5)                           
+      
+predict S70h0 S70h1, survival ci                ///
+                     at1(age 70 hormon 0)       ///
+                     at2(age 70 hormon 1)       ///
+                     timevar(0 5, step(0.1))    ///
+                     frame(f3)
+<</dd_do>>
+```
+
+The key point is that the `predict` command stays simple. 
+Note that I use a different function for the time-dependent effect, 
+so two `@ns()` functions at the end of the model output.
+
+
+
+Finally I will fit a model with a spline function that winsorises the variables
+before the spline basis functions are generated. This can improve model stability 
+in the tails in complex models. I use B-splines rather than natural splines
+for the effect of age.
+
+
+```stata
+<<dd_do>>
+stpm3 i.hormon##@bs(age, df(3) degree(2) winsor(2 98)), ///
+      scale(lncumhazard) df(5)                           
+      
+predict S70h0 S70h1, survival ci                 ///
+                     at1(age 70 hormon 0)        ///
+                     at2(age 70 hormon 1)        ///
+                     timevar(0 5, step(0.1))     ///
+                     frame(f4)
+<</dd_do>>
+```
+
+The `winsor(2 98)` option replaces values less than the 2nd centile with the
+value at the 2nd centile and values greater than the 98th centile with the values
+at the 98th centile. There is a `values` suboption where you can directly specifying
+values for the cutoffs rather than centiles.
+
+Again, the key point here is that the predict commands does not change.
+
+
+
+

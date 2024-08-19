@@ -1,19 +1,44 @@
 project:
   type: website
   output-dir: docs
+  render: 
+    - index.qmd
+    - publications.qmd
+    - courses.qmd
+    - software.qmd
+    - talks.qmd
+    - interactive_graphs.qmd
+    - software/
+    
+  post-render:
+    - scripts/make_lambert_bold.R
+    
+  resources:    
+    - data/
+    - downloads/
 
 website:
   navbar:
     title: "Paul Lambert"
     left:
       - href: index.qmd
-        text: Home
-      - about.qmd
+        text: "Home"
       - publications.qmd
-      - software.qmd
+      - href: software.qmd
+        text: "Software"
       - talks.qmd
+      - courses.qmd
       - href: interactive_graphs.qmd
         text: Interactive graphs
+        
+  sidebar:
+    - title: "Software"
+      style: "docked"
+      background: light
+      contents:
+        - stpm3.qmd
+        - standsurv.qmd
+        - stpp.qmd        
 
 format:
   html:
@@ -23,3 +48,4 @@ format:
     css: styles.css
     toc: true
     page-layout: full
+

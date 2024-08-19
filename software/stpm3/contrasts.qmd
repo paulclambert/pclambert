@@ -1,0 +1,248 @@
+---
+title: "Contrasts"
+---
+
+
+## Multiple `at` options
+
+If you have more than one `at` option then you can perform contrasts.
+For example, if you predict survival curves for more than one covariate pattern 
+you can take differences or ratios of these predictions. 
+
+This is best shown through example. I first load the Rotterdam breast cancer data.
+
+```stata
+. use https://www.pclambert.net/data/rott3, clear
+(Rotterdam breast cancer data (augmented with cause of death))
+
+. stset os, f(osi==1) scale(12) exit(time 60)
+
+Survival-time data settings
+
+         Failure event: osi==1
+Observed time interval: (0, os]
+     Exit on or before: time 60
+     Time for analysis: time/12
+
+--------------------------------------------------------------------------
+      2,982  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+      2,982  observations remaining, representing
+        753  failures in single-record/single-failure data
+ 13,038.968  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =         5
+
+```
+
+I will fit a simple model including the effect of `hormon` and use a
+natural spline for `age`.
+
+```stata
+. stpm3 i.hormon @ns(age, df(3)), scale(lncumhazard) df(5) 
+
+Iteration 0:  Log likelihood = -2120.3306  
+Iteration 1:  Log likelihood = -2120.0705  
+Iteration 2:  Log likelihood = -2120.0694  
+Iteration 3:  Log likelihood = -2120.0694  
+
+                                                        Number of obs =  2,982
+                                                        Wald chi2(4)  =  69.03
+Log likelihood = -2120.0694                             Prob > chi2   = 0.0000
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+xb           |
+      hormon |
+        yes  |   .3966145   .1041656     3.81   0.000     .1924536    .6007754
+ _ns_f1_age1 |  -1.769774   1.089136    -1.62   0.104    -3.904441    .3648924
+ _ns_f1_age2 |  -1.233782   .4602279    -2.68   0.007    -2.135812   -.3317519
+ _ns_f1_age3 |  -1.709216   .4899396    -3.49   0.000     -2.66948   -.7489521
+-------------+----------------------------------------------------------------
+time         |
+        _ns1 |  -22.10362   2.190797   -10.09   0.000    -26.39751   -17.80974
+        _ns2 |   6.252487    1.18838     5.26   0.000     3.923304     8.58167
+        _ns3 |  -1.093169   .0583025   -18.75   0.000    -1.207439   -.9788977
+        _ns4 |  -.5425182   .0376756   -14.40   0.000    -.6163609   -.4686754
+        _ns5 |   -.376672   .0361107   -10.43   0.000    -.4474477   -.3058964
+       _cons |  -.1364105   .2354592    -0.58   0.562     -.597902     .325081
+------------------------------------------------------------------------------
+Extended functions
+ (1) @ns(age, df(3))
+
+. estimates store stpm3_ns
+
+```
+
+I will now predict the survival function for a 70 year woman with and without hormonal treatment.
+
+```stata
+. predict S70h0 S70h1, survival ci          ///
+>               at1(age 70 hormon 0)        ///
+>               at2(age 70 hormon 1)        ///
+>               timevar(0 5, step(0.1))     ///
+>               frame(f1)
+Predictions are stored in frame - f1
+
+```
+
+The predicted survival functions are plotted below.
+
+```stata
+. frame f1 {
+.   twoway (line S70h0 S70h1 tt) ///
+>          , xtitle("Years since surgery") ///
+>          ytitle("S(t)")                  ///
+>          legend(order(1 "hormon=0" 2 "hormon=1") ring(0) pos(1) cols(1))
+. }
+
+```
+
+
+![](/statasvg/stpm3_predict_contrast_survival1.svg)
+
+Visually we can see the difference in the lines which is over
+10 percentage points at 5 years. We can calculate the difference using
+the `contrast(difference)` option. We can name the contrast variable 
+using the `contrastvar()` option rather than rely on the default names.
+
+```stata
+. predict S70h0 S70h1, survival ci          ///
+>               at1(age 70 hormon 0)        ///
+>               at2(age 70 hormon 1)        ///
+>               contrast(difference)        ///
+>               contrastvar(Sdiff)          ///
+>               timevar(0 5, step(0.1))     ///
+>               frame(f1, replace)
+Predictions are stored in frame - f1
+
+```
+
+Once the contrast is stored, it can be plotted together with a 95% confidence interval.
+
+```stata
+. frame f1 {
+.   twoway (rarea Sdiff_lci Sdiff_uci tt, color(red%30)) ///
+>          (line Sdiff tt, color(red))                   ///
+>          , xtitle("Years since surgery")               ///
+>          ytitle("Difference in S(t)")                  ///
+>          ylabel(,format(%3.2f))                        ///
+>          legend(off)
+. }
+
+```
+
+
+![](/statasvg/stpm3_predict_contrast_survival_diff1.svg)
+
+By default `at1()` is the reference, so the difference is `at2()` - `at1()`.
+The reference level can be changed using the `atreference()` option.
+
+```stata
+. predict S70h0 S70h1, survival ci          ///
+>               at1(age 70 hormon 0)        ///
+>               at2(age 70 hormon 1)        ///
+>               atreference(2)              ///
+>               contrast(difference)        ///
+>               contrastvar(Sdiff)          ///
+>               timevar(0 5, step(0.1))     ///
+>               frame(f1, replace)
+Predictions are stored in frame - f1
+
+```
+
+Once the contrast is stored, it can be plotted together with a 95% confidence interval.
+
+```stata
+. frame f1 {
+.   twoway (rarea Sdiff_lci Sdiff_uci tt, color(red%30)) ///
+>          (line Sdiff tt, color(red))                   ///
+>          , xtitle("Years since surgery")               ///
+>          ytitle("Difference in S(t)")                  ///
+>          ylabel(,format(%3.2f))                        ///
+>          legend(off)
+. }
+
+```
+
+![](/statasvg/stpm3_predict_contrast_survival_diff2.svg)
+
+## More than two `at` options
+
+You can have as many `at` options as you want. The following predicts survival
+at 10 year intervals between 40 and 90 years at diagnosis.
+
+```stata
+. local j 1
+
+. foreach a of numlist  40(10)90 {
+  2.   local atlist `atlist' at`j'(age `a' hormon 0)
+  3.   local ++j
+  4. } 
+
+. predict S*, survival ci              ///
+>             `atlist'                 ///
+>             timevar(0 5, step(0.1))  ///
+>             frame(f2, replace)
+Predictions are stored in frame - f2
+
+```
+
+```stata
+. frame f2 {
+.   twoway (line S? tt, ) ///
+>          , xtitle("Years since surgery")                         ///
+>          ytitle("S(t)")                                          ///
+>          ylabel(,format(%3.2f))                                  ///
+>          legend(order(1 "40" 2 "50" 3 "60" 4 "70" 5 "80" 6 "90") ///
+>                 ring(0) pos(7) cols(1))
+. }
+
+```
+
+![](/statasvg/stpm3_predict_contrast_survival_age.svg)
+
+
+
+If you want to make contrasts between the different ages 
+then we need to make one of the `at` options the reference.
+Below I make the 2nd `at` option the reference, which is for 50 year olds (they have the best survival).
+
+```stata
+. local atlist
+
+. local j 1
+
+. foreach a of numlist  40(10)90 {
+  2.   local atlist `atlist' at`j'(age `a' hormon 0)
+  3.   local ++j
+  4. } 
+
+. predict S*, survival ci                 ///
+>             `atlist'                    ///
+>             contrast(difference)        ///
+>             contrastvar(Sdiff*)         ///
+>             atreference(2)              ///
+>             timevar(0 5, step(0.1))     ///
+>             frame(f2, replace)
+Predictions are stored in frame - f2
+
+```
+
+```stata
+. frame f2 {
+.   twoway (line Sdiff? tt, ) ///
+>          , xtitle("Years since surgery")                         ///
+>          ytitle("S(t)")                                          ///
+>          ylabel(,format(%3.2f))                                  ///
+>          title("Difference in survival compared to 50 year old") ///
+>          legend(order(1 "40" 2 "60" 3 "70" 4 "80" 5 "90")        ///
+>                 ring(0) pos(7) cols(1))
+. }
+
+```
+
+![](/statasvg/stpm3_predict_contrast_survival_age_diff.svg)

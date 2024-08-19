@@ -1,0 +1,59 @@
+---
+title: "Factor Variables"
+---
+
+
+# `stpm3` fully supports factor variables
+
+In `stpm3` there is now full support for factor variables including for time-dependent effects.
+This makes predictions much easier. In addition, `standsurv` has been updated to be compatible 
+with `stpm3` making marginal predictions also much easier.
+
+We first load the Rotterdam breast cancer data and then use `stset` to declare the survival time and event indicator.
+
+```stata
+<<dd_do>>
+use https://www.pclambert.net/data/rott3, clear
+stset os, f(osi==1) scale(12) exit(time 120)
+<</dd_do>>
+```
+
+The `scale(12)` option converts the times recorded in months to years.
+
+To fit an `stpm3` model with a binary covariate  we could use,
+
+```stata
+<<dd_do>>
+stpm3 hormon, scale(lncumhazard) df(5) 
+<</dd_do>>
+```
+
+The equivalent model using factor variables is, 
+
+```stata
+<<dd_do>>
+stpm3 i.hormon, scale(lncumhazard) df(5) 
+<</dd_do>>
+```
+
+You can also include factor variables as a time-dependent effect.
+
+```stata
+<<dd_do>>
+stpm3 i.hormon, scale(lncumhazard) df(5) ///
+                tvc(i.hormon) dftvc(3)
+<</dd_do>>
+```
+
+You can incorporate interactions into both the main effect and interactions with time using `tvc()`.
+
+```stata
+<<dd_do>>
+stpm3 i.hormon##i.grade, scale(lncumhazard) df(5) ///
+                tvc(i.hormon##i.grade) dftvc(3) baselevels
+<</dd_do>>
+```
+
+I strongly recommend using factor variables. When the model becomes complex, with interactions, time-dependent effects etc, 
+then  predictions usinff `predict` or `standsurv` become much simpler. 
+

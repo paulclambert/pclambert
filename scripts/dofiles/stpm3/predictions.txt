@@ -1,0 +1,183 @@
+---
+title: "Using `frames` for predictions"
+---
+
+
+<<dd_do: quietly >>
+frames reset
+set scheme  fpsaus_c
+<</dd_do>>
+
+
+## `stpm3` makes use of `frames` for predictions
+
+Predictions are much improved in `stpm3`. 
+
+
+We first load the Rotterdam breast cancer data and then use `stset` to declare the survival time and event indicator.
+
+```stata
+<<dd_do>>
+use https://www.pclambert.net/data/rott3, clear
+stset os, f(osi==1) scale(12) exit(time 120)
+<</dd_do>>
+```
+
+I will fit a simple proportional hazards model just include `hormon` and `age`.
+
+```stata
+<<dd_do>>
+stpm3 i.hormon age, scale(lncumhazard) df(5) 
+<</dd_do>>
+```
+
+We can predict the survival function for a 60 year old women who did not take hormon therapy using,
+
+```stata
+<<dd_do>>
+predict S, survival ci                 ///
+           at1(age 60 hormon 0)        ///
+           timevar(0 10, step(0.1)) 
+<</dd_do>>
+```
+
+The `predict` command has requested a survival function with a 95% confidence interval.
+The values of the covariates to predict at are given in the `at1()` option.
+It is possible to have multiple `at` options.
+The predictions will be at times between 0 and 10 in steps of 0.1, leading to  101 observations.
+
+We can list or plot the results in frame `stpm3_pred`.
+
+```stata
+<<dd_do>>
+frame stpm3_pred: list in 1/21, noobs
+<</dd_do>>
+```
+
+`stpm3` saves predictions to a new frame by default. The default name for the prediction frame is `stpm3_pred`, 
+but you can, and generally should, choose a frame name using the `frame()` option.
+
+```stata
+<<dd_do>>
+predict S1, survival ci               ///
+            at1(age 60 hormon 0)      ///
+            timevar(0 10, step(0.1))  ///
+            frame(f1)
+<</dd_do>>
+```
+
+## Merging to an existing frame
+
+One feature is that you can merge new predictions to an existing frame.
+When you do this the time variable stored in the existing frame will be used.
+For example, we could predict for a 70 year old woman and merge with frame `f1`.
+
+```stata
+<<dd_do>>
+predict S2, survival ci                 ///
+            at1(age 70 hormon 0)        ///
+            frame(f1, merge)
+<</dd_do>>
+```
+
+## Plotting from a frame 
+
+
+It is simple to plot the predictions stored in a frame.
+
+
+```stata
+<<dd_do>>
+frame f1 {
+  twoway line S1 S2 tt,                        ///
+         xtitle(Years since surgery)           ///
+         ytitle(Survival function)             ///
+         ylabel(0(0.2)1, format(%3.1f))        ///
+         legend(order(1 "Age 60" 2 "Age 70"))
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/stpm3_predict_eg_plot.svg, replace 
+<</dd_do>>
+
+![](/statasvg/stpm3_predict_eg_plot.svg)
+
+
+## Using multiple `at' options
+
+Note that when using `predict` you can specify multiple `at()` options, which is often easier 
+than having multiple `predict` commands. Below I use `frame(f1, replace)` to replace the
+existing frame `f1`. 
+
+```stata
+<<dd_do>>
+predict S1 S2, survival ci                 ///
+               at1(age 60 hormon 0)        ///
+               at2(age 70 hormon 0)        ///
+               timevar(0 10, step(0.1))    ///
+               frame(f1, replace)
+<</dd_do>>
+```
+
+I will cover more details about multiple `at()` options when I discuss contrasts.
+
+## Merging a different type of prediction
+
+Using `frame(..., merge)` is useful when you require predictions of different types,
+for example when requiring predictions of both survival and hazard functions.
+The predictions for the hazard functions are merged with the survival predictions below.
+
+```stata
+<<dd_do>>
+predict h1 h2, hazard ci                   ///
+               at1(age 60 hormon 0)        ///
+               at2(age 70 hormon 0)        ///
+               frame(f1, merge)
+<</dd_do>>
+```
+
+Alternatively you may want to predict the hazard function to a new frame.
+
+## Predicting to the active frame
+
+Sometimes you may want to merge the predictions into the active frame rather than create a new frame.
+You can do this with the `merge` option. This could be useful if you wanted to predict at each
+observed value in a dataset, for example at the observed event/censoring times (`_t`), 
+or at a specific value of time.
+
+The code below, predicts 10 year survival for each observation in the dataset.
+
+```stata
+<<dd_do>>
+predict S10, survival ci          ///
+             at1(.)               ///
+             timevar(10)          ///
+             merge
+<</dd_do>>
+```
+
+Note that only one value of time has been specified in the `timevar()` option
+The default is to `predict` at this time for all individuals. 
+The `at1(.)` option means that predictions will be at observed values of covariates 
+rather than values specifed by the user.
+
+We could plot a histogram of the 10 year survival probabilities.
+```stata
+<<dd_do>>
+hist S10
+<</dd_do>>
+```
+
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/stpm3_predict_hist.svg, replace 
+<</dd_do>>
+
+![](/statasvg/stpm3_predict_hist.svg)
+
+
+
+
+

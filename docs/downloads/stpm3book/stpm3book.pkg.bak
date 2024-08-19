@@ -1,0 +1,36 @@
+v 3
+* d lines display package description text
+* the first d line is the title, and the remaining ones are text
+* blank d lines display a blank line
+d stpm3
+d
+d Distribution-Date: 20240513
+d
+d contact:  paul.lambert@le.ac.uk
+d
+: :
+* f identifies the component files
+f stpm3.ado
+f stpm3_pred.ado
+f stpm3_gensplines.ado
+f stpm3_fpgen.ado
+f stpm3_polygen.ado
+f stpm3_userfunc.ado
+f stpm3.sthlp
+f stpm3_extfunctions.sthlp
+f stpm3_postestimation.sthlp
+f stpm3km.ado
+f stpm3km.sthlp
+f stpm3_predictions.sthlp
+f stpm3_predictions_eg.ado
+f stpm3_competing_risks.sthlp
+f stpm3_competing_risks_eg.ado
+f stpm3_hazard_setup.py  
+f stpm3_hazard_numint.py  
+f stpm3_hazard_3parts.py  
+f stpm3aj.ado 
+f stpm3quadchk.ado 
+f stpm3quadchk.sthlp 
+f lstpm3.mlib
+: : :
+e

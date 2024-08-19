@@ -1,0 +1,57 @@
+---
+title: "Change to the `scale()` option"
+---
+
+# The `scale()` option has changed
+
+In `stpm2` the choice of options when using the `scale()` option included `hazard` and `odds`.
+These really meant **log** cumulative hazard and **log** odds respectively.
+
+In `stpm3` you need to refer to these models as `scale(lncumhazard)` or
+`scale(lnodds)`. This is because `stpm3` allows models to be fitted on 
+the log hazard scale (`scale(lnhazard)`) and thus there is a need to distinguish between models
+on the log cumulative hazard and log hazard scales.
+
+
+We first load the example Rotterdam breast cancer data (`rott3.dta`)
+and then use `stset` to declare the survival time and event indicator.
+
+```stata
+<<dd_do>>
+use https://www.pclambert.net/data/rott2b, clear
+stset os, f(osi==1) scale(12) exit(time 120)
+<</dd_do>>
+```
+
+The `scale(12)` option converts the times recorded in months to years.
+
+To fit an `stpm2` model we would use,
+
+```stata
+<<dd_do>>
+stpm2 hormon, scale(hazard) df(5) 
+<</dd_do>>
+```
+
+The equivalent model in `stpm3` is, 
+
+```stata
+<<dd_do>>
+stpm3 hormon, scale(lncumhazard) df(5) 
+<</dd_do>>
+```
+
+Note the log-likelihoods are identical as are the coefficients/standard errors for `hormon`.
+Note that different basis functions are used, so the coefficients for the spline terms
+are different. However, predicted values for the same covariate pattern will not differ.
+
+
+To fit a model on the log hazard scale use `scale(lnhazard)`,
+
+```stata
+<<dd_do>>
+stpm3 hormon, scale(lnhazard) df(5) 
+<</dd_do>>
+```
+
+

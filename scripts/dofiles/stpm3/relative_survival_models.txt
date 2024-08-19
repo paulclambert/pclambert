@@ -1,0 +1,309 @@
+---
+title: "Relative Survival Models"
+---
+
+<<dd_do: quietly >>
+frames reset
+set scheme fpsaus_c
+<</dd_do>>
+
+
+> This is just a draft at present
+
+## Relative survival(excess mortality) models
+
+Relative survival(excess mortality) models are used to analyses population-based
+cancer survival data. As in `stpm2` this is done through using the `bhazard()`
+option when fitting an `stpm3` model.
+
+`stpm3` has better predictions than `stpm2` through the use of an `expsurv()`
+option.
+
+This guide is really aimed at those who are familiar with relative survival models.
+
+The code below loads the example colon cancer data set and merges in the 
+expected mortality rates at the event/censoring times.
+
+```stata
+<<dd_do>>
+use "https://pclambert.net/data/colon.dta", clear
+stset surv_mm,f(status=1,2) id(id) scale(12) exit(time 120.5)
+gen _age = floor(min(age+_t,99))
+gen _year = floor(yydx +_t)
+gen male = sex==1
+merge m:1 _age _year sex using "https://pclambert.net/data/popmort.dta", keep(match master)
+<</dd_do>>
+```
+
+To illustrate the prediction options I will fit a model with an 
+interaction between `age`' and `sex` for both main and time-dependent effects,
+where the effect of age is modelled using natural splines.
+I will also use winsoring at the 2nd and 98th centiles of age.
+
+```stata
+<<dd_do>>
+stpm3 i.male##@ns(age,df(3) winsor(2 98)), ///
+      tvc(i.male##@ns(age,df(3) winsor(2 98))) dftvc(2) ///
+      df(5) scale(lncumhazard)  bhazard(rate)
+<</dd_do>>
+```      
+
+The use of `bhazard(rate)` makes this a relative survival model. 
+This means that relative survival will be predicted when using the `survival`
+option of the `predict` command.
+Similarly, the excess mortality (hazard) rate will
+be predicted when uing the `hazard` option of the predict command.
+
+Some predictions require use of the `expsurv()` option to merge in the 
+expected mortality rates as will be shown below.
+
+The various predictions will be for males and females aged 70.
+
+### Relative Survival
+
+First I will predict relative survival and the difference between males and females.
+
+```stata
+<<dd_do>>
+predict Rm Rf, at1(male 1 age 70)         ///
+               at2(male 0 age 70)         ///
+               surv  ci                   ///
+               timevar(0 10, step(0.1))   ///
+               contrast(difference)       ///
+               contrastvar(Rdiff)         ///
+               frame(f1)
+<</dd_do>>
+```   
+
+The predictions are saved in frame `f1`, and can be plotted.
+               
+               
+```stata
+<<dd_do>>
+frame f1 {
+  line Rm Rf tt, name(RS, replace)    ///
+       xtitle("Time since diagnosis") ///
+       ytitle(R(t))
+  twoway (rarea Rdiff_lci Rdiff_uci tt, color(red%30)) ///
+         (line Rdiff tt, color(red)),                  ///
+         xtitle("Time since diagnosis")                ///
+         ytitle(Difference in R(t))                    /// 
+         legend(off)                                   ///
+         name(RSdiff, replace)
+}
+<</dd_do>>
+```   
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/stpm3_relative_survival_RS.svg, name(RS) replace 
+graph export ${DRIVE}/github/pclambert/statasvg/stpm3_relative_survival_RSdiff.svg, name(RSdiff) replace 
+<</dd_do>>
+
+
+![](/statasvg/stpm3_relative_survival_RS.svg)
+![](/statasvg/stpm3_relative_survival_RSdiff.svg)
+
+
+### All-cause survival
+
+Using the `expsurv()` option allows all-cause survival to be calculated.
+
+$$
+S(t|X) = S^*(t|X)R(t|X)
+$$
+
+```stata
+<<dd_do>>
+predict Sm Sf, surv  ci ///
+               at1(male 1 age 70)         ///
+               at2(male 0 age 70)         ///
+               contrast(difference)       ///
+               contrastvar(Sdiff)         ///               
+               frame(f1, merge)           ///
+               expsurv(using("https://www.pclambert.net/data/popmort") ///  Popmort file
+                       agediag(70)        ///  Age at diagnosis in the dataset
+                       datediag(1990-1-1) ///  Date of diagnosis in the dataset
+                       pmother(sex)       ///  Other variables included in the popmort file
+                       pmrate(rate)       ///  Rate variable in the popmort file  
+                       at1(sex 1)         ///
+                       at2(sex 2)         ///
+                       )                
+frame f1 {
+  line Sm Sf tt, name(S, replace)     ///
+       xtitle("Time since diagnosis") ///
+       ytitle(S(t))
+  twoway (rarea Sdiff_lci Sdiff_uci tt, color(red%30)) ///
+         (line Sdiff tt, color(red)),                  ///
+         xtitle("Time since diagnosis")                ///
+         ytitle(Difference in S(t))                    /// 
+         legend(off)                                   ///
+         name(Sdiff, replace)  
+}
+<</dd_do>>
+```   
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/stpm3_relative_survival_AC.svg, name(S) replace 
+graph export ${DRIVE}/github/pclambert/statasvg/stpm3_relative_survival_ACdiff.svg, name(Sdiff) replace 
+<</dd_do>>
+
+![](/statasvg/stpm3_relative_survival_AC.svg)
+![](/statasvg/stpm3_relative_survival_ACdiff.svg)
+
+### Marginal all-cause hazard
+
+This is the same as above, but replace the `survival` option with `hazard`.
+
+```stata
+<<dd_do>>
+predict hm hf, hazard  ci ///
+               at1(male 1 age 70)         ///
+               at2(male 0 age 70)         ///
+               contrast(difference)       ///
+               contrastvar(hdiff)         ///               
+               frame(f1, merge)           ///
+               expsurv(using("https://www.pclambert.net/data/popmort") ///  Popmort file
+                       agediag(70)        ///  Age at diagnosis in the dataset
+                       datediag(1990-1-1) ///  Date of diagnosis in the dataset
+                       pmother(sex)       ///  Other variables included in the popmort file
+                       pmrate(rate)       ///  Rate variable in the popmort file  
+                       at1(sex 1)         ///
+                       at2(sex 2)         ///
+                       )                
+frame f1 {
+  line hm hf tt, name(S, replace)     ///
+       xtitle("Time since diagnosis") ///
+       ytitle(h(t))
+  twoway (rarea hdiff_lci hdiff_uci tt, color(red%30)) ///
+         (line hdiff tt, color(red)),                 ///
+         xtitle("Time since diagnosis")                ///
+         ytitle(Difference in h(t))                    /// 
+         legend(off)                                   ///
+         name(Sdiff, replace)    
+  line hm hf tt, name(h, replace)
+  line hdiff* tt, name(hdiff, replace)
+}
+<</dd_do>>
+```   
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/stpm3_relative_survival_hazard.svg, name(h) replace 
+graph export ${DRIVE}/github/pclambert/statasvg/stpm3_relative_survival_hdiff.svg, name(hdiff) replace 
+<</dd_do>>
+
+![](/statasvg/stpm3_relative_survival_hazard.svg)
+![](/statasvg/stpm3_relative_survival_hdiff.svg)
+
+
+### Crude Probabilities
+
+The default is to only give crude probability of death due to cancer.
+You can use the `expvar` option to option crude probablities of death due to other causes.
+
+```stata
+<<dd_do>>
+predict Ccm Ccf, crudeprob ci ///
+               at1(male 1 age 70)  ///
+               at2(male 0 age 70)  ///
+               contrast(difference) ///
+               contrastvar(Ccdiff)   ///               
+               frame(f1, merge)    ///
+               expsurv(using("https://www.pclambert.net/data/popmort") ///  Popmort file
+                       agediag(70)      ///  Age at diagnosis in the dataset
+                       datediag(1990-1-1)      ///  Date of diagnosis in the dataset
+                       pmother(sex)       ///  Other variables included in the popmort file
+                       pmrate(rate)       ///  Rate variable in the popmort file  
+                       at1(sex 1)         ///
+                       at2(sex 2)         ///
+                       expvar(Com Cof) ///
+                       )                      
+<</dd_do>>
+```  
+
+### Life expectancy
+
+This is obtained through separate extrapolation of the relative and expected survival.
+
+
+```stata
+<<dd_do>>
+gen t80 = 80 in 1
+predict LEf LEm, rmst ci            ///
+               at1(male 1 age 70)   ///
+               at2(male 0 age 70)   ///
+               contrast(difference) ///
+               contrastvar(Ccdiff)  /// 
+               timevar(t80)         ///
+               frame(f2)            ///
+               expsurv(using("https://www.pclambert.net/data/popmort") ///  Popmort file
+                       agediag(70)      ///  Age at diagnosis in the dataset
+                       datediag(1990-1-1)      ///  Date of diagnosis in the dataset
+                       pmother(sex)       ///  Other variables included in the popmort file
+                       pmrate(rate)       ///  Rate variable in the popmort file  
+                       pmmaxyear(2000)    ///
+                       at1(sex 1)         ///
+                       at2(sex 2)         ///
+                       expvar(ELEm ELEf) ///
+                       )
+                       
+frame f2: {
+  list LEf* ELEf                       
+  list LEm* ELEm                       
+}                
+<</dd_do>>
+```  
+                       
+### Life expectancy over a range of ages
+
+The code below creates a frame with a range of ages to predict life expectencty.
+
+```stata
+<<dd_do>>
+capture frame drop ageLEL
+frame create ageLEL
+frame ageLEL {
+  range age 50 99 50
+  gen male = .
+  gen sex = .
+  predict LEm LEf, rmst ci                ///
+                 at1(male 1, obsvalues)   ///
+                 at2(male 0, obsvalues)   ///
+                 timevar(80)              ///
+                 merge                    ///
+                 expsurv(using("https://www.pclambert.net/data/popmort") ///  Popmort file
+                         agediag(age)       ///  Age at diagnosis in the dataset
+                         datediag(1990-1-1) ///  Date of diagnosis in the dataset
+                         pmother(sex)       ///  Other variables included in the popmort file
+                         pmrate(rate)       ///  Rate variable in the popmort file  
+                         pmmaxyear(2000)    ///
+                         at1(sex 1)         ///
+                         at2(sex 2)         ///
+                         expvar(ELEm ELEf)  ///
+                         )
+ gen LELm = ELEm - LEm                         
+ gen LELf = ELEf - LEf                         
+}
+<</dd_do>>
+```  
+
+The predicted values can now be plotted.
+
+```stata
+<<dd_do>>
+frame ageLEL {
+  line LEf ELEf LELf age,                             ///
+       xtitle("Age at diagnosis")                 ///
+       ytitle(Life Expectency)                        ///
+       legend(order(1 "Life Expectancy"               ///
+                    2 "Expected Life Expectancy"      ///
+                    3 "Reduction in Life Expectancy")  ///
+              ring(0) cols(1) pos(1))
+}              
+<</dd_do>>
+```  
+                  
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/stpm3_relative_survival_LEL_age.svg, replace 
+<</dd_do>>
+
+![](/statasvg/stpm3_relative_survival_LEL_age.svg)

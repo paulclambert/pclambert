@@ -20,6 +20,40 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -126,20 +160,32 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#using-standsurv" id="toc-using-standsurv" class="nav-link active" data-scroll-target="#using-standsurv">Using <code>standsurv</code></a>
+  <ul class="collapse">
+  <li><a href="#standard-survival-models" id="toc-standard-survival-models" class="nav-link" data-scroll-target="#standard-survival-models">Standard Survival Models</a></li>
+  <li><a href="#competing-risk-models" id="toc-competing-risk-models" class="nav-link" data-scroll-target="#competing-risk-models">Competing Risk Models</a></li>
+  <li><a href="#relativenet-survival-models" id="toc-relativenet-survival-models" class="nav-link" data-scroll-target="#relativenet-survival-models">Relative/Net Survival Models</a></li>
+  </ul></li>
+  <li><a href="#releases" id="toc-releases" class="nav-link" data-scroll-target="#releases">Releases</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
-<main class="content column-page" id="quarto-document-content">
+<main class="content column-page-left" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">standsurv</h1>
+<h1 class="title"><code>standsurv</code></h1>
 </div>
 
 
 
-<div class="quarto-title-meta column-page">
+<div class="quarto-title-meta column-page-left">
 
     
   
@@ -151,8 +197,49 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
+<p>The <code>standsurv</code> command estimates standardized survival curves and related measures. It also allows various contrasts between the standardized functions. It is a post-estimation command and can be used after fitting a wide range of survival models. These include <code>streg</code> models (except generalized gamma), <code>stpm2</code> models, <code>stpm3</code>models and <code>strcs</code> models.</p>
+<p>Note that I previously developed <code>stpm2_standsurv</code>, which only works with <code>stpm2</code> models, but <code>standsurv</code> superceeds that. You can do the same things with <code>standsurv</code> and much, much more.</p>
+<p>So some of the examples are the same as <code>stpm2_standsurv</code>.</p>
+<p>You can install <code>standsurv</code> within Stata using</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>. <span class="kw">ssc</span> install standsurv </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="using-standsurv" class="level2">
+<h2 class="anchored" data-anchor-id="using-standsurv">Using <code>standsurv</code></h2>
+<section id="standard-survival-models" class="level3">
+<h3 class="anchored" data-anchor-id="standard-survival-models">Standard Survival Models</h3>
+<ul>
+<li><a href="../software/standsurv/standardized_survival.html">Standardized survival functions and contrasts.</a></li>
+<li><a href="../software/standsurv/standardized_survival_centiles.html">Centiles of the standardized survival function.</a></li>
+<li><a href="..\software/standsurv/standardized_survival_rmst/">Restricted mean survival using standardized survival functions.</a></li>
+<li><a href="..\software/standsurv/standardized_survival_hazard/">The hazard function of the standardized survival curve.</a></li>
+<li><a href="..\software/standsurv/standardized_survival_AF/">Estimating attributable fractions in cohort studies</a></li>
+<li><a href="..\software/standsurv/why_not_stteffects/">Some comments on why I am not so keen on <code>stteffects</code></a></li>
+<li>Why just not use <code>margins</code>?</li>
+</ul>
+</section>
+<section id="competing-risk-models" class="level3">
+<h3 class="anchored" data-anchor-id="competing-risk-models">Competing Risk Models</h3>
+<ul>
+<li><a href="..\software/standsurv/standardized_cif/">Standardized cause-specific cumulative incidence functions.</a></li>
+<li>Other useful standardized measures in competing risks</li>
+</ul>
+</section>
+<section id="relativenet-survival-models" class="level3">
+<h3 class="anchored" data-anchor-id="relativenet-survival-models">Relative/Net Survival Models</h3>
+<ul>
+<li><a href="..\software/standsurv/standardized_relative_survival/">Standardized Relative Survival.</a><br>
+</li>
+<li>External age-standardization</li>
+<li>Loss in Expectation of Life</li>
+<li><a href="..\software/standsurv/standardized_crude_probabilities_of_death">Standardized Crude Probabilities of death.</a></li>
+</ul>
+</section>
+</section>
+<section id="releases" class="level2">
+<h2 class="anchored" data-anchor-id="releases">Releases</h2>
+<p>See <a href="..\software/standsurv/standsurv_releases.txt">standsurv_releases.txt</a></p>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

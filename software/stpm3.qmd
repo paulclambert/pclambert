@@ -34,7 +34,7 @@ ssc install gensplines
 
 
 ## Marginal predictions 
-- [Using `standsurv` with factor variables](/software/stpm3/standsurv/)
+- [Using `standsurv` with factor variables](/software/stpm3/standsurv.qmd)
 
 ## Other Details
 - [Numerical integration for models on log hazard scale]

@@ -1,0 +1,300 @@
+---
+title: "Standardization"
+---
+
+
+
+## Using `standsurv`
+
+I will not go into details of `standsurv` here. There are various tutorials
+[here](/software/standsurv.qmd).
+
+There main advantage of using `stpm3` rather than `stpm2` with `standsurv`
+is the support for factor variables. I will ilustrate this with an example.
+
+The code below loads the example colon cancer data set.
+
+```stata
+. use "https://pclambert.net/data/colon.dta", clear
+(Colon carcinoma, diagnosed 1975-94, follow-up to 1995)
+
+. stset surv_mm,f(status=1,2) id(id) scale(12) exit(time 120.5)
+
+Survival-time data settings
+
+           ID variable: id
+         Failure event: status==1 2
+Observed time interval: (surv_mm[_n-1], surv_mm]
+     Exit on or before: time 120.5
+     Time for analysis: time/12
+
+--------------------------------------------------------------------------
+     15,564  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+     15,564  observations remaining, representing
+     15,564  subjects
+     10,459  failures in single-failure-per-subject data
+ 51,685.667  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =  10.04167
+
+. gen male = sex==1
+
+```
+
+To illust rate the prediction options I will fit a model with an 
+interaction between age and sex for both main and time-dependent effects,
+where the effect of age is modelled using natural splines.
+
+```stata
+. stpm3 i.male##@ns(age,df(3)),                 ///
+>       tvc(i.male##@ns(age,df(3))) dftvc(2)    ///
+>       df(5) scale(lncumhazard)
+
+Iteration 0:  Log likelihood = -26496.501  
+Iteration 1:  Log likelihood = -26041.128  
+Iteration 2:  Log likelihood = -26005.402  
+Iteration 3:  Log likelihood = -26004.879  
+Iteration 4:  Log likelihood = -26004.877  
+
+                                                       Number of obs =  15,564
+                                                       Wald chi2(7)  = 1029.65
+Log likelihood = -26004.877                            Prob > chi2   =  0.0000
+
+-----------------------------------------------------------------------------------------------
+                              | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+------------------------------+----------------------------------------------------------------
+xb                            |
+                       1.male |  -.2413054   .2648957    -0.91   0.362    -.7604915    .2778806
+                  _ns_f1_age1 |  -6.206267   .9371474    -6.62   0.000    -8.043042   -4.369492
+                  _ns_f1_age2 |  -.4202365   .4447267    -0.94   0.345    -1.291885    .4514119
+                  _ns_f1_age3 |  -1.728845   .2531885    -6.83   0.000    -2.225086   -1.232605
+                              |
+           male#c._ns_f1_age1 |
+                           1  |   .6846415   1.445986     0.47   0.636     -2.14944    3.518723
+                              |
+           male#c._ns_f1_age2 |
+                           1  |   .2790083   .6314231     0.44   0.659    -.9585582    1.516575
+                              |
+           male#c._ns_f1_age3 |
+                           1  |   .6956873   .4554633     1.53   0.127    -.1970044    1.588379
+------------------------------+----------------------------------------------------------------
+time                          |
+                         _ns1 |  -10.15155   .8167647   -12.43   0.000    -11.75238   -8.550724
+                         _ns2 |   2.443526   .2234638    10.93   0.000     2.005545    2.881507
+                         _ns3 |  -1.284021   .1792894    -7.16   0.000    -1.635421   -.9326197
+                         _ns4 |  -.8369727   .1507723    -5.55   0.000    -1.132481   -.5414644
+                         _ns5 |  -.6772495   .1283478    -5.28   0.000    -.9288065   -.4256924
+                              |
+              male#c._ns_tvc1 |
+                           1  |   .4080991   .7632087     0.53   0.593    -1.087763    1.903961
+                              |
+              male#c._ns_tvc2 |
+                           1  |   1.358488   .6838173     1.99   0.047     .0182309    2.698745
+                              |
+     c._ns_f1_age1#c._ns_tvc1 |  -19.04827   6.611939    -2.88   0.004    -32.00744   -6.089109
+                              |
+     c._ns_f1_age1#c._ns_tvc2 |   2.555644   2.733908     0.93   0.350    -2.802717    7.914004
+                              |
+     c._ns_f1_age2#c._ns_tvc1 |   3.701198   3.555068     1.04   0.298    -3.266608      10.669
+                              |
+     c._ns_f1_age2#c._ns_tvc2 |  -.0607414   1.341542    -0.05   0.964    -2.690115    2.568632
+                              |
+     c._ns_f1_age3#c._ns_tvc1 |  -2.033876   .8956267    -2.27   0.023    -3.789272     -.27848
+                              |
+     c._ns_f1_age3#c._ns_tvc2 |  -.9184194    .694715    -1.32   0.186    -2.280036     .443197
+                              |
+male#c._ns_f1_age1#c._ns_tvc1 |
+                           1  |   7.104149   8.667078     0.82   0.412    -9.883011    24.09131
+                              |
+male#c._ns_f1_age1#c._ns_tvc2 |
+                           1  |  -2.530205   3.925255    -0.64   0.519    -10.22356    5.163153
+                              |
+male#c._ns_f1_age2#c._ns_tvc1 |
+                           1  |  -4.308112   4.611764    -0.93   0.350      -13.347    4.730778
+                              |
+male#c._ns_f1_age2#c._ns_tvc2 |
+                           1  |  -1.033032   1.804592    -0.57   0.567    -4.569967    2.503903
+                              |
+male#c._ns_f1_age3#c._ns_tvc1 |
+                           1  |   .0752104   1.472709     0.05   0.959    -2.811246    2.961666
+                              |
+male#c._ns_f1_age3#c._ns_tvc2 |
+                           1  |  -2.959448   1.198582    -2.47   0.014    -5.308625   -.6102702
+                              |
+                        _cons |   1.835955   .1428585    12.85   0.000     1.555958    2.115953
+-----------------------------------------------------------------------------------------------
+Extended functions
+ (1) @ns(age, df(3))
+
+```      
+
+To obtain the marginal survival for males and females which is standardized
+over the combined  covariate distribution (just age in this case) we can use
+`standsurv`.
+
+```stata
+. range tt 0 10 101
+(15,463 missing values generated)
+
+. standsurv, at1(male 1) at2(male 0)    ///
+>            atvar(Sm Sf)               ///
+>            survival ci                ///
+>            timevar(tt)                ///
+>            contrast(difference)       ///
+>            contrastvar(Sdiff)
+
+```  
+
+If this was an `stpm2` model then the spline variables would need to be calculated
+and then the interactions with age formed and this information passed to
+`standsurv`. To demonstrate the advantages of using `stpm3` with factor variables
+and extended functions I will now fit the same model without using them.
+
+```stata
+. gensplines age, gen(agens) df(3) type(ns)
+
+. forvalues i = 1/3 {
+  2.   gen m_agens`i' = agens`i' * male
+  3. }
+
+. stpm3 male agens1 agens2 agens3 m_agens1 m_agens2 m_agens3,                 ///
+>       tvc(male agens1 agens2 agens3 m_agens1 m_agens2 m_agens3) dftvc(2)    ///
+>       df(5) scale(lncumhazard)
+
+Iteration 0:  Log likelihood = -26496.501  
+Iteration 1:  Log likelihood = -26041.128  
+Iteration 2:  Log likelihood = -26005.402  
+Iteration 3:  Log likelihood = -26004.879  
+Iteration 4:  Log likelihood = -26004.877  
+
+                                                       Number of obs =  15,564
+                                                       Wald chi2(7)  = 1029.65
+Log likelihood = -26004.877                            Prob > chi2   =  0.0000
+
+---------------------------------------------------------------------------------------
+                      | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+----------------------+----------------------------------------------------------------
+xb                    |
+                 male |  -.2413055   .2648957    -0.91   0.362    -.7604915    .2778806
+               agens1 |  -6.206267   .9371474    -6.62   0.000    -8.043042   -4.369492
+               agens2 |  -.4202365   .4447267    -0.94   0.345    -1.291885    .4514119
+               agens3 |  -1.728845   .2531885    -6.83   0.000    -2.225086   -1.232605
+             m_agens1 |   .6846414   1.445986     0.47   0.636     -2.14944    3.518723
+             m_agens2 |   .2790084   .6314231     0.44   0.659    -.9585582    1.516575
+             m_agens3 |   .6956873   .4554633     1.53   0.127    -.1970043    1.588379
+----------------------+----------------------------------------------------------------
+time                  |
+                 _ns1 |  -10.15155   .8167647   -12.43   0.000    -11.75238   -8.550724
+                 _ns2 |   2.443526   .2234638    10.93   0.000     2.005545    2.881507
+                 _ns3 |  -1.284021   .1792894    -7.16   0.000    -1.635421   -.9326197
+                 _ns4 |  -.8369727   .1507723    -5.55   0.000    -1.132481   -.5414644
+                 _ns5 |  -.6772495   .1283478    -5.28   0.000    -.9288065   -.4256924
+                      |
+    c.male#c._ns_tvc1 |   .4080993   .7632087     0.53   0.593    -1.087762    1.903961
+                      |
+    c.male#c._ns_tvc2 |   1.358488   .6838173     1.99   0.047     .0182309    2.698745
+                      |
+  c.agens1#c._ns_tvc1 |  -19.04827   6.611939    -2.88   0.004    -32.00743   -6.089108
+                      |
+  c.agens1#c._ns_tvc2 |   2.555644   2.733907     0.93   0.350    -2.802716    7.914004
+                      |
+  c.agens2#c._ns_tvc1 |   3.701197   3.555068     1.04   0.298    -3.266608      10.669
+                      |
+  c.agens2#c._ns_tvc2 |  -.0607416   1.341542    -0.05   0.964    -2.690115    2.568632
+                      |
+  c.agens3#c._ns_tvc1 |  -2.033876   .8956267    -2.27   0.023    -3.789272   -.2784798
+                      |
+  c.agens3#c._ns_tvc2 |  -.9184194    .694715    -1.32   0.186    -2.280036     .443197
+                      |
+c.m_agens1#c._ns_tvc1 |   7.104146   8.667078     0.82   0.412    -9.883014    24.09131
+                      |
+c.m_agens1#c._ns_tvc2 |  -2.530206   3.925255    -0.64   0.519    -10.22356    5.163152
+                      |
+c.m_agens2#c._ns_tvc1 |  -4.308111   4.611764    -0.93   0.350      -13.347     4.73078
+                      |
+c.m_agens2#c._ns_tvc2 |  -1.033032   1.804592    -0.57   0.567    -4.569967    2.503903
+                      |
+c.m_agens3#c._ns_tvc1 |     .07521   1.472709     0.05   0.959    -2.811246    2.961666
+                      |
+c.m_agens3#c._ns_tvc2 |  -2.959448   1.198582    -2.47   0.014    -5.308625   -.6102702
+                      |
+                _cons |   1.835955   .1428585    12.85   0.000     1.555958    2.115953
+---------------------------------------------------------------------------------------
+
+```      
+It is necessary to incorporate the interactions into the standsurv call.
+
+```stata
+. standsurv, at1(male 1 m_agens1 = agens1 m_agens2 = agens2 m_agens3 = agens3) ///
+>            at2(male 0 m_agens1 0 m_agens2 0 m_agens3 0)                      ///
+>            atvar(Sm2 Sf2)                                                    ///
+>            survival ci                                                       ///
+>            timevar(tt)                                                       ///
+>            contrast(difference)                                              ///
+>            contrastvar(Sdiff2)
+
+```  
+
+The standardized estimates are identical, but using factor variables combined
+with extended functions makes life much easier.
+
+```stata
+. list Sm Sm2 Sf Sf2 Sdiff Sdiff2 in 1/21
+
+     +-----------------------------------------------------------------------+
+     |        Sm         Sm2          Sf         Sf2       Sdiff      Sdiff2 |
+     |-----------------------------------------------------------------------|
+  1. |         1           1           1           1           0           0 |
+  2. | .92529544   .92529544   .94122671   .94122671   .01593127   .01593127 |
+  3. | .84974543   .84974543   .87134444   .87134444   .02159901   .02159901 |
+  4. | .80156899   .80156899   .82310037   .82310037   .02153138   .02153138 |
+  5. | .76810437   .76810437   .78841692   .78841692   .02031255   .02031255 |
+     |-----------------------------------------------------------------------|
+  6. | .74118184   .74118184   .76034216   .76034216   .01916031   .01916031 |
+  7. |   .717297     .717297   .73561505   .73561505   .01831805   .01831805 |
+  8. | .69488055   .69488055   .71268416   .71268416   .01780361   .01780361 |
+  9. | .67372368   .67372368   .69128998   .69128998    .0175663    .0175663 |
+ 10. | .65393972   .65393972   .67149719   .67149719   .01755747   .01755747 |
+     |-----------------------------------------------------------------------|
+ 11. | .63554177   .63554177   .65327781   .65327781   .01773603   .01773603 |
+ 12. | .61848439   .61848439   .63654471   .63654471   .01806032   .01806032 |
+ 13. | .60270014   .60270014   .62119777   .62119777   .01849764   .01849764 |
+ 14. | .58811278   .58811278    .6071354    .6071354   .01902262   .01902262 |
+ 15. | .57464333   .57464333   .59425862   .59425862   .01961529   .01961529 |
+     |-----------------------------------------------------------------------|
+ 16. | .56218743   .56218743   .58244778   .58244778   .02026035   .02026035 |
+ 17. | .55060497   .55060497    .5715515    .5715515   .02094653   .02094653 |
+ 18. | .53977597   .53977597   .56144057   .56144057   .02166461   .02166461 |
+ 19. | .52960174   .52960174   .55200868   .55200868   .02240694   .02240694 |
+ 20. | .52000042   .52000042    .5431676    .5431676   .02316718   .02316718 |
+     |-----------------------------------------------------------------------|
+ 21. |  .5109036    .5109036    .5348437    .5348437    .0239401    .0239401 |
+     +-----------------------------------------------------------------------+
+
+``` 
+
+The marginal estimates can be plotted
+
+```stata
+. line Sm Sf tt, xtitle("Time since diagnosis")      ///
+>                ytitle(S(t))                        ///
+>                legend(order(1 "Males" 2 "Females") ///
+>                       ring(0) pos(1) cols(1))      ///
+>                name(Marginal, replace)
+
+. twoway (rarea Sdiff_lci Sdiff_uci tt, color(red%30)) ///
+>          (line Sdiff tt, color(red)),                ///
+>          xtitle("Time since diagnosis")              ///
+>          ytitle(Difference in marginal survival)     /// 
+>          legend(off)                                 ///
+>          name(Marginal_diff, replace)
+
+``` 
+
+
+![](/statasvg/stpm3_relative_survival_marginal.svg)
+![](/statasvg/stpm3_relative_survival_marginaldiff.svg)
+

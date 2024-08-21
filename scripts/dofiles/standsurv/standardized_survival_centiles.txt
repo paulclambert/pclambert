@@ -1,0 +1,156 @@
+---
+title: "Centiles of Standardized Survival Functions"
+---
+
+<<dd_do: quietly >>
+frames reset
+set scheme  fpsaus_c
+<</dd_do>>
+
+## Background
+
+In a previous tutorial I used `standsurv` to obtain standardized survival functions. In this tutorial I show the first of a 
+number of different measures of the standardized survival function where I obtain centiles of the standardized survival function.
+
+As a reminder a centile of a survival function can be obtained by solving $S(t) = \alpha$ for $t$. For example, for the median survival time we set $\alpha = 0.5$, i.e. the 50th (per)centile. For simple parametric distributions, such as the Weibull, we can solve for $t$ analytically, but for more complex models the centile is obtained through iterative root finding techniques. In `stpm3` I have used Brent's root finder when evaluating centiles. 
+
+The centile of a standardized survival function is obtained by solving the following equation for t. 
+
+$$
+E\left(S(t | X=x,Z\right) = \alpha
+$$
+
+This is done through root finding (using Brent's root finder) by solving,
+
+$$
+\frac{1}{N}\sum_{i=1}^N {S(t | X=x,Z)} - \alpha = 0
+$$
+
+Variances can be obtained using M-estimation .
+
+## Example
+
+I use a colon cancer example. I first load and `stset` the data
+
+
+```stata
+<<dd_do>>
+use https://www.pclambert.net/data/colon if stage!=0, clear
+stset surv_mm, f(status=1,2) scale(12) exit(time 120)
+<</dd_do>>
+```
+
+I drop those with missing stage information (`stage == 0`). 
+I am investigating all cause survival (`status=1,2`).
+
+I fit a model that includes stage, sex and age (using a natural spline). 
+I assume proportional hazards, but if I relax this assusmption the syntax 
+for `standsurv` would be identical. 
+Stage is classified as localised, regional and distant and is modelled 
+as a factor variable with  localised as the reference category.
+
+
+```stata
+<<dd_do>>
+gen female = sex==2
+stpm3 i.stage i.female @ns(age,df(3)), scale(lncumhazard) df(4) nolog eform
+<</dd_do>>
+```
+
+There is a clear effect of stage with a hazard ratio of 5.66 for distant stage 
+versus localised stage. 
+Remember that I am modelling all cause survival and one would expect a 
+cause-specific hazard ratio to be higher. 
+The all-cause mortality rate for females is 14% lower than males.
+
+I will now predict two standardized survival functions, one where 
+I force all subjects to be male and one where I force everyone to be female.
+
+```stata
+<<dd_do>>
+range tt 0 10 100
+standsurv, surv timevar(tt) ci frame(surv, replace)  ///
+           at1(female 0) at2(female 1)               ///
+           atvar(ms_male ms_female)      
+frame surv {           
+  twoway (line ms_male ms_female tt, sort)           ///
+         , yline(0.5, lpattern(dash) lcolor(black))  ///
+         yline(0.5, lpattern(dash) lcolor(black))    ///
+         xtitle("Years since diagnosis")             ///
+         ytitle("S(t)", angle(h))                    ///
+         ylabel(0(0.2)1, format(%3.1f) angle(h))     ///
+         legend(order(1 "Male" 2 "Female") pos(1) )
+}         
+<</dd_do>>
+```
+
+The graph of the two standardised survival functions can be seen below.
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_survival_centile1.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_survival_centile1.svg)
+
+As expected (given the hazard ratio) females have better survival than males. I have added a horizontal reference line at $S(t)=0.5$. Where this line crosses the survival curves gives the median survival time. Reading from the graph, this is just under 2 years for the males and just under 2.5 years for females. Using the `centile` option of `standsurv` will estimate these values more accurately with 95% confidence intervals. We are also interested in contrasts of the centiles, so use of the `contrast` option will calculate either a difference or ratio of the median survival times with a 95% confidence interval.
+
+```stata
+<<dd_do>>
+standsurv, centile(50) ci frame(median)              ///
+          at1(female 0) at2(female 1)                ///
+		      atvar(med_male med_female)                 ///
+          contrast(difference) contrastvar(med_diff)
+frame median {
+  list med_male* med_female*,  ab(15) noobs	
+  list med_diff* in 1, ab(18) noobs
+}
+<</dd_do>>
+```
+
+The median survival time is 1.98 years for males with a 95% CI (1.87 to 2.09). The median for females is 2.42 years (95% CI, 2.30 to 2.56). As I used the `contrast` option I also get the difference in the median of the standardised survival curves with a 95% CI. Thus the time at which 50% of females have died is 0.44 years more than the time at which 50% of males have died, 95% CI (0.30 to 0.59).
+
+It is possible to predict for multiple centiles by passing a *numlist* to the `centiles` option. For example, the code below calculates centiles between 10 and 60 at 10 unit intervals.
+
+```stata
+<<dd_do>>
+standsurv, centile(10(10)60) ci frame(cenrange) centvar(centiles)   ///
+           at1(female 0) at2(female 1)                              ///
+		       atvar(cen_males cen_females)                             ///
+           contrast(difference) contrastvar(cendiff) 
+frame cenrange {
+  list centiles cen_males cen_females cendiff, sep(0) noobs ab(12)
+}
+<</dd_do>>
+```
+
+We can then plot the difference in these various centiles.
+
+```stata
+<<dd_do>>
+frame cenrange {
+  twoway (rarea cendiff_lci cendiff_uci centile, sort color(%30))  ///
+         (line cendiff centile, pstyle(p1line))                    ///
+  	     , xtitle(centile) xlabel(,format(%3.0f))                  ///
+  	     ytitle("Difference in centile")                           ///
+         ylabel(0(0.2)1.2,format(%3.1f) angle(h))                  ///
+  	     legend(off)
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_survival_centile_range.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_survival_centile_range.svg)
+
+There are probably more innovative ways of presenting such data.
+
+## Acknowledgement
+
+I would like to acknowledge David Druker of StataCorp who I discussed these ideas with at two Nordic Stata User group meetings. David wrote a command that estimates centiles of standardized distributions using a two parameter gamma distribution which is available [here](https://www.researchgate.net/publication/263218606_Quantile_treatment_effect_estimation_from_censored_data_by_regression_adjustment).
+
+
+## References
+
+Stefanski, L. & Boos, D. The Calculus of M-Estimation. *The American Statistician* 2002;**56**:29-38

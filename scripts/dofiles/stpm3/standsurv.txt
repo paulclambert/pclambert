@@ -1,0 +1,122 @@
+---
+title: "Standardization"
+---
+
+<<dd_do: quietly >>
+frames reset
+set scheme fpsaus_c
+<</dd_do>>
+
+
+## Using `standsurv`
+
+I will not go into details of `standsurv` here. There are various tutorials
+[here](/software/standsurv.qmd).
+
+There main advantage of using `stpm3` rather than `stpm2` with `standsurv`
+is the support for factor variables. I will ilustrate this with an example.
+
+The code below loads the example colon cancer data set.
+
+```stata
+<<dd_do>>
+use "https://pclambert.net/data/colon.dta", clear
+stset surv_mm,f(status=1,2) id(id) scale(12) exit(time 120.5)
+gen male = sex==1
+<</dd_do>>
+```
+
+To illust rate the prediction options I will fit a model with an 
+interaction between age and sex for both main and time-dependent effects,
+where the effect of age is modelled using natural splines.
+
+```stata
+<<dd_do>>
+stpm3 i.male##@ns(age,df(3)),                 ///
+      tvc(i.male##@ns(age,df(3))) dftvc(2)    ///
+      df(5) scale(lncumhazard)
+<</dd_do>>
+```      
+
+To obtain the marginal survival for males and females which is standardized
+over the combined  covariate distribution (just age in this case) we can use
+`standsurv`.
+
+```stata
+<<dd_do>>
+range tt 0 10 101
+standsurv, at1(male 1) at2(male 0)    ///
+           atvar(Sm Sf)               ///
+           survival ci                ///
+           timevar(tt)                ///
+           contrast(difference)       ///
+           contrastvar(Sdiff)
+<</dd_do>>
+```  
+
+If this was an `stpm2` model then the spline variables would need to be calculated
+and then the interactions with age formed and this information passed to
+`standsurv`. To demonstrate the advantages of using `stpm3` with factor variables
+and extended functions I will now fit the same model without using them.
+
+```stata
+<<dd_do>>
+gensplines age, gen(agens) df(3) type(ns)
+forvalues i = 1/3 {
+  gen m_agens`i' = agens`i' * male
+}
+stpm3 male agens1 agens2 agens3 m_agens1 m_agens2 m_agens3,                 ///
+      tvc(male agens1 agens2 agens3 m_agens1 m_agens2 m_agens3) dftvc(2)    ///
+      df(5) scale(lncumhazard)
+<</dd_do>>
+```      
+It is necessary to incorporate the interactions into the standsurv call.
+
+```stata
+<<dd_do>>
+standsurv, at1(male 1 m_agens1 = agens1 m_agens2 = agens2 m_agens3 = agens3) ///
+           at2(male 0 m_agens1 0 m_agens2 0 m_agens3 0)                      ///
+           atvar(Sm2 Sf2)                                                    ///
+           survival ci                                                       ///
+           timevar(tt)                                                       ///
+           contrast(difference)                                              ///
+           contrastvar(Sdiff2)
+<</dd_do>>
+```  
+
+The standardized estimates are identical, but using factor variables combined
+with extended functions makes life much easier.
+
+```stata
+<<dd_do>>
+list Sm Sm2 Sf Sf2 Sdiff Sdiff2 in 1/21
+<</dd_do>>
+``` 
+
+The marginal estimates can be plotted
+
+```stata
+<<dd_do>>
+line Sm Sf tt, xtitle("Time since diagnosis")      ///
+               ytitle(S(t))                        ///
+               legend(order(1 "Males" 2 "Females") ///
+                      ring(0) pos(1) cols(1))      ///
+               name(Marginal, replace)
+twoway (rarea Sdiff_lci Sdiff_uci tt, color(red%30)) ///
+         (line Sdiff tt, color(red)),                ///
+         xtitle("Time since diagnosis")              ///
+         ytitle(Difference in marginal survival)     /// 
+         legend(off)                                 ///
+         name(Marginal_diff, replace)
+<</dd_do>>
+``` 
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/stpm3_relative_survival_marginal.svg, name(Marginal) replace 
+graph export  ${DRIVE}/github/pclambert/statasvg/stpm3_relative_survival_marginaldiff.svg, name(Marginal_diff) replace 
+<</dd_do>>
+
+![](/statasvg/stpm3_relative_survival_marginal.svg)
+![](/statasvg/stpm3_relative_survival_marginaldiff.svg)
+
+ 

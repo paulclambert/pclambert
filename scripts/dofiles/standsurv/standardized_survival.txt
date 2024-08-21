@@ -1,0 +1,332 @@
+---
+title: "Standardized survival functions using `standsurv`"
+---
+
+<<dd_do: quietly >>
+frames reset
+set scheme  fpsaus_c
+<</dd_do>>
+
+## Background
+
+When we are performing data exploration on survival data we usually start with plotting Kaplan-Meier curves. In clinical trials 
+with a survival outcome, one would nearly always expect to see a Kaplan-Meier curve plotted. They are simple to interpret (though 
+there can be confusion when there are competing risks).
+
+In observational studies, we expect that there will be confounding and we would usually adjust for these confounders in a Cox model. 
+If you have read my other tutorials then you will know that I prefer fitting parametric models, but the choice is that not that important 
+if all you want is an adjusted hazard ratio and that you are (i) happy with the proportional hazards assumption, (ii) believe 
+you have included all relevant counfounders and (iii) made sensible modelling assumptions (non-linear effect, interactions etc).
+
+Given we are happy with the model, an adjusted hazard ratio is reported. This is fine, but hazard ratios are more difficult to interpret and
+there are further problems when using hazard ratios as causal effects (Hernan 2010, Aaalen *et al.* 2015). Risks are much easier to interpret 
+than rates and so quantifying the difference on the survival scale can be desirable. 
+
+Some statistical software implements something called "adjusted" survival curves, but it is not always clear what this means. 
+For example, in Stata `stcurve` gives survival curves where certain covariates can be given specific values, but those not specified are given as 
+mean values. Thus it gives a prediction for an individual who happens to have the mean values of each covariate. This is a prediction for 
+an individual and may not reflect the average in the population. A more appropriate way is to average over the survival curves. For example, 
+if we have 1000 individuals in our study we can predict a survival curve for each individual and then take the average of these 1000 curves. 
+This is essentially what `standsurv` does. 
+
+## Example
+
+I use the Rotterdam breast cancer data and use all cause survival as the outcome. 
+I restrict follow-up to 10 years after diagnosis using the option `exit(time 10)`. 
+
+```stata
+<<dd_do>>
+use https://www.pclambert.net/data/rott3, clear
+stset os, f(osi==1) scale(12) exit(time 120) 
+<</dd_do>>
+```
+
+The `scale(12)` option converts the times recorded in months to years.
+
+
+I will explore differences between women who received hormonal treatment and those who did not. This is our exposure, but as this is 
+observational study we know that any association we see may be due to confounding. But.. it is always good to start with a Kaplan-Meier plot
+
+```stata
+<<dd_do >>
+sts graph, by(hormon) risktable ///
+	legend(order(1 "No hormonal treatment" 2 "Hormonal treatment") ring(0) cols(1) pos(1)) ///
+	ylabel(0(0.2)1,angle(h) format(%3.1f)) ///
+    ytitle("S(t)") xtitle("Time since surgery")	
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_survival_km.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_survival_km.svg)
+
+This plot shows that those receiving hormal treatment had worse survival. If we fit a proportional hazards model with `hormon` as the 
+only covariate we get the following, 
+
+```stata
+<<dd_do >>
+stpm3 i.hormon, df(4) scale(lncumhazard) eform nolog	
+<</dd_do>>
+```
+The hazard ratio indicates that there is a 54% higher mortality rate in those receiving hormonal therapy. 
+
+As this is an observational study we should not stop there and conclude that hormonal therapy is bad for you. We do not know 
+if there are differences between women taking or not taking the hormonal therapy. If those who took teh treatment tended to be older and have more severe disease then we do not have a fair comparison.
+
+In fact a simple tabulation shows this to be the case,
+
+```stata
+<<dd_do >>
+tabstat age nodes, by(hormon)
+<</dd_do>>
+```
+
+Those who received the hormonal therapy tended to be older and have more lymph node involvment. Thus, even if hormonal treatment did not 
+have any effect on survival, we would expect to see a difference in such a simplistic analysis due to the type of people who receieved the treatment.
+
+So, we now adjust for some covariates. To simplify things, I will assume proportional hazards and include the covariates age, nodes and 
+progesterone receptor. Previous analyses of this data have found that transformation of the nodes variable (exp(-0.12*`nodes`)) 
+and the progesterone variable (log(`pr` + 1)) model the non-linear effects of these variables fairly well and so I will use these transformed
+variables. The model is fitted below.
+
+```stata
+<<dd_do >>
+stpm3 i.hormon age enodes pr_1, scale(lncumhazard) df(4) eform nolog
+<</dd_do>>
+```
+Things have now changed, the adjusted hazard ratio for `hormon` is 0.79 (95% CI 0.66 to 0.94) indicating a benficial effect. There is strong confounding
+here as we have gone from a significant harmful effect to a significant beneficial effect when adjusting for age, number of 
+positive lymph nodes and progesterone receptor.
+
+We could stop here, but would the fun be in that. Instead we will try to understand what this hazard ratio means in terms of survival.
+First I will replicate what `stcurve` does and then obtain the standardized survival functions. 
+
+The code below obtains the mean of the covariates `age`, `enodes` and `pr_1` and puts these into a macro which can then be passed to the
+`at` options of `stpm3`'s predict command when predicting survival. 
+
+```stata
+<<dd_do >>
+foreach var in age enodes pr_1 {
+	summ `var', meanonly
+	local atopt `atopt' `var' `r(mean)'
+}
+predict s0_covave s1_covave, surv ci timevar(0 10, step(0.1)) ///
+                             frame(f1, replace)               ///
+                             at1(hormon 0 `atopt')            ///
+                             at2(hormon 1 `atopt')
+<</dd_do>>
+```
+
+I will then plot these curves
+
+```stata
+<<dd_do >>
+frame f1 {
+  twoway (line s0_covave tt, sort)                                        ///
+         (line s1_covave tt, sort)                                        ///
+         , legend(order(1 "No hormonal treatment" 2 "Hormonal treatment") ///
+                    ring(0) cols(1) pos(1))                               ///
+         ylabel(0(0.2)1,angle(h) format(%3.1f))                           ///
+         ytitle("S(t)")                                                   ///
+         xtitle("Years since surgery")
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_survival_atmean.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_survival_atmean.svg)
+
+These are the survival functions for two "average" women (i.e. who had the average values of each covariate) with one receiving hormonal treatment and the other
+not receiving it. We can see that for such women the difference is in the way we expect, given the hazard ratio, with those on hormonal treatment 
+having better survival. If I had categorial covariates then interpretation is awkward. For example, if we modelled sex (not appropriate for this data)
+then the prediction would be for someone who was part male and part female as we would be taking the average of a binary variable.
+
+## Standardized survival curves
+
+We want to calculate the expected survival under two counterfactuals. One where everyone has hormonal treatment and one where everybody does
+not take it. See (Sjölander 2016) for a nice description of these issues and implementation in an R package, `stdreg`. We also want contrasts 
+of these standardized curves, for example a difference in standardized survival curves.
+
+$$
+E\left(S(t | X=1,Z\right) - E\left(S(t | X=0,Z\right)
+$$
+
+In the above, $X$ is the exposure of interest and $Z$ are the confounders. We are interested in the expectation over the distribution of $Z$, 
+with the key point being this distribution is forced to be the same for $X=0$ and $X=1$. If our model is sufficent for confounding control then
+the above formula gives an average causal effect.
+
+To estimate the difference in the standardized curves we need to generate the two standardized survival curves. In each of these we predict as many survival curves as there are observations
+in the data set and then take the average of these curves. The only difference is that in one we make everyone be exposed (`hormon=1`) and in the 
+other we make everybody be unexposed (`hormon=0`).
+
+$$\frac{1}{N}\sum_{i=1}^{N}S(t|\mbox{hormon=1},\mbox{age}_i,\mbox{enodes}_i,\mbox{pr\_1}_i) - \frac{1}{N}\sum_{i=1}^{N}S(t|\mbox{hormon=0},\mbox{age}_i,\mbox{enodes}_i,\mbox{pr\_1}_i)$$
+
+There are 2982 observation in the dataset (and in the model). Thus for each of the two standardized curves we need to predict 2982 survival curves 
+and then take the average of these curves. We can make some computational efficiency savings by only estimating the survival curves a small number of
+time points. This could be a single time point, e.g. the survival at 5 years, or over a range. We often want to plot survival curves and 
+about 50-100 time points is usually sufficient for plotting purposes.
+
+To do all this (and more) we use the `standsurv` command. I will run the command and the explain the syntax.
+
+```stata
+<<dd_do >>
+range tt 0 10 101
+standsurv S0 S1, surv timevar(tt) ci                     ///
+                 frame(f2, replace)                      ///
+                 at1(hormon 0) at2(hormon 1)             ///
+                 contrast(difference) contrastvar(Sdiff)
+<</dd_do>>
+```
+
+Each of the  `at()` options creates a standardized survival curve. Here a covariate (or covariates) can be set to take specific values. 
+Any covariates not specified keep their observed values. Thus we are just implementing the equation above. The `timevar()` option gives the 
+name of the variable that gives the survival times in which to evaluate the survival function. I have defined a variable `tt`
+above to be 101 rows ranging from 0 to 10, i.e. in steps of 0.1 years. 
+The `ci` option requests that confidence intervals be calculated. Standard errors are either obtained
+using the delta-method or M-estimation. The default is the delta-method (for standardized survival). 
+The `frame()` options saves the predictions to a new frame. The standardized estmates will be named `S0` and `S1`.
+The `contrast()` option asks for a comparison of the two survival curves with the `difference` argument asking to take 
+differences in the standardized survival curves. By default `at1()` is the reference,
+i.e. the contrast will be `at2()`-`at1()`, but this can be changed using the `atref()` option.
+The contrast will be stored in the new variable `Sdiff`.
+
+You do not have to specify the names of the new variables and if you do not, 
+`standsurv` will create new variables, `_at1`, `_at2`, `_contrast2_1`. 
+However, in general it is more useful to create sensible names for these varables. 
+As the `ci` option was specified there will be lower and upper 
+for the confidence intervals (95% by deafult) for each estimate.
+
+Below I list the standardized curves at 10 years, followed by their difference.
+
+```stata
+<<dd_do >>
+frame f2 {
+  list S0* S1* if tt==10, noobs
+  list Sdiff*  if tt==10, noobs 
+}  
+<</dd_do>>
+```
+
+Thus the average survival at 10 years when everyone is forced to be unexposed 
+(not on hormonal treatment) is 0.54 and when everyone is exposed it is 0.61. 
+The difference is 0.064. 
+We have actually evaluated each function at 101 time points and so we can plot the
+estimates together with 95% confidence intervals.
+
+```stata
+<<dd_do >>
+frame f2 {
+  twoway (rarea S0_lci S0_uci tt, color(red%25))                          ///
+         (rarea S1_lci S1_uci tt, color(blue%25))                         ///
+         (line S0 tt, sort lcolor(red))                                   ///
+         (line S1  tt, sort lcolor(blue))                                 ///
+         , legend(order(1 "No hormonal treatment" 2 "Hormonal treatment") ///
+                  ring(0) cols(1) pos(1))                                 ///
+         ylabel(0.5(0.1)1,angle(h) format(%3.1f))                         ///
+         ytitle("S(t)") ///
+         xtitle("Years from surgery")
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_survival_stand_hormmon.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_survival_stand_hormmon.svg)
+
+And now we can plot the difference in standardized curves together with a 95% confidence interval.
+
+```stata
+<<dd_do >>
+frame f2 {
+twoway (rarea Sdiff_lci Sdiff_uci tt, color(red%25)) ///
+       (line Sdiff tt, sort lcolor(red))             ///
+       , legend(off)                                 ///
+       ylabel(,angle(h) format(%3.2f))               ///
+       ytitle("Difference in S(t)")                  ///
+       xtitle("Years from surgery")
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_survival_stand_hormon_difference.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_survival_stand_hormon_difference.svg)
+
+The covariate distribution we are averaging over is a combination of those on and not on hormon treatment. 
+It may also be of interest to restrict to the covariate distribution of the exposed or the unexposed. Assuming our model has controlled for 
+confounding this will give the average causal effect (difference) in the exposed. All we need to do is to add an `if` statement.
+
+```stata
+<<dd_do >>
+standsurv S0 S1 if hormon==1,  surv timevar(tt) ci                     ///
+                               frame(f3, replace)                      ///
+                               at1(hormon 0) at2(hormon 1)             ///
+                               contrast(difference) contrastvar(Sdiff)
+<</dd_do>>
+```
+
+The resulting standardized curves can then be plotted.
+
+```stata
+<<dd_do >>
+frame f3 {
+  twoway (rarea S0_lci S0_uci tt, color(red%25))                          ///
+         (rarea S1_lci S1_uci tt, color(blue%25))                         ///
+         (line S0 tt, sort lcolor(red))                                   ///
+         (line S1  tt, sort lcolor(blue))                                 ///
+         , legend(order(1 "No hormonal treatment" 2 "Hormonal treatment") ///
+                  ring(0) cols(1) pos(1))                                 ///
+         ylabel(0.5(0.1)1,angle(h) format(%3.1f))                         ///
+         ytitle("S(t)")                                                   ///
+         xtitle("Years from surgery")
+  }       
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_survival_stand_hormon_exposed.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_survival_stand_hormon_exposed.svg)
+
+Note that these curves give higher survival. This is because on average those who received hormonal treatment were younger and had less 
+severe disease.
+
+We can also plot the difference in these standardized curves together with a 95% confidence interval.
+
+```stata
+<<dd_do >>
+frame f3 {
+  twoway (rarea Sdiff_lci Sdiff_uci tt, color(red%25)) ///
+         (line Sdiff tt, sort lcolor(red))           ///
+         , legend(off)                                 ///
+         ylabel(,angle(h) format(%3.2f))               ///
+         ytitle("Difference in S(t)")                  ///
+         xtitle("Years from surgery")
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_survival_stand_hormon_exposed_difference.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_survival_stand_hormon_exposed_difference.svg)
+
+
+
+## References
+Aalen O.O., Cook R.J. Røysland K. Does Cox analysis of a randomized survival study yield a causal treatment effect? *Lifetime data analysis* 2015;21:579-593.
+ 
+Hernán M.A. The hazards of hazard ratios. *Epidemiology* 2010;**21**:13-15
+
+Sjölander A. Regression standardization with the R package `stdReg`. *European Journal of Epidemiology* 2016;**31**:563–574

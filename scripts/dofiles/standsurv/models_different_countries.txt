@@ -1,0 +1,752 @@
+---
+title: "Comparing models in different countries"
+---
+
+
+<<dd_do: quietly>>
+frames reset
+set scheme fpsaus_c 
+<</dd_do>>
+
+## When data cannot cross borders.
+
+This example is based on a presentation at the
+[Association of Nordic Cancer Registries Conference 2024](https://confedent.eventsair.com/ancr-2023).
+The presentation can be found here [LINK]
+
+International collaborative research using cancer registry data enables exploration of differences in cancer 
+incidence, mortality, and survival. 
+However, there is increasing difficulty in moving data across borders, which means that
+international comparisons are becomiong more challenging.
+This is particularly the case when an analysis requires fitting survival models, 
+as individual level data is usually required.
+
+Separate analyses can be performed in each country, but a consequence of this
+is analyses are often restricted to being descriptive and more simplistic 
+than if data could be combined.
+
+For common cancer sites data is often large enough to fit separate models 
+for each country without a great loss in precision. 
+
+The aim of this tutorial is to describe a framework where separate models are fitted 
+in each country and the Stata model object (i.e. a `.ster` file) is shared.
+This file contains the model parameters and other details of the model, but
+crucially no individual level data.  
+
+The example is based on entirely simulated (symthetic) data where the interest is to compare
+survival between two countries, Country A and Country B. 
+
+This is cancer registry data where the preferred method of analysis is
+relative survival, so relative survival models will be fitted. 
+However, the approach of fitting separate models is general and also relevant 
+for more standard (and more complex) survival models.
+
+The data is stored in two files `CountryA.dta` and `CountryB.dta`. 
+These data files will be analysed separately to mimic situations where data could not
+be shared between different countries.
+
+
+## Kaplan-Meier plots
+
+The following code loads each dataset in turn and produces Kaplan-Meier plots.
+
+```stata
+<<dd_do >>
+use https://www.pclambert.net/data/CountryA, clear
+stset survtime, failure(dead=1) 
+sts graph, title(Country A) name(CountryA_km, replace)
+summ agediag
+
+use https://www.pclambert.net/data/CountryB, clear
+stset survtime, failure(dead=1) 
+sts graph, title(Country B) name(CountryB_km, replace)
+summ agediag
+
+graph combine CountryA_km CountryB_km
+<</dd_do>>
+```
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_diff_countries_km.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_diff_countries_km.svg)
+
+It can be seen that survival appears slightly worse in Country B. 
+The individuals in Country B are slightly older on average.
+
+## Fitting a model to Country A
+
+We will first fit a model to data from Country A. 
+We are assuming we have access to data from Country B, but have a colleague
+who will fit the model in Country A and then send the model `.ster` file.
+
+We first load and `stset` the data.
+
+```stata
+<<dd_do >>
+use https://www.pclambert.net/data/CountryA, clear
+stset survtime, failure(dead=1)
+<</dd_do>>
+```
+
+As we are fitting relative survial model we need to merge in the expected rates
+at the event/censoring times.
+
+```stata
+<<dd_do >>
+// merge in rates
+gen _age  = min(floor(agediag + _t),99)                  
+gen _year = year(diagdate + _t*365.25)
+merge m:1 _age _year sex using https://www.pclambert.net/data/popmortA, ///
+          keep(match master)   
+<</dd_do>>
+```
+
+We then fit a model that incorporates the expected mortality rates using then
+`bhazard(rate)` option. The model will include age at diagnosis (`agediag`)
+and sex (`sex`) as covariates. Natural splines will be used to model the
+effect of `agediag` with an interaction included with `sex`. 
+In addition, both `agediag` and `sex` have time-dependent effects, i.e.
+we are allowing for non-proportional excess hazards.
+
+```stata
+<<dd_do >>
+stpm3 i.sex##@ns(agediag,df(3)), scale(lncumhazard) df(5) ///
+      tvc(i.sex @ns(agediag,df(3) winsor(1 99))) dftvc(3) ///
+      bhazard(rate) 
+<</dd_do>>
+```     
+
+Now the model has been fitted, we can use `estimates save` to 
+save the model estimates.
+ 
+```stata
+<<dd_do >>      
+estimates save CountryA, replace
+<</dd_do>>
+```
+
+The saves the file `CountryA.ster`.
+It is useful to understand what is stored in this file. Essentially, it 
+is the information you see when you type `ereturn list`, the output
+of which is shown below.
+
+```stata
+<<dd_do >>      
+ereturn list
+<</dd_do>>
+```
+
+It contains summary information such as the log-likelihood (`e(ll)`), 
+the knot locations for the baseline (`e(knots)`),
+the details of the natural spline for `agediag` including the location
+of the knots (`e(ef_agediag_knots1)`). 
+
+The parameter estimates are stored in `e(b)` and the variance matrix in `e(V)`.
+The parameter estimates are listed below,
+
+```stata
+<<dd_do >>      
+matrix list e(b)
+<</dd_do>>
+```
+
+Essentially the information shown in the output of `estimates list` and saved in 
+the `CountryA.ster` file contains all the information we need to make predictions
+from the model. We are able to predict survival and other measures for any 
+covariate pattern for any point in time from diagnosis. 
+Importantly, we do not need the original data to do this.
+It is important to stress again, that no individual level data
+is stored in the `CountryA.ster` file.
+
+## Fitting a model to Country B
+
+We are assuming that we have access to the data in Country B, so we can
+load the data and fit the model.
+We use the same model as before for simplicity and consistency, but we could have
+fitted a model with different numbers/locations of knots or more/less interactions.
+
+```stata
+<<dd_do >>
+use https://www.pclambert.net/data/CountryB, clear
+stset survtime, failure(dead=1)
+
+// merge in rates
+gen _age  = min(floor(agediag + _t),99)                  
+gen _year = year(diagdate + _t*365.25)
+merge m:1 _age _year sex using https://www.pclambert.net/data/popmortA, ///
+          keep(match master)   
+
+stpm3 i.sex##@ns(agediag,df(3)), scale(lncumhazard) df(5) ///
+      tvc(i.sex @ns(agediag,df(3) winsor(1 99))) dftvc(3) ///
+      bhazard(rate) 
+<</dd_do>>
+```     
+
+We save the model estimates as before,
+
+```stata
+<<dd_do >>
+estimates save CountryB, replace
+<</dd_do>>
+```  
+
+## Obtaining marginal (standardized) relative survival
+
+Now that we have the two `.ster` files. We can use them to
+obtain summary measures that will allow us to compare survival between
+Country A and Country B.
+
+An overall summary measure is standardized marginal relative survival.
+As we assuming we are in Counrty B we will use this data to define the covariate (age/sex) 
+distribution that we want to standardize to.
+
+We load the data we have access to, i.e. Country B.
+
+```stata
+<<dd_do >>
+use https://www.pclambert.net/data/CountryB, clear
+stset survtime, failure(dead=1)
+<</dd_do>>
+```  
+
+We then load the model estimates for the model fitted to this data using `estimates use`.
+
+```stata
+<<dd_do >>
+estimate use CountryB
+<</dd_do>>
+```  
+
+We can then use `standsurv` to obtain the estimated marginal relative survival function.
+
+```stata
+<<dd_do >>
+range tt 0 5 101
+standsurv RS_B, surv timevar(tt) ci frame(RS, replace)
+<</dd_do>>
+```  
+
+We get a warning that we are averaging over observations not included in the model.
+This is not actually true as we fitted the model to Country B and have reloaded
+the data for Country B. However, when you use `estimate use` the `e(sample)`
+is set to zero, which means that Stata has not linked the data in memory to
+the data that was used to fit the model. See the Stata help file for why this is.
+We will get the same warning when we use
+`standsurv` for a model that was not fitted to the data in memory. 
+
+
+After running `standsurv` we have the is the estimated internally age/sex standardized 
+relative survival for Country B.
+
+When we standardize we want to standardize over the same covariate pattern
+so that comparisons between the population groups we are comparing are fair.
+Therefore to obtain standardized estimates for Country A, we keep the same 
+data in memory, (i.e. the data for Country B), but the predictions are based on 
+the model for Country A. To do this we load the model estimates for Country A
+from `CountryA.ster`
+
+```stata
+<<dd_do >>
+estimate use CountryA
+<</dd_do>>
+```  
+
+We can then run `standsurv` as before, but we now use `frame(RS, merge)` so 
+we store the predictions in the same frame as the predictions for Country B.
+
+```stata
+<<dd_do >>
+standsurv RS_A, surv frame(RS, merge) ci
+<</dd_do>>
+```  
+
+
+We can now plot the marginal relative survival.
+
+```stata
+<<dd_do >>
+frame RS {
+  twoway (rarea RS_A_lci RS_A_uci tt, color(%30))                ///
+         (line RS_A tt, pstyle(p1line))                          /// 
+         (rarea RS_B_lci RS_B_uci tt, pstyle(p2line) color(%30)) ///
+         (line RS_B tt, pstyle(p2line)),                         ///
+         xtitle("Years from diagnosis")                          ///
+         ytitle("Marginal Relative Survival")                    ///
+         ylabel(,format(%3.1f))                                  ///
+         legend(order(2 "Country A" 4 "Country B") pos(1))       ///
+         name(RS, replace)
+}
+<</dd_do>>
+```  
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_diff_countries_RS.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_diff_countries_RS.svg)
+
+Note that as we have standardized to the age/sex distribution of Country B,
+the relative survival function for country B is a model based estimate of the 'observed' marginal relative 
+survival in Country B. The estimated relative survival function for Country A 
+is an estimate of the marginal relative survival in Country A 
+*if it had the age/sex distribution of Country B*.
+
+
+## Relative survival as a function of age at diagnosis
+
+We can now do a more complicated prediction. 
+The code below obtains the relative survival at 5 years as a function of age at diagnosis.
+We show the prediction for males (`sex==1`), but it would be simple to 
+extend the code to obtain predictions for females.
+
+
+```stata
+<<dd_do >>
+frame create ageplot
+frame ageplot {
+  range agediag 50 80 31
+  gen sex = 1
+  estimates use CountryA
+  gen t5 = 5
+  predict RS5_A, surv at1(.) timevar(t5) ci merge
+  
+  estimates use CountryB
+  predict RS5_B, surv at1(.) timevar(t5) ci merge
+}
+<</dd_do>>
+```  
+
+Note the use of `at1(.)` which will predict at the observed values of
+covariates in the active frame (which we have have calculated).
+In addition, we use the `merge` option as we want the predictions to be returned
+to the current frame (`ageplot`) rather than a new frame.
+
+Having generated the predictions, we can plot the results.
+
+```stata
+<<dd_do >>
+frame ageplot {
+  twoway (rarea RS5_A_lci RS5_A_uci agediag, color(%30))                ///
+         (line RS5_A agediag, pstyle(p1line))                           ///
+         (rarea RS5_B_lci RS5_B_uci agediag, color(%30) pstyle(p2line)) ///
+         (line RS5_B agediag, pstyle(p2line)),                          ///
+         xtitle("Years from diagnosis")                                 ///
+         ytitle("Marginal 5-year Relative Survival")                    ///
+         ylabel(,format(%3.1f))                                         ///
+         legend(order(2 "Country A" 4 "Country B") pos(1))              ///
+         name(RS_age, replace)
+}
+<</dd_do>>
+```  
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_diff_countries_RS_ageplot.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_diff_countries_RS_ageplot.svg)
+
+
+## All cause survival
+
+Relative survival is awkward to interpret in that it attempts to estimate net 
+survival, which is survival in the hypothetical situation where it is not possible
+to die from any cause other than the cancer under study.
+
+However, we can transform predictions to obtain all cause survival ($S_i(t)$) 
+by incorporating the expected mortality survival, $S_i^*(t)$, and combining
+with relative survival, $R_i(t)$.
+
+$$
+\widehat{S}_i(t) = S_i^*(t) \widehat{R}_i(t)
+$$
+
+To do this we use the `expsurv()` option of the `standsurv` command.
+
+First the predictions for Country A
+
+```stata
+<<dd_do >>
+estimates use CountryA
+standsurv S_A, surv timevar(tt) ci frame(AC, replace)                    ///
+                  expsurv(datediag(diagdate)                             ///
+                          agediag(agediag)                               ///
+                          using(https://www.pclambert.net/data/popmortA) ///
+                          pmrate(rate)                                   ///
+                          pmyear(_year)                                  ///
+                          pmage(_age)                                    ///
+                          pmother(sex)                                   ///
+                          pmmaxyear(2020))  
+<</dd_do>>
+```  
+
+.. and then for Country B.
+
+```stata
+<<dd_do >>
+estimates use CountryB
+standsurv S_B, surv ci frame(AC, merge)                                  ///
+                  expsurv(datediag(diagdate)                             ///
+                          agediag(agediag)                               ///
+                          using(https://www.pclambert.net/data/popmortB) ///
+                          pmrate(rate)                                   ///
+                          pmyear(_year)                                  ///
+                          pmage(_age)                                    ///
+                          pmother(sex)                                   ///
+                          pmmaxyear(2020))  
+<</dd_do>>
+```  
+
+We can now plot the model based estimate of all-cause survival.
+                          
+```stata
+<<dd_do >>
+frame AC {
+  twoway (rarea S_A_lci S_A_uci tt, color(%30))                  ///
+         (line  S_A tt, pstyle(p1line))                          /// 
+         (rarea S_B_lci S_B_uci tt, pstyle(p2line) color(%30))   ///
+         (line  S_B tt, pstyle(p2line)),                         ///
+         xtitle("Years from diagnosis")                          ///
+         ytitle("Marginal All cause Survival")                   ///
+         ylabel(,format(%3.1f))                                  ///
+         legend(order(2 "Country A" 4 "Country B") pos(1))       ///
+         name(RS, replace)
+}                        
+<</dd_do>>
+```  
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_diff_countries_AC.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_diff_countries_AC.svg)
+
+
+There is a clear difference in all cause survival between Country A and
+Country B.
+However, although we have standardized to the same age/sex distribution,
+differences could be due to differential cancer (excess) mortality rates and/or
+differential other cause (expected) mortality rates. This is one reason why
+relative survival has been the preferred metric when quantifying
+cancer survival. We have developed reference adjusted measures that enables
+the reporting of all-cause survival in a way where the only differences 
+should be due to differential cancer mortality rates as shown in
+the next section.
+
+
+## Reference Adjustment
+
+With reference adjustment we define a reference expected survival, $S_i^{**}$
+that is the same between any groups we are comparing.
+We can then obtain reference adjusted all cause survival as follows, $\widehat{S}_i^{REF}(t)$.
+
+
+$$
+\widehat{S}_i^{REF}(t) = S_i^{**}(t) \widehat{R}_i(t)
+$$
+
+This is for a particular individual, $i$, but we can average of many individuals
+to obtain marginal (standardized) estimates using `standsurv`. 
+Here will use the expected mortality rates for Country B as the reference.
+This means that the reference adjusted marginal estimates of all cause survival for Country B
+will be an estimate of the observed all cause survival in Country B.
+For Country A it will be an estimate of the marginal all cause survival in Country 
+A if it had the expected mortality rates of Country B and the age/sex distribution 
+of Country B. Note that the appropriate
+expected mortality rates for country A were used when fitting the model, but 
+the reference rates are used when making predictions from the model.
+
+The reason for doing this is that any differences we see in the marginal all cause 
+survival will only be due to differential relative survival between the two countries, see
+Lambert *et al.* 2020.
+
+We reload the estimates for the model fitted to Country B and then run `standsurv`
+
+```stata
+<<dd_do >>
+estimates use CountryB
+standsurv Sref_B, surv timevar(tt) ci frame(RefAdj, replace)             ///
+                  expsurv(datediag(diagdate)                             ///
+                          agediag(agediag)                               ///
+                          using(https://www.pclambert.net/data/popmortB) ///
+                          pmrate(rate)                                   ///
+                          pmyear(_year)                                  ///
+                          pmage(_age)                                    ///
+                          pmother(sex)                                   ///
+                          pmmaxyear(2020))  
+<</dd_do>>
+```  
+
+We then reload the estimates for the model fitted to Country A and run `standsurv` again.
+
+```stata
+<<dd_do >>
+estimates use CountryA
+standsurv Sref_A, surv ci frame(RefAdj, merge)                           ///
+                  expsurv(datediag(diagdate)                             ///
+                          agediag(agediag)                               ///
+                          using(https://www.pclambert.net/data/popmortB) ///
+                          pmrate(rate)                                   ///
+                          pmyear(_year)                                  ///
+                          pmage(_age)                                    ///
+                          pmother(sex)                                   ///
+                          pmmaxyear(2020))  
+<</dd_do>>
+```  
+
+And finally plot the results.
+
+                          
+```stata
+<<dd_do >>
+frame RefAdj {
+  twoway (rarea Sref_A_lci Sref_A_uci tt, color(%30))                ///
+         (line  Sref_A tt, pstyle(p1line))                           /// 
+         (rarea Sref_B_lci Sref_B_uci tt, pstyle(p2line) color(%30)) ///
+         (line  Sref_B tt, pstyle(p2line)),                          ///
+         xtitle("Years from diagnosis")                              ///
+         ytitle("Reference Adjusted All cause Survival")             ///
+         ylabel(,format(%3.1f))                                      ///
+         legend(order(2 "Country A" 4 "Country B") pos(1))           ///
+         name(RS, replace)
+}                                   
+<</dd_do>>
+```  
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_diff_countries_AC_refadj.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_diff_countries_AC_refadj.svg)
+
+As we have standardized over the age/sex distribution of Country B and
+used the expected mortality rates for Country B, this figure
+gives an estimate of the average all cause survival for Country B (it will be very 
+similar the all cause Kaplan-Meier estimate).
+
+However, for Country A the estimate is hypothetical in two ways. 
+Firstly, it is standardized over the age/sex distribution for Country B.
+Secondly, the reference expected mortality rates are for Country B, so it
+gives an estimate of what the all cause survival would be in Country A if it
+had the expected mortality rates seen in Country B and the age/sex
+distribution of Country B. 
+We should remember that the reason for making the estimates Country A hypothetical are for reasons 
+of comparability and we want to isolate differences that are only due to differences
+in cancer (excess) mortality rates.
+
+
+## Reference Adjustment with external age standardization
+
+When it is of interest to make comparisons with other studies it is important 
+to standardize to the same age/sex distribution. Many population-based 
+cancer survival studies use the International Cancer Survival Standard as
+an external age distribution to standardise to. 
+
+The following code calcuates the ICSS age groups and associated weights.
+
+```stata
+<<dd_do >>
+//Define ICSS age groups and weights
+recode agediag (min/44.999=1) (45/54.999=2) (55/64.999=3) (65/74.999=4) (75/max=5), gen(ICSSagegrp)
+recode ICSSagegrp (1=0.07) (2=0.12) (3=0.23) (4=0.29) (5=0.29), gen(ICSSwt)
+<</dd_do>>
+```  
+
+Next we calculate the proportion in our data (Country B) in each age group
+for each sex. We then calculate the ratio of the ICSS weights and the observed
+proportion in each age group, so that we can upweight or downweight individuals
+in each age group.
+
+
+```stata
+<<dd_do >>
+bysort sex: gen sextotal= _N
+bysort ICSSagegrp sex:gen a_age = _N/sextotal
+gen double wt_age = ICSSwt/a_age
+
+bysort sex ICSSagegrp: gen first = _n==1
+list sex ICSSagegrp ICSSwt a_age wt_age if first, noobs ab(12)
+sort tt
+<</dd_do>>
+```  
+
+Next we can use `standsurv`' to obtain marginal estimates. Here we calculate marginal
+relative survival, but we could do this for reference adjusted measures as well.
+
+We do this first for Country B,
+
+```stata
+<<dd_do >>
+estimates use CountryB
+standsurv RS_B if sex==1, surv timevar(tt) ci frame(RS_ICSS, replace) ///
+                              indweights(wt_age)
+<</dd_do>>
+```  
+
+and then for Country A.
+
+```stata
+<<dd_do >>
+estimates use CountryA
+standsurv RS_A if sex==1, surv ci frame(RS_ICSS, merge)   ///
+                              indweights(wt_age)  
+<</dd_do>>
+```  
+
+Finally, we can plot the results. 
+
+```stata
+<<dd_do >>
+frame RS_ICSS {
+  twoway (rarea RS_A_lci RS_A_uci tt, color(%30))                ///
+         (line RS_A tt, pstyle(p1line))                          /// 
+         (rarea RS_B_lci RS_B_uci tt, pstyle(p2line) color(%30)) ///
+         (line RS_B tt, pstyle(p2line)),                         ///
+         xtitle("Years from diagnosis")                          ///
+         ytitle("Marginal Relative Survival")                    ///
+         ylabel(,format(%3.1f))                                  ///
+         legend(order(2 "Country A" 4 "Country B") pos(1))       ///
+         name(RS_ICSS, replace)
+}       
+<</dd_do>>
+```  
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_diff_countries_RS_ICSS.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_diff_countries_RS_ICSS.svg)
+
+
+## Standardizing to the age/sex distribution of Country A
+
+We have been assuming that we are in, and have access to data from Country B.
+What if we want to standardize to the age/sex distribution of Country A?
+We could send the `Country B.ster` file to a colleague in Country A and they 
+could repeat the analysis above, but now the standardization would be
+over the age/sex distribution in Country A (i.e. the data in memory).
+
+One other option would be to obtain a summary of the age/sex distribution in
+Country A and use this to create a data set to standardize over. We show two ways
+of standardizing once we have this information. 
+
+First we will assume that a colleague in Country A has produced a summary
+of the proportion in each age/sex combination, perhaps using code like the following.
+
+```stata
+<<dd_do >>
+use https://www.pclambert.net/data/CountryA, clear
+gen ageint = floor(agediag)
+collapse (percent) cellpercent=agediag, by(ageint sex)
+list in 1/20, noobs ab(11)   
+rename ageint agediag
+save CountryA_age_sex_summary, replace
+<</dd_do>>
+```  
+
+This given us the proportion in each age/sex comination in Country A
+
+We can then calculate the weights.
+
+```stata
+<<dd_do >>
+use CountryA_age_sex_summary, clear
+gen wt = (cellpercent/100)*_N
+<</dd_do>>
+```  
+
+These weights need to sum to the total number of observations in the data,
+which is why the percentage is converted to a proportion and then multiplied
+by `_N`.
+
+We can then use `standsurv` for each of the the model estimates passing the weights
+using the `indweights()` option. The code below shows for 
+estimation of standardized relative survival, but this can easily be extended in
+a similar way to above for reference adjustment etc.
+
+
+```stata
+<<dd_do >>
+estimates use CountryA
+range tt 0 10 101
+standsurv RS_A, surv timevar(tt) ci indweights(wt) ///
+                frame(RS_standA1, replace)
+estimates use CountryB
+standsurv RS_B, surv ci indweights(wt) ///
+                frame(RS_standA1, merge)
+<</dd_do>>
+```  
+
+This can be plotted.
+
+```stata
+<<dd_do >>
+frame RS_standA1 {
+  twoway (rarea RS_A_lci RS_A_uci tt, color(%30))                ///
+         (line RS_A tt, pstyle(p1line))                          /// 
+         (rarea RS_B_lci RS_B_uci tt, pstyle(p2line) color(%30)) ///
+         (line RS_B tt, pstyle(p2line)),                         ///
+         xtitle("Years from diagnosis")                          ///
+         ytitle("Marginal Relative Survival")                    ///
+         ylabel(,format(%3.1f))                                  ///
+         legend(order(2 "Country A" 4 "Country B") pos(1))       ///
+         name(RS, replace)
+}
+<</dd_do>>
+```  
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_diff_countries_RS_standA1.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_diff_countries_RS_standA1.svg)
+
+
+An alternative way to get the same result is to expand the data to match the
+percentage for each cell. Here we make the sample size 20000.
+
+```stata
+<<dd_do >>
+use CountryA_age_sex_summary, clear
+gen freq = round(20000*cellpercent/100)
+expand freq
+estimates use CountryA
+range tt 0 10 101
+standsurv RS_A, surv timevar(tt) ci ///
+                frame(RS_standA2, replace)
+estimates use CountryB
+standsurv RS_B, surv ci             ///
+                frame(RS_standA2, merge)
+<</dd_do>>
+```  
+
+This avoids having to use the `indweights()` option.
+
+
+```stata
+<<dd_do >>
+frame RS_standA2 {
+  twoway (rarea RS_A_lci RS_A_uci tt, color(%30))                ///
+         (line RS_A tt, pstyle(p1line))                          /// 
+         (rarea RS_B_lci RS_B_uci tt, pstyle(p2line) color(%30)) ///
+         (line RS_B tt, pstyle(p2line)),                         ///
+         xtitle("Years from diagnosis")                          ///
+         ytitle("Marginal Relative Survival")                    ///
+         ylabel(,format(%3.1f))                                  ///
+         legend(order(2 "Country A" 4 "Country B") pos(1))       ///
+         name(RS, replace)
+}
+<</dd_do>>
+```  
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_diff_countries_RS_standA2.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_diff_countries_RS_standA2.svg)
+
+
+## References
+
+Lambert PC, Andersson TM-L, Rutherford MJ, Myklebust TÅ, Møller B. Reference-adjusted and standardized all-cause and crude probabilities as an alternative to net survival in population-based cancer studies. *International Journal of Epidemiology* 2020;*49*:1614–23. [https://doi.org/10.1093/ije/dyaa112](https://doi.org/10.1093/ije/dyaa112)
+
+
+Rutherford MJ, Andersson TM-L, Myklebust TÅ, Møller B, Lambert PC. Non-parametric estimation of reference adjusted, standardised probabilities of all-cause death and death due to cancer for population group comparisons. *BMC Medical Research Methodology* 2022;**22**:2. [https://doi.org/10.1186/s12874-021-01465-w](https://doi.org/10.1186/s12874-021-01465-w)

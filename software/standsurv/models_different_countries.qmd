@@ -1,0 +1,1169 @@
+---
+title: "Comparing models in different countries"
+---
+
+
+
+## When data cannot cross borders.
+
+This example is based on a presentation at the
+[Association of Nordic Cancer Registries Conference 2024](https://confedent.eventsair.com/ancr-2023).
+The presentation can be found here [LINK]
+
+International collaborative research using cancer registry data enables exploration of differences in cancer 
+incidence, mortality, and survival. 
+However, there is increasing difficulty in moving data across borders, which means that
+international comparisons are becomiong more challenging.
+This is particularly the case when an analysis requires fitting survival models, 
+as individual level data is usually required.
+
+Separate analyses can be performed in each country, but a consequence of this
+is analyses are often restricted to being descriptive and more simplistic 
+than if data could be combined.
+
+For common cancer sites data is often large enough to fit separate models 
+for each country without a great loss in precision. 
+
+The aim of this tutorial is to describe a framework where separate models are fitted 
+in each country and the Stata model object (i.e. a `.ster` file) is shared.
+This file contains the model parameters and other details of the model, but
+crucially no individual level data.  
+
+The example is based on entirely simulated (symthetic) data where the interest is to compare
+survival between two countries, Country A and Country B. 
+
+This is cancer registry data where the preferred method of analysis is
+relative survival, so relative survival models will be fitted. 
+However, the approach of fitting separate models is general and also relevant 
+for more standard (and more complex) survival models.
+
+The data is stored in two files `CountryA.dta` and `CountryB.dta`. 
+These data files will be analysed separately to mimic situations where data could not
+be shared between different countries.
+
+
+## Kaplan-Meier plots
+
+The following code loads each dataset in turn and produces Kaplan-Meier plots.
+
+```stata
+. use https://www.pclambert.net/data/CountryA, clear
+
+. stset survtime, failure(dead=1) 
+
+Survival-time data settings
+
+         Failure event: dead==1
+Observed time interval: (0, survtime]
+     Exit on or before: failure
+
+--------------------------------------------------------------------------
+     20,997  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+     20,997  observations remaining, representing
+      7,854  failures in single-record/single-failure data
+ 59,517.533  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =         5
+
+. sts graph, title(Country A) name(CountryA_km, replace)
+
+        Failure _d: dead==1
+  Analysis time _t: survtime
+
+. summ agediag
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+     agediag |     20,997    74.78556    9.973784   18.12546   101.5784
+
+. 
+. use https://www.pclambert.net/data/CountryB, clear
+
+. stset survtime, failure(dead=1) 
+
+Survival-time data settings
+
+         Failure event: dead==1
+Observed time interval: (0, survtime]
+     Exit on or before: failure
+
+--------------------------------------------------------------------------
+     10,498  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+     10,498  observations remaining, representing
+      4,379  failures in single-record/single-failure data
+ 28,253.044  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =         5
+
+. sts graph, title(Country B) name(CountryB_km, replace)
+
+        Failure _d: dead==1
+  Analysis time _t: survtime
+
+. summ agediag
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+     agediag |     10,498    75.53747    10.05265   18.12765   102.4685
+
+. 
+. graph combine CountryA_km CountryB_km
+
+```
+
+![](/statasvg/standsurv_diff_countries_km.svg)
+
+It can be seen that survival appears slightly worse in Country B. 
+The individuals in Country B are slightly older on average.
+
+## Fitting a model to Country A
+
+We will first fit a model to data from Country A. 
+We are assuming we have access to data from Country B, but have a colleague
+who will fit the model in Country A and then send the model `.ster` file.
+
+We first load and `stset` the data.
+
+```stata
+. use https://www.pclambert.net/data/CountryA, clear
+
+. stset survtime, failure(dead=1)
+
+Survival-time data settings
+
+         Failure event: dead==1
+Observed time interval: (0, survtime]
+     Exit on or before: failure
+
+--------------------------------------------------------------------------
+     20,997  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+     20,997  observations remaining, representing
+      7,854  failures in single-record/single-failure data
+ 59,517.533  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =         5
+
+```
+
+As we are fitting relative survial model we need to merge in the expected rates
+at the event/censoring times.
+
+```stata
+. // merge in rates
+. gen _age  = min(floor(agediag + _t),99)                  
+
+. gen _year = year(diagdate + _t*365.25)
+
+. merge m:1 _age _year sex using https://www.pclambert.net/data/popmortA, ///
+>           keep(match master)   
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                            20,997  (_merge==3)
+    -----------------------------------------
+
+```
+
+We then fit a model that incorporates the expected mortality rates using then
+`bhazard(rate)` option. The model will include age at diagnosis (`agediag`)
+and sex (`sex`) as covariates. Natural splines will be used to model the
+effect of `agediag` with an interaction included with `sex`. 
+In addition, both `agediag` and `sex` have time-dependent effects, i.e.
+we are allowing for non-proportional excess hazards.
+
+```stata
+. stpm3 i.sex##@ns(agediag,df(3)), scale(lncumhazard) df(5) ///
+>       tvc(i.sex @ns(agediag,df(3) winsor(1 99))) dftvc(3) ///
+>       bhazard(rate) 
+
+Iteration 0:  Log likelihood = -18987.251  
+Iteration 1:  Log likelihood = -18784.806  
+Iteration 2:  Log likelihood = -18772.486  
+Iteration 3:  Log likelihood = -18772.439  
+Iteration 4:  Log likelihood = -18772.439  
+
+                                                        Number of obs = 20,997
+                                                        Wald chi2(7)  = 408.23
+Log likelihood = -18772.439                             Prob > chi2   = 0.0000
+
+----------------------------------------------------------------------------------------------
+                             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-----------------------------+----------------------------------------------------------------
+xb                           |
+                       2.sex |  -1.074461   .2982228    -3.60   0.000    -1.658967   -.4899548
+             _ns_f1_agediag1 |  -10.73306   2.229922    -4.81   0.000    -15.10362   -6.362488
+             _ns_f1_agediag2 |   1.838314   1.074649     1.71   0.087    -.2679584    3.944587
+             _ns_f1_agediag3 |  -1.328113   .4536643    -2.93   0.003    -2.217278   -.4389471
+                             |
+       sex#c._ns_f1_agediag1 |
+                          2  |   7.430845    3.10376     2.39   0.017     1.347588     13.5141
+                             |
+       sex#c._ns_f1_agediag2 |
+                          2  |  -2.276144     1.5657    -1.45   0.146     -5.34486    .7925727
+                             |
+       sex#c._ns_f1_agediag3 |
+                          2  |   2.137709   .5439365     3.93   0.000     1.071613    3.203805
+-----------------------------+----------------------------------------------------------------
+time                         |
+                        _ns1 |  -33.94606   3.820788    -8.88   0.000    -41.43466   -26.45745
+                        _ns2 |   13.16497   1.857333     7.09   0.000     9.524664    16.80527
+                        _ns3 |  -.7336646   .1254783    -5.85   0.000    -.9795976   -.4877316
+                        _ns4 |  -.4517587   .1236179    -3.65   0.000    -.6940453   -.2094721
+                        _ns5 |  -.3260899   .1155413    -2.82   0.005    -.5525466   -.0996332
+                             |
+              sex#c._ns_tvc1 |
+                          2  |    4.06715   2.178313     1.87   0.062    -.2022648    8.336565
+                             |
+              sex#c._ns_tvc2 |
+                          2  |  -1.092972   1.153449    -0.95   0.343    -3.353691    1.167748
+                             |
+              sex#c._ns_tvc3 |
+                          2  |   .3388006   .0639397     5.30   0.000     .2134811    .4641201
+                             |
+c._ns_f2_agediag1#c._ns_tvc1 |  -10.87524   36.43505    -0.30   0.765    -82.28662    60.53614
+                             |
+c._ns_f2_agediag1#c._ns_tvc2 |  -2.683456   19.10172    -0.14   0.888    -40.12214    34.75523
+                             |
+c._ns_f2_agediag1#c._ns_tvc3 |  -.0657363   .8404523    -0.08   0.938    -1.712993     1.58152
+                             |
+c._ns_f2_agediag2#c._ns_tvc1 |      5.078   20.44475     0.25   0.804    -34.99297    45.14897
+                             |
+c._ns_f2_agediag2#c._ns_tvc2 |  -.6415725   10.72052    -0.06   0.952     -21.6534    20.37026
+                             |
+c._ns_f2_agediag2#c._ns_tvc3 |  -.6496364   .3865693    -1.68   0.093    -1.407298    .1080254
+                             |
+c._ns_f2_agediag3#c._ns_tvc1 |   2.506379   7.991825     0.31   0.754    -13.15731    18.17007
+                             |
+c._ns_f2_agediag3#c._ns_tvc2 |   -4.63819    4.24192    -1.09   0.274     -12.9522     3.67582
+                             |
+c._ns_f2_agediag3#c._ns_tvc3 |  -.2157422   .3409415    -0.63   0.527    -.8839752    .4524909
+                             |
+                       _cons |    .233223   .2607551     0.89   0.371    -.2778476    .7442937
+----------------------------------------------------------------------------------------------
+Extended functions
+ (1) @ns(agediag, df(3))
+ (2) @ns(agediag, df(3) winsor(1 99))
+
+```     
+
+Now the model has been fitted, we can use `estimates save` to 
+save the model estimates.
+ 
+```stata
+. estimates save CountryA, replace
+file CountryA.ster saved
+
+```
+
+The saves the file `CountryA.ster`.
+It is useful to understand what is stored in this file. Essentially, it 
+is the information you see when you type `ereturn list`, the output
+of which is shown below.
+
+```stata
+. ereturn list
+
+scalars:
+               e(rank) =  25
+                  e(N) =  20997
+                 e(ic) =  4
+                  e(k) =  29
+               e(k_eq) =  2
+               e(k_dv) =  0
+          e(converged) =  1
+                 e(rc) =  0
+                 e(ll) =  -18772.43865176562
+         e(k_eq_model) =  1
+               e(df_m) =  7
+               e(chi2) =  408.225406844193
+                  e(p) =  4.10585674056e-84
+                e(dev) =  37544.87730353124
+                e(AIC) =  37594.87730353124
+                e(BIC) =  37769.09675940969
+
+macros:
+            e(cmdline) : "i.sex##@ns(agediag,df(3)), scale(lncumhazard) df(5)       tvc(i.sex @ns(agediag,df(3) winsor(.."
+                e(cmd) : "stpm3"
+            e(predict) : "stpm3_pred"
+           e(ef_Nuser) : "0"
+  e(ef_agediag_winsor
+    2)                 : "46.43008277735672 93.75740895924326"
+  e(ef_agediag_knots2) : "46.43008277735672 71.40992416203093 79.36648884641677 93.75740895924326"
+   e(ef_agediag_opts2) : "df(3) winsor(1 99)"
+     e(ef_agediag_fn2) : "ns"
+  e(ef_agediag_knots1) : "18.12545708589547 71.40992416203093 79.36648884641677 101.5784471531932"
+   e(ef_agediag_opts1) : "df(3)"
+     e(ef_agediag_fn1) : "ns"
+     e(ef_agediag_Nfn) : "2"
+            e(bhazard) : "rate"
+         e(ef_varlist) : "agediag"
+         e(model_vars) : "sex agediag"
+              e(scale) : "lncumhazard"
+             e(degree) : "3"
+             e(ttrans) : "lnt"
+         e(splinetype) : "ns"
+          e(knots_tvc) : "-6.536461339131925 -.4699117670703595 .5745293293487912 1.608766116357363"
+            e(tvcvars) : "_ns_f2_agediag1 _ns_f2_agediag2 _ns_f2_agediag3 sex"
+    e(sharedtvc_knots) : "1"
+             e(dfbase) : "5"
+              e(knots) : "-6.536461339131925 -1.053905396170044 -.2327587090676477 .3761256188495483 .9678933294023275 .."
+        e(dsplinevars) : "_dns1 _dns2 _dns3 _dns4 _dns5 2.sex#c._dns_tvc1 2.sex#c._dns_tvc2 2.sex#c._dns_tvc3 c._ns_f2_.."
+     e(splinevars_tvc) : "_ns_tvc1 _ns_tvc2 _ns_tvc3"
+     e(splinelist_tvc) : "2.sex#c._ns_tvc1 2.sex#c._ns_tvc2 2.sex#c._ns_tvc3 c._ns_f2_agediag1#c._ns_tvc1 c._ns_f2_aged.."
+         e(splinelist) : "_ns1 _ns2 _ns3 _ns4 _ns5"
+       e(tvc_included) : "2.sex _ns_f2_agediag1 _ns_f2_agediag2 _ns_f2_agediag3"
+       e(tvc_original) : "i.sex @ns(agediag,df(3) winsor(1 99))"
+                e(tvc) : "i.sex c.(_ns_f2_agediag1 _ns_f2_agediag2 _ns_f2_agediag3)"
+   e(varlist_original) : "i.sex##@ns(agediag,df(3))"
+            e(varlist) : "i.sex##c.(_ns_f1_agediag1 _ns_f1_agediag2 _ns_f1_agediag3)"
+           e(chi2type) : "Wald"
+  e(deriv_useminbound) : "off"
+                e(opt) : "moptimize"
+                e(vce) : "oim"
+               e(user) : "stpm3_gf2_lncumhazard_rs()"
+          e(ml_method) : "gf2"
+          e(technique) : "nr"
+              e(which) : "max"
+         e(properties) : "b V"
+
+matrices:
+                  e(b) :  1 x 29
+                  e(V) :  29 x 29
+                e(Cns) :  4 x 30
+               e(ilog) :  1 x 20
+           e(gradient) :  1 x 29
+
+functions:
+             e(sample)   
+
+```
+
+It contains summary information such as the log-likelihood (`e(ll)`), 
+the knot locations for the baseline (`e(knots)`),
+the details of the natural spline for `agediag` including the location
+of the knots (`e(ef_agediag_knots1)`). 
+
+The parameter estimates are stored in `e(b)` and the variance matrix in `e(V)`.
+The parameter estimates are listed below,
+
+```stata
+. matrix list e(b)
+
+e(b)[1,29]
+               xb:            xb:            xb:            xb:            xb:            xb:            xb:            xb:
+               1b.             2.                                                     1b.sex#         2.sex#        1b.sex#
+              sex            sex   _ns_f1_age~1   _ns_f1_age~2   _ns_f1_age~3   co._ns_f1_~1   c._ns_f1_a~1   co._ns_f1_~2
+y1              0     -1.0744608     -10.733055      1.8383143     -1.3281127              0      7.4308452              0
+
+               xb:            xb:            xb:          time:          time:          time:          time:          time:
+            2.sex#        1b.sex#         2.sex#                                                                           
+     c._ns_f1_a~2   co._ns_f1_~3   c._ns_f1_a~3           _ns1           _ns2           _ns3           _ns4           _ns5
+y1     -2.2761439              0      2.1377088     -33.946056      13.164969     -.73366459     -.45175869      -.3260899
+
+             time:          time:          time:          time:          time:          time:          time:          time:
+            2.sex#         2.sex#         2.sex#  c._ns_f2_a~1#  c._ns_f2_a~1#  c._ns_f2_a~1#  c._ns_f2_a~2#  c._ns_f2_a~2#
+       c._ns_tvc1     c._ns_tvc2     c._ns_tvc3     c._ns_tvc1     c._ns_tvc2     c._ns_tvc3     c._ns_tvc1     c._ns_tvc2
+y1      4.0671502     -1.0929718      .33880061     -10.875241     -2.6834564     -.06573629          5.078     -.64157254
+
+             time:          time:          time:          time:          time:
+     c._ns_f2_a~2#  c._ns_f2_a~3#  c._ns_f2_a~3#  c._ns_f2_a~3#               
+       c._ns_tvc3     c._ns_tvc1     c._ns_tvc2     c._ns_tvc3          _cons
+y1      -.6496364      2.5063795     -4.6381903     -.21574216      .23322305
+
+```
+
+Essentially the information shown in the output of `estimates list` and saved in 
+the `CountryA.ster` file contains all the information we need to make predictions
+from the model. We are able to predict survival and other measures for any 
+covariate pattern for any point in time from diagnosis. 
+Importantly, we do not need the original data to do this.
+It is important to stress again, that no individual level data
+is stored in the `CountryA.ster` file.
+
+## Fitting a model to Country B
+
+We are assuming that we have access to the data in Country B, so we can
+load the data and fit the model.
+We use the same model as before for simplicity and consistency, but we could have
+fitted a model with different numbers/locations of knots or more/less interactions.
+
+```stata
+. use https://www.pclambert.net/data/CountryB, clear
+
+. stset survtime, failure(dead=1)
+
+Survival-time data settings
+
+         Failure event: dead==1
+Observed time interval: (0, survtime]
+     Exit on or before: failure
+
+--------------------------------------------------------------------------
+     10,498  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+     10,498  observations remaining, representing
+      4,379  failures in single-record/single-failure data
+ 28,253.044  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =         5
+
+. 
+. // merge in rates
+. gen _age  = min(floor(agediag + _t),99)                  
+
+. gen _year = year(diagdate + _t*365.25)
+
+. merge m:1 _age _year sex using https://www.pclambert.net/data/popmortA, ///
+>           keep(match master)   
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                            10,498  (_merge==3)
+    -----------------------------------------
+
+. 
+. stpm3 i.sex##@ns(agediag,df(3)), scale(lncumhazard) df(5) ///
+>       tvc(i.sex @ns(agediag,df(3) winsor(1 99))) dftvc(3) ///
+>       bhazard(rate) 
+
+Iteration 0:  Log likelihood = -9934.4206  
+Iteration 1:  Log likelihood =  -9869.628  
+Iteration 2:  Log likelihood = -9844.5096  
+Iteration 3:  Log likelihood =  -9844.268  
+Iteration 4:  Log likelihood = -9844.2677  
+
+                                                        Number of obs = 10,498
+                                                        Wald chi2(7)  = 281.55
+Log likelihood = -9844.2677                             Prob > chi2   = 0.0000
+
+----------------------------------------------------------------------------------------------
+                             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-----------------------------+----------------------------------------------------------------
+xb                           |
+                       2.sex |  -.5367956   .3572884    -1.50   0.133    -1.237068    .1634767
+             _ns_f1_agediag1 |  -17.11178   3.507369    -4.88   0.000    -23.98609   -10.23746
+             _ns_f1_agediag2 |    4.56246   1.740491     2.62   0.009     1.151161    7.973759
+             _ns_f1_agediag3 |  -2.074449   .5580852    -3.72   0.000    -3.168276   -.9806221
+                             |
+       sex#c._ns_f1_agediag1 |
+                          2  |   10.21369   4.610953     2.22   0.027     1.176392      19.251
+                             |
+       sex#c._ns_f1_agediag2 |
+                          2  |  -4.779487   2.362219    -2.02   0.043     -9.40935   -.1496237
+                             |
+       sex#c._ns_f1_agediag3 |
+                          2  |   1.155039   .6679121     1.73   0.084     -.154045    2.464122
+-----------------------------+----------------------------------------------------------------
+time                         |
+                        _ns1 |  -26.61548   3.729184    -7.14   0.000    -33.92454   -19.30641
+                        _ns2 |   9.032865   1.781381     5.07   0.000     5.541423    12.52431
+                        _ns3 |  -1.155737   .1753568    -6.59   0.000     -1.49943   -.8120444
+                        _ns4 |  -.7050778   .1712158    -4.12   0.000    -1.040655   -.3695009
+                        _ns5 |  -.5002046   .1657581    -3.02   0.003    -.8250844   -.1753247
+                             |
+              sex#c._ns_tvc1 |
+                          2  |   2.543556   1.996199     1.27   0.203    -1.368922    6.456034
+                             |
+              sex#c._ns_tvc2 |
+                          2  |  -.4942632   1.061708    -0.47   0.642    -2.575173    1.586647
+                             |
+              sex#c._ns_tvc3 |
+                          2  |   .3206083   .0887039     3.61   0.000     .1467518    .4944648
+                             |
+c._ns_f2_agediag1#c._ns_tvc1 |  -.3671341   29.36376    -0.01   0.990    -57.91905    57.18478
+                             |
+c._ns_f2_agediag1#c._ns_tvc2 |  -2.516029   15.62894    -0.16   0.872    -33.14818    28.11612
+                             |
+c._ns_f2_agediag1#c._ns_tvc3 |   1.186299   1.126176     1.05   0.292    -1.020966    3.393564
+                             |
+c._ns_f2_agediag2#c._ns_tvc1 |   3.057383   16.23862     0.19   0.851    -28.76972    34.88449
+                             |
+c._ns_f2_agediag2#c._ns_tvc2 |  -1.467367   8.623812    -0.17   0.865    -18.36973    15.43499
+                             |
+c._ns_f2_agediag2#c._ns_tvc3 |  -1.063785   .4957864    -2.15   0.032    -2.035508   -.0920615
+                             |
+c._ns_f2_agediag3#c._ns_tvc1 |  -2.472087   7.672579    -0.32   0.747    -17.51006    12.56589
+                             |
+c._ns_f2_agediag3#c._ns_tvc2 |   .5907294   4.114411     0.14   0.886    -7.473367    8.654826
+                             |
+c._ns_f2_agediag3#c._ns_tvc3 |   .1797678   .4757156     0.38   0.706    -.7526177    1.112153
+                             |
+                       _cons |   .9081922    .317337     2.86   0.004     .2862231    1.530161
+----------------------------------------------------------------------------------------------
+Extended functions
+ (1) @ns(agediag, df(3))
+ (2) @ns(agediag, df(3) winsor(1 99))
+
+```     
+
+We save the model estimates as before,
+
+```stata
+. estimates save CountryB, replace
+file CountryB.ster saved
+
+```  
+
+## Obtaining marginal (standardized) relative survival
+
+Now that we have the two `.ster` files. We can use them to
+obtain summary measures that will allow us to compare survival between
+Country A and Country B.
+
+An overall summary measure is standardized marginal relative survival.
+As we assuming we are in Counrty B we will use this data to define the covariate (age/sex) 
+distribution that we want to standardize to.
+
+We load the data we have access to, i.e. Country B.
+
+```stata
+. use https://www.pclambert.net/data/CountryB, clear
+
+. stset survtime, failure(dead=1)
+
+Survival-time data settings
+
+         Failure event: dead==1
+Observed time interval: (0, survtime]
+     Exit on or before: failure
+
+--------------------------------------------------------------------------
+     10,498  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+     10,498  observations remaining, representing
+      4,379  failures in single-record/single-failure data
+ 28,253.044  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =         5
+
+```  
+
+We then load the model estimates for the model fitted to this data using `estimates use`.
+
+```stata
+. estimate use CountryB
+
+```  
+
+We can then use `standsurv` to obtain the estimated marginal relative survival function.
+
+```stata
+. range tt 0 5 101
+(10,397 missing values generated)
+
+. standsurv RS_B, surv timevar(tt) ci frame(RS, replace)
+!!WARNING!! You are including observations not included in the model
+when calculating standardized estimates.
+Ensure this is what you intended.
+
+```  
+
+We get a warning that we are averaging over observations not included in the model.
+This is not actually true as we fitted the model to Country B and have reloaded
+the data for Country B. However, when you use `estimate use` the `e(sample)`
+is set to zero, which means that Stata has not linked the data in memory to
+the data that was used to fit the model. See the Stata help file for why this is.
+We will get the same warning when we use
+`standsurv` for a model that was not fitted to the data in memory. 
+
+
+After running `standsurv` we have the is the estimated internally age/sex standardized 
+relative survival for Country B.
+
+When we standardize we want to standardize over the same covariate pattern
+so that comparisons between the population groups we are comparing are fair.
+Therefore to obtain standardized estimates for Country A, we keep the same 
+data in memory, (i.e. the data for Country B), but the predictions are based on 
+the model for Country A. To do this we load the model estimates for Country A
+from `CountryA.ster`
+
+```stata
+. estimate use CountryA
+
+```  
+
+We can then run `standsurv` as before, but we now use `frame(RS, merge)` so 
+we store the predictions in the same frame as the predictions for Country B.
+
+```stata
+. standsurv RS_A, surv frame(RS, merge) ci
+!!WARNING!! You are including observations not included in the model
+when calculating standardized estimates.
+Ensure this is what you intended.
+
+```  
+
+
+We can now plot the marginal relative survival.
+
+```stata
+. frame RS {
+.   twoway (rarea RS_A_lci RS_A_uci tt, color(%30))                ///
+>          (line RS_A tt, pstyle(p1line))                          /// 
+>          (rarea RS_B_lci RS_B_uci tt, pstyle(p2line) color(%30)) ///
+>          (line RS_B tt, pstyle(p2line)),                         ///
+>          xtitle("Years from diagnosis")                          ///
+>          ytitle("Marginal Relative Survival")                    ///
+>          ylabel(,format(%3.1f))                                  ///
+>          legend(order(2 "Country A" 4 "Country B") pos(1))       ///
+>          name(RS, replace)
+. }
+
+```  
+
+![](/statasvg/standsurv_diff_countries_RS.svg)
+
+Note that as we have standardized to the age/sex distribution of Country B,
+the relative survival function for country B is a model based estimate of the 'observed' marginal relative 
+survival in Country B. The estimated relative survival function for Country A 
+is an estimate of the marginal relative survival in Country A 
+*if it had the age/sex distribution of Country B*.
+
+
+## Relative survival as a function of age at diagnosis
+
+We can now do a more complicated prediction. 
+The code below obtains the relative survival at 5 years as a function of age at diagnosis.
+We show the prediction for males (`sex==1`), but it would be simple to 
+extend the code to obtain predictions for females.
+
+
+```stata
+. frame create ageplot
+
+. frame ageplot {
+.   range agediag 50 80 31
+Number of observations (_N) was 0, now 31.
+.   gen sex = 1
+.   estimates use CountryA
+.   gen t5 = 5
+.   predict RS5_A, surv at1(.) timevar(t5) ci merge
+.   
+.   estimates use CountryB
+.   predict RS5_B, surv at1(.) timevar(t5) ci merge
+. }
+
+```  
+
+Note the use of `at1(.)` which will predict at the observed values of
+covariates in the active frame (which we have have calculated).
+In addition, we use the `merge` option as we want the predictions to be returned
+to the current frame (`ageplot`) rather than a new frame.
+
+Having generated the predictions, we can plot the results.
+
+```stata
+. frame ageplot {
+.   twoway (rarea RS5_A_lci RS5_A_uci agediag, color(%30))                ///
+>          (line RS5_A agediag, pstyle(p1line))                           ///
+>          (rarea RS5_B_lci RS5_B_uci agediag, color(%30) pstyle(p2line)) ///
+>          (line RS5_B agediag, pstyle(p2line)),                          ///
+>          xtitle("Years from diagnosis")                                 ///
+>          ytitle("Marginal 5-year Relative Survival")                    ///
+>          ylabel(,format(%3.1f))                                         ///
+>          legend(order(2 "Country A" 4 "Country B") pos(1))              ///
+>          name(RS_age, replace)
+. }
+
+```  
+
+
+![](/statasvg/standsurv_diff_countries_RS_ageplot.svg)
+
+
+## All cause survival
+
+Relative survival is awkward to interpret in that it attempts to estimate net 
+survival, which is survival in the hypothetical situation where it is not possible
+to die from any cause other than the cancer under study.
+
+However, we can transform predictions to obtain all cause survival ($S_i(t)$) 
+by incorporating the expected mortality survival, $S_i^*(t)$, and combining
+with relative survival, $R_i(t)$.
+
+$$
+\widehat{S}_i(t) = S_i^*(t) \widehat{R}_i(t)
+$$
+
+To do this we use the `expsurv()` option of the `standsurv` command.
+
+First the predictions for Country A
+
+```stata
+. estimates use CountryA
+
+. standsurv S_A, surv timevar(tt) ci frame(AC, replace)                    ///
+>                   expsurv(datediag(diagdate)                             ///
+>                           agediag(agediag)                               ///
+>                           using(https://www.pclambert.net/data/popmortA) ///
+>                           pmrate(rate)                                   ///
+>                           pmyear(_year)                                  ///
+>                           pmage(_age)                                    ///
+>                           pmother(sex)                                   ///
+>                           pmmaxyear(2020))  
+!!WARNING!! You are including observations not included in the model
+when calculating standardized estimates.
+Ensure this is what you intended.
+
+```  
+
+.. and then for Country B.
+
+```stata
+. estimates use CountryB
+
+. standsurv S_B, surv ci frame(AC, merge)                                  ///
+>                   expsurv(datediag(diagdate)                             ///
+>                           agediag(agediag)                               ///
+>                           using(https://www.pclambert.net/data/popmortB) ///
+>                           pmrate(rate)                                   ///
+>                           pmyear(_year)                                  ///
+>                           pmage(_age)                                    ///
+>                           pmother(sex)                                   ///
+>                           pmmaxyear(2020))  
+!!WARNING!! You are including observations not included in the model
+when calculating standardized estimates.
+Ensure this is what you intended.
+
+```  
+
+We can now plot the model based estimate of all-cause survival.
+                          
+```stata
+. frame AC {
+.   twoway (rarea S_A_lci S_A_uci tt, color(%30))                  ///
+>          (line  S_A tt, pstyle(p1line))                          /// 
+>          (rarea S_B_lci S_B_uci tt, pstyle(p2line) color(%30))   ///
+>          (line  S_B tt, pstyle(p2line)),                         ///
+>          xtitle("Years from diagnosis")                          ///
+>          ytitle("Marginal All cause Survival")                   ///
+>          ylabel(,format(%3.1f))                                  ///
+>          legend(order(2 "Country A" 4 "Country B") pos(1))       ///
+>          name(RS, replace)
+. }                        
+
+```  
+
+
+![](/statasvg/standsurv_diff_countries_AC.svg)
+
+
+There is a clear difference in all cause survival between Country A and
+Country B.
+However, although we have standardized to the same age/sex distribution,
+differences could be due to differential cancer (excess) mortality rates and/or
+differential other cause (expected) mortality rates. This is one reason why
+relative survival has been the preferred metric when quantifying
+cancer survival. We have developed reference adjusted measures that enables
+the reporting of all-cause survival in a way where the only differences 
+should be due to differential cancer mortality rates as shown in
+the next section.
+
+
+## Reference Adjustment
+
+With reference adjustment we define a reference expected survival, $S_i^{**}$
+that is the same between any groups we are comparing.
+We can then obtain reference adjusted all cause survival as follows, $\widehat{S}_i^{REF}(t)$.
+
+
+$$
+\widehat{S}_i^{REF}(t) = S_i^{**}(t) \widehat{R}_i(t)
+$$
+
+This is for a particular individual, $i$, but we can average of many individuals
+to obtain marginal (standardized) estimates using `standsurv`. 
+Here will use the expected mortality rates for Country B as the reference.
+This means that the reference adjusted marginal estimates of all cause survival for Country B
+will be an estimate of the observed all cause survival in Country B.
+For Country A it will be an estimate of the marginal all cause survival in Country 
+A if it had the expected mortality rates of Country B and the age/sex distribution 
+of Country B. Note that the appropriate
+expected mortality rates for country A were used when fitting the model, but 
+the reference rates are used when making predictions from the model.
+
+The reason for doing this is that any differences we see in the marginal all cause 
+survival will only be due to differential relative survival between the two countries, see
+Lambert *et al.* 2020.
+
+We reload the estimates for the model fitted to Country B and then run `standsurv`
+
+```stata
+. estimates use CountryB
+
+. standsurv Sref_B, surv timevar(tt) ci frame(RefAdj, replace)             ///
+>                   expsurv(datediag(diagdate)                             ///
+>                           agediag(agediag)                               ///
+>                           using(https://www.pclambert.net/data/popmortB) ///
+>                           pmrate(rate)                                   ///
+>                           pmyear(_year)                                  ///
+>                           pmage(_age)                                    ///
+>                           pmother(sex)                                   ///
+>                           pmmaxyear(2020))  
+!!WARNING!! You are including observations not included in the model
+when calculating standardized estimates.
+Ensure this is what you intended.
+
+```  
+
+We then reload the estimates for the model fitted to Country A and run `standsurv` again.
+
+```stata
+. estimates use CountryA
+
+. standsurv Sref_A, surv ci frame(RefAdj, merge)                           ///
+>                   expsurv(datediag(diagdate)                             ///
+>                           agediag(agediag)                               ///
+>                           using(https://www.pclambert.net/data/popmortB) ///
+>                           pmrate(rate)                                   ///
+>                           pmyear(_year)                                  ///
+>                           pmage(_age)                                    ///
+>                           pmother(sex)                                   ///
+>                           pmmaxyear(2020))  
+!!WARNING!! You are including observations not included in the model
+when calculating standardized estimates.
+Ensure this is what you intended.
+
+```  
+
+And finally plot the results.
+
+                          
+```stata
+. frame RefAdj {
+.   twoway (rarea Sref_A_lci Sref_A_uci tt, color(%30))                ///
+>          (line  Sref_A tt, pstyle(p1line))                           /// 
+>          (rarea Sref_B_lci Sref_B_uci tt, pstyle(p2line) color(%30)) ///
+>          (line  Sref_B tt, pstyle(p2line)),                          ///
+>          xtitle("Years from diagnosis")                              ///
+>          ytitle("Reference Adjusted All cause Survival")             ///
+>          ylabel(,format(%3.1f))                                      ///
+>          legend(order(2 "Country A" 4 "Country B") pos(1))           ///
+>          name(RS, replace)
+. }                                   
+
+```  
+
+![](/statasvg/standsurv_diff_countries_AC_refadj.svg)
+
+As we have standardized over the age/sex distribution of Country B and
+used the expected mortality rates for Country B, this figure
+gives an estimate of the average all cause survival for Country B (it will be very 
+similar the all cause Kaplan-Meier estimate).
+
+However, for Country A the estimate is hypothetical in two ways. 
+Firstly, it is standardized over the age/sex distribution for Country B.
+Secondly, the reference expected mortality rates are for Country B, so it
+gives an estimate of what the all cause survival would be in Country A if it
+had the expected mortality rates seen in Country B and the age/sex
+distribution of Country B. 
+We should remember that the reason for making the estimates Country A hypothetical are for reasons 
+of comparability and we want to isolate differences that are only due to differences
+in cancer (excess) mortality rates.
+
+
+## Reference Adjustment with external age standardization
+
+When it is of interest to make comparisons with other studies it is important 
+to standardize to the same age/sex distribution. Many population-based 
+cancer survival studies use the International Cancer Survival Standard as
+an external age distribution to standardise to. 
+
+The following code calcuates the ICSS age groups and associated weights.
+
+```stata
+. //Define ICSS age groups and weights
+. recode agediag (min/44.999=1) (45/54.999=2) (55/64.999=3) (65/74.999=4) (75/max=5), gen(ICSSagegrp)
+(10,498 differences between agediag and ICSSagegrp)
+
+. recode ICSSagegrp (1=0.07) (2=0.12) (3=0.23) (4=0.29) (5=0.29), gen(ICSSwt)
+(10,498 differences between ICSSagegrp and ICSSwt)
+
+```  
+
+Next we calculate the proportion in our data (Country B) in each age group
+for each sex. We then calculate the ratio of the ICSS weights and the observed
+proportion in each age group, so that we can upweight or downweight individuals
+in each age group.
+
+
+```stata
+. bysort sex: gen sextotal= _N
+
+. bysort ICSSagegrp sex:gen a_age = _N/sextotal
+
+. gen double wt_age = ICSSwt/a_age
+
+. 
+. bysort sex ICSSagegrp: gen first = _n==1
+
+. list sex ICSSagegrp ICSSwt a_age wt_age if first, noobs ab(12)
+
+  +---------------------------------------------------+
+  | sex   ICSSagegrp   ICSSwt       a_age      wt_age |
+  |---------------------------------------------------|
+  |   1            1      .07   .00617443   11.337083 |
+  |   1            2      .12   .02405454   4.9886631 |
+  |   1            3      .23    .1039362    2.212896 |
+  |   1            4      .29   .32518652   .89179589 |
+  |   1            5      .29   .54064831   .53639305 |
+  |---------------------------------------------------|
+  |   2            1      .07   .00844347   8.2904348 |
+  |   2            2      .12    .0256975   4.6697143 |
+  |   2            3      .23   .10352423   2.2217021 |
+  |   2            4      .29   .30029369   .96572127 |
+  |   2            5      .29   .56204112   .51597649 |
+  +---------------------------------------------------+
+
+. sort tt
+
+```  
+
+Next we can use `standsurv`' to obtain marginal estimates. Here we calculate marginal
+relative survival, but we could do this for reference adjusted measures as well.
+
+We do this first for Country B,
+
+```stata
+. estimates use CountryB
+
+. standsurv RS_B if sex==1, surv timevar(tt) ci frame(RS_ICSS, replace) ///
+>                               indweights(wt_age)
+!!WARNING!! You are including observations not included in the model
+when calculating standardized estimates.
+Ensure this is what you intended.
+
+```  
+
+and then for Country A.
+
+```stata
+. estimates use CountryA
+
+. standsurv RS_A if sex==1, surv ci frame(RS_ICSS, merge)   ///
+>                               indweights(wt_age)  
+!!WARNING!! You are including observations not included in the model
+when calculating standardized estimates.
+Ensure this is what you intended.
+
+```  
+
+Finally, we can plot the results. 
+
+```stata
+. frame RS_ICSS {
+.   twoway (rarea RS_A_lci RS_A_uci tt, color(%30))                ///
+>          (line RS_A tt, pstyle(p1line))                          /// 
+>          (rarea RS_B_lci RS_B_uci tt, pstyle(p2line) color(%30)) ///
+>          (line RS_B tt, pstyle(p2line)),                         ///
+>          xtitle("Years from diagnosis")                          ///
+>          ytitle("Marginal Relative Survival")                    ///
+>          ylabel(,format(%3.1f))                                  ///
+>          legend(order(2 "Country A" 4 "Country B") pos(1))       ///
+>          name(RS_ICSS, replace)
+. }       
+
+```  
+
+
+![](/statasvg/standsurv_diff_countries_RS_ICSS.svg)
+
+
+## Standardizing to the age/sex distribution of Country A
+
+We have been assuming that we are in, and have access to data from Country B.
+What if we want to standardize to the age/sex distribution of Country A?
+We could send the `Country B.ster` file to a colleague in Country A and they 
+could repeat the analysis above, but now the standardization would be
+over the age/sex distribution in Country A (i.e. the data in memory).
+
+One other option would be to obtain a summary of the age/sex distribution in
+Country A and use this to create a data set to standardize over. We show two ways
+of standardizing once we have this information. 
+
+First we will assume that a colleague in Country A has produced a summary
+of the proportion in each age/sex combination, perhaps using code like the following.
+
+```stata
+. use https://www.pclambert.net/data/CountryA, clear
+
+. gen ageint = floor(agediag)
+
+. collapse (percent) cellpercent=agediag, by(ageint sex)
+
+. list in 1/20, noobs ab(11)   
+
+  +----------------------------+
+  | sex   ageint   cellpercent |
+  |----------------------------|
+  |   1       18     .00476259 |
+  |   2       18     .00476259 |
+  |   1       19     .01428776 |
+  |   2       19     .00476259 |
+  |   1       20     .00476259 |
+  |----------------------------|
+  |   1       21     .01428776 |
+  |   2       21     .00476259 |
+  |   1       23     .00952517 |
+  |   2       23     .00476259 |
+  |   1       25     .00952517 |
+  |----------------------------|
+  |   1       26     .00476259 |
+  |   1       27     .00952517 |
+  |   2       27     .00476259 |
+  |   1       28     .00476259 |
+  |   1       29     .01428776 |
+  |----------------------------|
+  |   1       30     .02381293 |
+  |   1       31     .02857551 |
+  |   2       31     .00476259 |
+  |   1       32     .00476259 |
+  |   2       32     .01428776 |
+  +----------------------------+
+
+. rename ageint agediag
+
+. save CountryA_age_sex_summary, replace
+file CountryA_age_sex_summary.dta saved
+
+```  
+
+This given us the proportion in each age/sex comination in Country A
+
+We can then calculate the weights.
+
+```stata
+. use CountryA_age_sex_summary, clear
+
+. gen wt = (cellpercent/100)*_N
+
+```  
+
+These weights need to sum to the total number of observations in the data,
+which is why the percentage is converted to a proportion and then multiplied
+by `_N`.
+
+We can then use `standsurv` for each of the the model estimates passing the weights
+using the `indweights()` option. The code below shows for 
+estimation of standardized relative survival, but this can easily be extended in
+a similar way to above for reference adjustment etc.
+
+
+```stata
+. estimates use CountryA
+
+. range tt 0 10 101
+(52 missing values generated)
+
+. standsurv RS_A, surv timevar(tt) ci indweights(wt) ///
+>                 frame(RS_standA1, replace)
+!!WARNING!! You are including observations not included in the model
+when calculating standardized estimates.
+Ensure this is what you intended.
+
+. estimates use CountryB
+
+. standsurv RS_B, surv ci indweights(wt) ///
+>                 frame(RS_standA1, merge)
+!!WARNING!! You are including observations not included in the model
+when calculating standardized estimates.
+Ensure this is what you intended.
+
+```  
+
+This can be plotted.
+
+```stata
+. frame RS_standA1 {
+.   twoway (rarea RS_A_lci RS_A_uci tt, color(%30))                ///
+>          (line RS_A tt, pstyle(p1line))                          /// 
+>          (rarea RS_B_lci RS_B_uci tt, pstyle(p2line) color(%30)) ///
+>          (line RS_B tt, pstyle(p2line)),                         ///
+>          xtitle("Years from diagnosis")                          ///
+>          ytitle("Marginal Relative Survival")                    ///
+>          ylabel(,format(%3.1f))                                  ///
+>          legend(order(2 "Country A" 4 "Country B") pos(1))       ///
+>          name(RS, replace)
+. }
+
+```  
+
+
+![](/statasvg/standsurv_diff_countries_RS_standA1.svg)
+
+
+An alternative way to get the same result is to expand the data to match the
+percentage for each cell. Here we make the sample size 20000.
+
+```stata
+. use CountryA_age_sex_summary, clear
+
+. gen freq = round(20000*cellpercent/100)
+
+. expand freq
+(19,853 observations created)
+
+. estimates use CountryA
+
+. range tt 0 10 101
+(19,905 missing values generated)
+
+. standsurv RS_A, surv timevar(tt) ci ///
+>                 frame(RS_standA2, replace)
+!!WARNING!! You are including observations not included in the model
+when calculating standardized estimates.
+Ensure this is what you intended.
+
+. estimates use CountryB
+
+. standsurv RS_B, surv ci             ///
+>                 frame(RS_standA2, merge)
+!!WARNING!! You are including observations not included in the model
+when calculating standardized estimates.
+Ensure this is what you intended.
+
+```  
+
+This avoids having to use the `indweights()` option.
+
+
+```stata
+. frame RS_standA2 {
+.   twoway (rarea RS_A_lci RS_A_uci tt, color(%30))                ///
+>          (line RS_A tt, pstyle(p1line))                          /// 
+>          (rarea RS_B_lci RS_B_uci tt, pstyle(p2line) color(%30)) ///
+>          (line RS_B tt, pstyle(p2line)),                         ///
+>          xtitle("Years from diagnosis")                          ///
+>          ytitle("Marginal Relative Survival")                    ///
+>          ylabel(,format(%3.1f))                                  ///
+>          legend(order(2 "Country A" 4 "Country B") pos(1))       ///
+>          name(RS, replace)
+. }
+
+```  
+
+
+![](/statasvg/standsurv_diff_countries_RS_standA2.svg)
+
+
+## References
+
+Lambert PC, Andersson TM-L, Rutherford MJ, Myklebust TÅ, Møller B. Reference-adjusted and standardized all-cause and crude probabilities as an alternative to net survival in population-based cancer studies. *International Journal of Epidemiology* 2020;*49*:1614–23. [https://doi.org/10.1093/ije/dyaa112](https://doi.org/10.1093/ije/dyaa112)
+
+
+Rutherford MJ, Andersson TM-L, Myklebust TÅ, Møller B, Lambert PC. Non-parametric estimation of reference adjusted, standardised probabilities of all-cause death and death due to cancer for population group comparisons. *BMC Medical Research Methodology* 2022;**22**:2. [https://doi.org/10.1186/s12874-021-01465-w](https://doi.org/10.1186/s12874-021-01465-w)

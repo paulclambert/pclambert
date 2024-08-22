@@ -1,0 +1,426 @@
+--
+title: "Standardized cumulative incidence functions"
+---
+
+<<dd_do: quietly>>
+set scheme fpsaus_c
+frames reset
+<</dd_do>>
+
+> Originally written June 2019, updated to `stpm3` August 2024.
+
+> You will need to install `standsurv` and `stpm3`to run the example. 
+
+
+## Background
+
+I have been meaning to write about using `standsurv` for standardized measures in competing risks for a while and how many of the 
+ideas of standardization in a standard survival carry over to competing risks. Last week a very nice
+paper by Kipourou *et al*. was published that decribes using cause-specific flexible parametric models on the log-hazard scale and then using these to 
+derive standardized cause-specific cumulative incidence functions. It is great that they include R code for their analysis and as they used the 
+publically available MGUS2 data set available from the survival library in R, I thought I would try and do a similar analysis using `standsurv`.
+
+In competing risks there is interest in the time to more than one type of event. 
+A common example is different causes of death. For example, for
+patients diagnosed with a type of cancer, they at risk from dying from their cancer 
+or from some other cause, i.e. there are competing events. An indvidual can only 
+experience one of these events. 
+In such situations we can think of a separate hazard (mortality) rate 
+for each of the different causes. 
+
+So for two causes we could have two proportional hazards models,
+
+**Model 1:** $h_1(t) = h_{01}(t) \exp\left(\boldsymbol{\beta_1} \mathbf{Z_1}\right)$
+
+**Model 2:** $h_2(t) = h_{02}(t) \exp\left(\boldsymbol{\beta_2} \mathbf{Z_2} \right)$
+
+
+It is well known that transforming the cause-specific hazard function to a cause-specific survival function does not give a "real" world probability 
+of death, i.e. using the transformation
+
+$$
+S_k(t) = \exp\left(-\int_0^t h_k(u) du\right)
+$$
+
+If one is willing to assume conditional independence between the times to each event then $S_k(t)$ can be interpreted
+as a net probability, that is the probability of still being alive in the hypothetical situation where it is only possible to die from cause $k$. The independence asumption
+cannot be assessed from the data as we of course never observe the time to two events on the same individual.
+
+If interest lies in the probability of dying of cause $k$ in the situation where dying from another cause first will make it impossible 
+to die from cause $k$, then the cause-specific cumulative incidence function, $F_k(t)$ should be estimated. 
+This is defined as follows
+
+$$
+F_{k}(t) = \int_0^t S(u) h_k(u) du
+$$
+
+where $S(t)$ is the overall survival function,
+
+$$
+S(t) = S_1(t) S_2(t) = \exp\left(-\int_0^t {h_1(u) + h_2(u) du}\right)
+$$
+
+This is for two competing risks, but of course it can be extended to any number. 
+For more detail on competing risks see Andersen *et al.* 2012, Geskus 2016.
+
+## Example
+
+First I load the mgus2 data. This is the same data used by Kipourou *et al* in their example. This is a dataset that comes with the survival
+package in R. The two events of interest are time to plasma cell malignacy (PCM) or death 
+(before PCM). I will fit similar models to those in the Kipourou paper. 
+	
+First I will load the data and drop rows with missing values for the `mspike` variable 
+
+```stata
+<<dd_do>>
+use https://www.pclambert.net/data/mgus2, clear
+drop if mspike == .
+<</dd_do>>
+```
+
+After dropping the missing values of `mspike` we are left with 1373 individuals. I will now tabulate the `event` variable,
+
+```stata
+<<dd_do>>
+tab event
+<</dd_do>>
+```
+
+There are 404 individuals who are censored (`event=0`), 115 had a PCM event (`event=1`) and 854 died before PCM (`event=2`).
+
+I will now fit the models. As there are two events we fit two separate models, one for PCM and one for death. I will fit
+similar models to Kipourou *et al*, but the models here will be on the log cumulative hazard scale rather than the log hazard scale.
+
+#### PCM model
+
+For the PCM model we need to use, `event=1`, when using `stset`
+
+```stata
+<<dd_do>>
+stset survtime, failure(event=1)
+stpm3 age mspike i.male, scale(lncumhazard) df(4)
+estimates store pcm
+<</dd_do>>
+```
+
+This is a proportional hazards model including the effects of age at diagnosis, 
+`age`, size of the monoclonal serum spike (`mspike`) and sex (`male`). 
+The effects of `age` and `mspike` are assumed to be linear. 
+I have used 4 degrees of freedom, i.e. 5 knots, for the effect of time since diagnosis for the restricted cubic splines.
+
+#### Death before PCM model
+
+For the death before PCM model we to need use, `event=2`, when using `stset`.
+
+```stata
+<<dd_do>>
+stset survtime, failure(event=2)
+stpm3 age mspike i.male, scale(lncumhazard) df(4) tvc(age) dftvc(2)
+estimates store death
+<</dd_do>>
+```
+
+This model has relaxed the assumption of proportional hazards for age through use of the `tvc()` and `dftvc()` options.
+
+I have stored both models using `estimates store` as these will need to be passed to to `standsurv` when making predictions.
+
+#### Estimating the Marginal Cause-Specific CIFs
+
+The marginal cause-specific CIFs is the expection of the CIF over covariates $Z$, i.e.
+
+$$
+E\left[F_k(t|Z)\right]
+$$
+
+This can be estimated by predicting the cause specific CIF for each individual and then taking the mean, i.e.
+
+$$
+\widehat{F}_{k}(t|Z) = \frac{1}{N} \sum_{i=1}^{N} \int_0^t \widehat{S}_1(u|Z_i) \widehat{S}_2(u|Z_i) \widehat{h}_k(u|Z_i) du
+$$
+
+In this case $Z_i=(\mbox{age}\_i,\mbox{mspike}_i,\mbox{male}_i)$
+
+I now create the times I want to predict the cause-specific CIF at
+
+```stata
+<<dd_do>>
+range tt 0 30 31
+<</dd_do>>
+```
+
+This creates 31 equally spaced values between 0 and 30, i.e. increasing in steps of 1 year, and stores 
+in a new variable, `tt`. I then use `standsurv`.
+
+```stata
+<<dd_do>>
+standsurv, crmodels(pcm death) cif  timevar(tt) ci frame(cif,replace) atvar(F) 
+<</dd_do>>
+```
+
+The `crmodels(pcm death)` gives the names of the two models, the `cif` option requests the cause-specific CIFs are estimated 
+(the default is overall survival), the `ci` option means that confidence intervals 
+will be calculated (using the delta method), the `timevar(tt)` option gives the 
+times to predict at and the `atvar(F)` option gives the stub name of the new variables. 
+Here the defaults of using the model names will be used so variables `F_pcm` and `F_death` 
+will be created. 
+
+We can now plot the results,
+
+```stata
+<<dd_do>>
+frame cif {
+  twoway (rarea F_pcm_lci F_pcm_uci tt, color(red%30))              ///
+         (line F_pcm tt, color(red))                                ///
+         (rarea F_death_lci F_death_uci tt, color(blue%30))         ///
+         (line F_death tt, color(blue))                             ///
+         , legend(order(2 "PCM" 4 "Death") cols(1) ring(0) pos(11)) ///
+         ylabel(,angle(h) format(%3.2f))                            ///
+         xtitle("Time from diagnosis (years)")                      ///
+         ytitle("cause-specific CIF")                               ///
+         name(cifs, replace)
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_cif_pcm_death.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_cif_pcm_death.svg)
+
+This is similar to Figure 3 of the Kipourou *et al*. paper. 
+
+### Contrasts
+
+Contrasts are of more interest and the general idea is essentially the same as when making contrasts of survival functions. 
+For a binary exposure $X$ and confounders $Z$ we want to estimate
+
+$$
+E\left[F_k(t|X=1,Z)\right] - E\left[F_k(t|X=0,Z)\right]
+$$
+
+$F_k(t|X=x,Z)$ is estimated by,
+
+$$
+\widehat{F}_{k}(t|X=x,Z) = \frac{1}{N} \sum_{i=1}^{N} \int_0^t \widehat{S}_1(u|X=x,Z_i) \widehat{S}_2(u|X=x,Z_i) \widehat{h}_k(u|X=x,Z_i) du
+$$
+
+Here we are interested in the effect of sex, so here our exposure is `male` and the potential confounders are `age` and `mspike`. The `standsurv` command
+is shown below.
+
+```stata
+<<dd_do>>
+standsurv, crmodels(pcm death) cif ci timevar(tt) frame(cif2, replace) ///
+    at1(male 1) at2(male 0) atvar(F_male F_female)                     ///
+    contrast(difference) contrastvar(cif_diff)
+<</dd_do>>
+```
+
+The options that are different to the previous `standsurv` command 
+are that I have used `at1(male 1)` and `at2(male 0)`. 
+When estimating the standardized CIFs it first forces the covariate 
+`male` to be set to 1 for all subjects in the 
+individual predictions and then to 0. 
+As in the other `standsurv` examples the key point here is that the 
+distribution of confounders is forced to be the same for males and females 
+when obtaining the the estimates. 
+As there are two `at()` options, two new variables are listed using 
+`atvar(F_male F_female)`. 
+If `atvar()` is not specified the default names would be `_at2` and `_at1`. 
+The `contrast(difference)` option means that the difference between the `at` 
+options will be taken. 
+By default `at1` is the reference, but this can be changed using `atreference()`. 
+The  `contrastvar(cif_diff)` option gives the variable name for the difference. 
+Note that two new variables will be created as there are two competing events,
+`cif_diff_pcm` and `cif_diff_death`.
+
+Having created the standardized cause-specific CIFs we can now plot them.
+
+```stata
+<<dd_do>>
+frame cif2 {
+  twoway (rarea F_male_pcm_lci F_male_pcm_uci tt, color(red%30))        ///
+         (line F_male_pcm tt, color(red))                               ///
+         (rarea F_female_pcm_lci F_female_pcm_uci tt, color(blue%30))   ///
+         (line F_female_pcm tt, color(blue))                            ///
+         , legend(order(2 "Males" 4 "Females") cols(1) ring(0) pos(11)) ///
+         ylabel(, angle(h) format(%3.2f))                               ///
+         xtitle("Time from diagnosis (years)")                          ///
+         ytitle("cause-specific CIF")                                   ///
+         title("PCM")                                                   ///
+         name(pcm, replace)
+  		
+  twoway (rarea F_male_death_lci F_male_death_uci tt, color(red%30))      ///
+         (line F_male_death tt, color(red))                               ///
+         (rarea F_female_death_lci F_female_death_uci tt, color(blue%30)) ///
+         (line F_female_death tt, color(blue))                            ///
+         , legend(order(2 "Males" 4 "Females") cols(1) ring(0) pos(11))   ///
+         ylabel(, angle(h) format(%3.2f))                                 ///
+         xtitle("Time from diagnosis (years)")                            ///
+           ytitle("cause-specific CIF")                                   ///
+         title("Death")                                                   ///
+         name(death, replace)
+}		
+graph combine pcm death, nocopies ycommon		
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_cifs_by_sex.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_cifs_by_sex.svg)
+
+
+
+This is similar to the top row of Figure 4 in the Kipourou *et al*. paper although I have shown both cause-specific CIFs with the y-axes over the same range.
+
+For the contrast I just need to plot the new variables `cif_diff_pcm` and `cif_diff_death` together with their confidence limits.
+
+```stata
+<<dd_do>>
+frame cif2 {
+  twoway (rarea cif_diff_pcm_lci cif_diff_pcm_uci tt, color(red%30)) ///
+         (line cif_diff_pcm tt, color(red))                          ///
+         , legend(off)                                               ///
+         ylabel(, angle(h) format(%3.2f))                            ///
+         xtitle("Time from diagnosis (years)")                       ///
+           ytitle("cause-specific CIF")                              ///
+         title("PCM")                                                ///
+         name(pcm_diff, replace)
+  		
+  twoway (rarea cif_diff_death_lci cif_diff_death_uci tt, color(red%30)) ///
+         (line cif_diff_death tt, color(red))                            ///
+         , legend(off)                                                   ///
+         ylabel(, angle(h) format(%3.2f))                                ///
+         xtitle("Time from diagnosis (years)")                           ///
+           ytitle("cause-specific CIF")                                  ///
+         title("Death")                                                  ///
+         name(death_diff, replace)
+}		
+graph combine pcm_diff death_diff, nocopies ycommon		
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_cif_differences.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_cif_differences.svg)
+
+This is similar to the bottom row of Figure 4 in the Kipourou *et al*. paper although, as above, I have shown both cause-specific CIFs with the y-axes over the same range.
+
+## Using different survival models		
+
+`standsurv` is a general command and it possible to use a variety of different survival models. 
+It is also possible to use different survival distributions for different causes. 
+In order to illustrate this I will use a weibull model for PCM where the shape parameter 
+is a function of age and a log-logistic accelerated failure time model for death. 
+I am not claiming these are sensible models, but just aim to show the versatility of `standsurv`
+
+I fit the two models below.
+
+```stata
+<<dd_do>>
+stset survtime, failure(event=1)
+streg age mspike male, dist(weibull) anc(age)
+estimates store pcm2
+
+stset survtime, failure(event=2)
+streg age mspike male, dist(llogistic) 
+estimates store death2
+<</dd_do>>
+```
+
+I have stored the models using `estimates store` and just need to pass these new
+models to `standsurv`. The rest of the `standsurv` code is the same, with the
+exception of creating new variables names.
+
+```stata
+<<dd_do>>
+standsurv, crmodels(pcm2 death2) cif ci timevar(tt) frame(cif3, replace) ///
+           at1(male 1) at2(male 0) atvar(F_male F_female)                ///
+           contrast(difference) contrastvar(cif_diff)
+<</dd_do>>
+```
+
+The plots can be reproduced the same way and are shown in a panel graph below.
+
+```stata
+<<dd_do: quietly>>
+frame cif3 {
+  twoway (rarea F_male_pcm2_lci F_male_pcm2_uci tt, color(red%30))      ///
+         (line F_male_pcm2 tt, color(red))                              ///
+         (rarea F_female_pcm2_lci F_female_pcm2_uci tt, color(blue%30)) ///
+         (line F_female_pcm2 tt, color(blue))                           ///
+         , legend(order(2 "Males" 4 "Females") cols(1) ring(0) pos(11)) ///
+         ylabel(0(0.2)0.8, angle(h) format(%3.2f))                      ///
+         xtitle("Time from diagnosis (years)")                          ///
+         ytitle("cause-specific CIF")                                   ///
+         title("PCM")                                                   ///
+         name(pcm2, replace)
+  		
+  twoway (rarea F_male_death2_lci F_male_death2_uci tt, color(red%30))      ///
+         (line F_male_death2 tt, color(red))                                ///
+         (rarea F_female_death2_lci F_female_death2_uci tt, color(blue%30)) ///
+         (line F_female_death2 tt, color(blue))                             ///
+          , legend(order(2 "Males" 4 "Females") cols(1) ring(0) pos(11))    ///
+          ylabel(0(0.2)0.8, angle(h) format(%3.2f))                         ///
+          xtitle("Time from diagnosis (years)")                             ///
+          ytitle("cause-specific CIF")                                      ///
+          title("Death")                                                    ///
+          name(death2, replace)
+  
+  twoway (rarea cif_diff_pcm2_lci cif_diff_pcm2_uci tt, color(red%30)) ///
+         (line cif_diff_pcm2 tt, color(red))                           ///
+         , legend(off)                                                 ///
+         ylabel(-0.15(0.05)0.05, angle(h) format(%3.2f))               ///
+         xtitle("Time from diagnosis (years)")                         ///
+         ytitle("cause-specific CIF")                                  ///
+         title("PCM")                                                  ///
+         name(pcm2_diff, replace)
+  		
+  twoway (rarea cif_diff_death2_lci cif_diff_death2_uci tt, color(red%30))  ///
+         (line cif_diff_death2 tt, color(red))                              ///
+         , legend(off)                                                      ///
+         ylabel(-0.15(0.05)0.05, angle(h) format(%3.2f))                    ///
+         xtitle("Time from diagnosis (years)") ytitle("cause-specific CIF") ///
+         title("Death")                                                     ///
+         name(death2_diff, replace)
+}		
+graph combine pcm2 death2 pcm2_diff death2_diff, nocopies 		
+<</dd_do>>
+```
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_cif2_panel.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_cif2_panel.svg)
+
+They are reasonably similar to the previous plot, with some small differences.
+
+## Some comments
+
+
+For the flexible parametric models I have modelled on the log cumulative hazard scale, 
+while Kipourou *et al* fitted models on the log hazard scale. 
+In `stpm3` you can fit a model on log hazard scale using `scale(lnhazard)` for standard survival models 
+and relative survival models these are compatable 
+with `standsurv`. 
+However, computations are easier and faster on the log cumulative hazard scale so unless
+there is a good reason for not doing so, I prefer models on this scale. In the MGUS2 example, the 
+models here have very similar fits (BIC = 925.6 for `stpm3` with scale(lncumhazard) PCM model and 926.7 for 
+`stpm3` with `scale(lnhazard)` for the PCM model and BIC = 3656.6 vs 3656.4 for 
+the death model.
+	
+## References
+
+Andersen, P. K., Geskus, R. B., de Witte, T., Putter, H. Competing risks in epidemiology: possibilities and pitfalls.
+*Int J Epidemiol* 2012;41:861-70 
+
+Geskus, R. B. *Data analysis with competing risks and intermediate states.* Chapman and Hall 2016
+
+Kipourou, D.-K., Charvat, H., Rachet, B., Belot, A. Estimation of the adjusted cause-specific cumulative probability using flexible regression models for the cause-specific hazards. <br>
+*Statistics in Medicine* 2019. DOI: [10.1002/sim.8209](https://onlinelibrary.wiley.com/doi/full/10.1002/sim.8209)
+
+

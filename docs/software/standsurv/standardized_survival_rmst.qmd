@@ -1,0 +1,230 @@
+---
+title: "RMST of Standardized Survival Functions"
+---
+
+
+
+
+Here I will show another useful measure from standardized survival functions. There have been several papers promoting the use of restricted mean survival time (RMST) in clinical trials. The arguments are (i) ease of interpretation (though I am not convinced a restricted mean is that easy to explain) and (ii) providing a simple summary in the presence of non-proportional hazards. See Royston and Parmar (2013) for a description of the use of the measure in RCTs.
+
+The restricted mean survival time at time $t^*$ is defined as,
+$$
+E\left[min(t,t^*)\right]
+$$
+i.e. it is the mean up to some point $t^*$. The treatment effect in a RCT can be defined as the difference in RMST between the randomized arms at time $t^*$. The RMST can be estimated by calculating the area under the survival curve between 0 and $t^*$. In an observational study where we need to take account of potential confounders, we can define the RMST of the standardized survival function as
+
+$$
+RMST(t^*|X=x,Z) = \int_0^{t^*} E\left[S(t|X=x,Z)\right]
+$$
+
+and is estimated by
+
+$$
+\widehat{RMST}(t^*|X=x,Z) = \int_0^{t^*} \frac{1}{N}\sum\_{i=1}^{N}S(t|X=x,Z=z_i)]
+$$
+
+Contrasts between exposure groups can either be differences or ratios,
+
+$$
+\widehat{RMST}(t^*|X=1,Z) - \widehat{RMST}(t^*|X=0,Z) 
+$$
+
+
+$$
+\frac{\widehat{RMST}(t^*|X=1,Z)}{\widehat{RMST}(t^*|X=0,Z)}
+$$
+
+Standardized RMST and contrasts is implemented in `standsurv` using the `rmst` option.
+
+## Example
+
+I will use the Rotterdam Breast cancer data. The code below loads and `stset`'s the data and then fits a model using `stpm3`. 
+
+```stata
+. use https://www.pclambert.net/data/rott3, clear
+(Rotterdam breast cancer data (augmented with cause of death))
+
+. stset os, f(osi==1) scale(12) exit(time 120)
+
+Survival-time data settings
+
+         Failure event: osi==1
+Observed time interval: (0, os]
+     Exit on or before: time 120
+     Time for analysis: time/12
+
+--------------------------------------------------------------------------
+      2,982  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+      2,982  observations remaining, representing
+      1,171  failures in single-record/single-failure data
+ 20,002.424  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =        10
+
+. stpm3 i.hormon age enodes pr_1, scale(lncumhazard) df(4) eform nolog tvc(i.hormon) dftvc(3)
+
+                                                        Number of obs =  2,982
+                                                        Wald chi2(4)  = 615.95
+Log likelihood = -2666.5968                             Prob > chi2   = 0.0000
+
+-----------------------------------------------------------------------------------
+                  |     exp(b)   Std. err.      z    P>|z|     [95% conf. interval]
+------------------+----------------------------------------------------------------
+xb                |
+           hormon |
+             yes  |   .8499802   .0963501    -1.43   0.152     .6806444    1.061445
+              age |   1.013249   .0024115     5.53   0.000     1.008534    1.017987
+           enodes |   .1132408    .011008   -22.41   0.000     .0935963    .1370084
+             pr_1 |   .9061179   .0119267    -7.49   0.000     .8830411    .9297979
+------------------+----------------------------------------------------------------
+time              |
+             _ns1 |  -27.09524   2.109681   -12.84   0.000    -31.23014   -22.96034
+             _ns2 |   8.647725   1.122097     7.71   0.000     6.448455    10.84699
+             _ns3 |  -1.072205   .0477674   -22.45   0.000    -1.165827   -.9785823
+             _ns4 |  -.6930019   .0518048   -13.38   0.000    -.7945373   -.5914664
+                  |
+hormon#c._ns_tvc1 |
+             yes  |   5.425507    3.92237     1.38   0.167    -2.262197    13.11321
+                  |
+hormon#c._ns_tvc2 |
+             yes  |  -3.309698   2.096769    -1.58   0.114    -7.419291    .7998943
+                  |
+hormon#c._ns_tvc3 |
+             yes  |  -.1256484    .195217    -0.64   0.520    -.5082667      .25697
+                  |
+            _cons |   .7984459   .1615956     4.94   0.000     .4817244    1.115168
+-----------------------------------------------------------------------------------
+Note: Estimates are transformed only in the first equation.
+
+```
+
+I have made the effect of our exposure, `hormon`, time-dependent using the `tvc` option to illustrate that 
+we can have interactions etc with our exposure in our model. This is an interaction with time, i.e. non proportional hazards.
+
+
+I first calculate the standardized survival curves where everyone is forced to be exposed and then unexposed.
+
+```stata
+. range timevar 0 10 100
+(2,882 missing values generated)
+
+. standsurv, surv timevar(timevar) ci frame(surv, replace)          ///
+>            at1(hormon 0) at2(hormon 1) atvar(S_hormon0 S_hormon1)
+
+. 
+. frame surv {
+.   twoway (area S_hormon0 timevar, sort fcolor(%30)) ///
+>          , legend(off)                              ///
+>          ylabel(0(0.1)1, format(%3.1f))             ///
+>          ytitle("S(t)")                             ///
+>          xtitle("Years from surgery")               ///
+>          title("No treatment")                      ///
+>          name(hormon0, replace)
+.   
+.   twoway (area S_hormon1 timevar, sort pstyle(p2line) fcolor(%30)) ///
+>          , legend(off)                                             ///
+>          ylabel(0(0.1)1, format(%3.1f))                            ///
+>          ytitle("S(t)")                                            ///
+>          xtitle("Years from surgery")                              ///
+>          title("Treatment")                                        ///
+>          name(hormon1, replace)
+.                 
+.   graph combine hormon0 hormon1, nocopies               
+. }
+
+```
+
+
+![](/statasvg/standsurv_rmst_stand.svg)
+
+The RMST at 10 years for each of the standardized survival functions is the area under the standardized survival curve, shown by the shaded areas in the graphs above.
+
+I will now run `standsurv` again with the `rmst` option to estimate these togther with the difference in RMST. I only want the RMST at 
+10 years so create a variable `t_rmst10` with only one observation, equal to 10.
+
+```stata
+. gen t10 = 10 in 1
+(2,981 missing values generated)
+
+. standsurv, rmst timevar(t10) ci frame(rmst, replace)          ///
+>            at1(hormon 0) at2(hormon 1) atvar(rmst_h0 rmst_h1) ///
+>            contrast(difference) contrastvar(rmstdiff)
+
+```
+
+I will first list the standardized RMST in both treatment groups.
+
+```stata
+. frame rmst: list t10 rmst_h0* rmst_h1* in 1, noobs abb(12) 
+
+  +-------------------------------------------------------------------------------------+
+  | t10     rmst_h0   rmst_h0_lci   rmst_h0_uci     rmst_h1   rmst_h1_lci   rmst_h1_uci |
+  |-------------------------------------------------------------------------------------|
+  |  10   7.5444253     7.4318217      7.658735   7.9386172      7.687098      8.198366 |
+  +-------------------------------------------------------------------------------------+
+
+```
+
+The RMST at 10 years is 7.54 years in those not taking treatment and 7.94 years in those taking treatment. The 95% confidence
+intervals are also shown. As I used the `contrast(difference)` option I can look at the difference in RMST at 10 years.
+
+```stata
+. frame rmst: list t10    rmstdiff* in 1, noobs abb(12)
+
+  +-----------------------------------------------+
+  | t10    rmstdiff   rmstdiff_lci   rmstdiff_uci |
+  |-----------------------------------------------|
+  |  10   .39419189        .116234      .67214979 |
+  +-----------------------------------------------+
+
+```
+
+The difference is 0.39 years (95% CI 0.12 to 0.67).
+
+
+The RMST will vary by the choice of $t^*$. A range of values of $t^*$ can be given and then plotted. 
+
+
+```stata
+. range t_rmst 0 10 50
+(2,932 missing values generated)
+
+. standsurv, rmst timevar(t_rmst) ci frame(rmst2, replace)      ///
+>            at1(hormon 0) at2(hormon 1) atvar(rmst_h0 rmst_h1) ///
+>            contrast(difference) contrastvar(rmstdiff)
+
+```
+
+We can plot how the RMST changes and the difference in RMST changes as a function of $t^\*$.
+
+```stata
+. frame rmst2 {
+.   twoway (line rmst_h0 rmst_h1 t_rmst) ///
+>          , legend(order(1 "No treatment" 2 "Treatment") cols(1) pos(11)) ///
+>          ytitle("RMST (years)") ///
+>          xtitle("Years from surgery") ///
+>          name(RMST,replace)
+.   
+.   twoway (rarea rmstdiff_lci rmstdiff_uci t_rmst, color(blue%20)) ///
+>          (line rmstdiff t_rmst, lcolor(blue))                     ///
+>          , legend(off)                                            ///
+>          ylabel(, format(%3.1f))                                  ///
+>          ytitle("Difference in RMST (years)")                     ///
+>          xtitle("Years from surgery")                             ///
+>                    name(RMSTdiff, replace)
+.                 
+.   graph combine RMST RMSTdiff, nocopies
+. }  
+
+```
+
+
+![](/statasvg/standsurv_RMST_diff.svg)
+
+## References
+
+Royston, P. Parmar, M. K. B. Restricted mean survival time: an alternative to the hazard ratio for the design and analysis of randomized trials with a time-to-event outcome. 
+*BMC medical research methodology* 2013;**13**:152

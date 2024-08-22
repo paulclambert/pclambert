@@ -1,0 +1,194 @@
+---
+title: "Attributable Fraction from Standardized Survival Functions"
+---
+
+
+<<dd_do: quietly>>
+set scheme fpsaus_c
+<</dd_do>>
+
+This example will demonstrate how the attributable fraction ($AF$) can be obtained for survival data. 
+It will also demonstrate the flexibility to calculate various function of standardized estimates 
+through use of the `userfunction()` option.
+
+
+The is defined in epidemiology as the proportion of preventable outcomes if 
+all subjects had not been exposed to a particular exposure. i.e.
+
+$$
+AF = \frac{P(D=1) - P(D=1|X=0)}{P(D=1)}
+$$
+
+where $P(D)$ is proportion diseased in the whole population, 
+and $P(D|X=0)$ is the probability of being diseased in the exposed. 
+In observation studies there will be confounding and thus we need to consider potential confounders, $Z$. 
+
+$$
+AF = \frac{E(D=1|Z) - E(D=1|X=0,Z)}{P(D|Z)}
+$$
+
+In survival studies the probability of being diseased is a function of time, so we define the $AF$ using the failure function, $F(t) = 1 - S(t)$, so $AF(t)$ is defined as
+
+$$
+AF(t) = \frac{E[F(t|Z)] - E[F(t|X=0,Z)]}{E[F(t|Z)]} = 1 - \frac{E[F(t|X=0,Z)]}{E[F(t|Z)]}
+$$
+
+$E[F(t|Z)]$ is the standardized failure function over covariate distribution, $Z$, and $E[F(t|X=0,Z)]$ is the standardized failure function over covariate distribution, $Z$ where all subjects forced to be unexposed. See Samualson (2008) for some background.
+
+## Example
+
+I will use the Rotterdam Breast cancer data. The code below loads and `stset`'s the data and then fits a model using `stpm3`. 
+
+```stata
+<<dd_do >>
+clear all
+use https://www.pclambert.net/data/rott3, 
+stset os, f(osi==1) scale(12) exit(time 120)
+stpm3 i.hormon age enodes pr_1, scale(lncumhazard) df(4) eform nolog 
+<</dd_do>>
+```
+
+It is worthwhile commenting what we mean be "exposed" here. 
+Those on hormal treatment will be consided unexposed and those **not** taking the treatment will be exposed, 
+i.e our unexposed group is when `hormon=1`.
+
+
+I will first use the `failure` option to calculate the standardized failure probabilities in both groups. 
+I also predict the failure probability in the population as a whole. 
+I do this using `.` within an `at` option, i.e. using `at3(.)` in the example below.
+
+```stata
+<<dd_do >>
+range timevar 0 10 101
+standsurv, failure timevar(timevar) ci frame(Ft, replace)             ///
+           at1(hormon 0) at2(hormon 1) at3(.) atvar(F_hormon0 F_hormon1 F_all)
+frame Ft {
+  twoway (line F_hormon0 timevar)                                       ///
+         (line F_hormon1 timevar)                                       ///
+         (line F_all timevar),                                          ///
+          legend(order(1 "No treatment" 2 "Treatment" 3 "All") pos(11)) /// 
+          ylabel(, format(%3.1f))                                       ///
+          ytitle("S(t)")                                                ///
+          xtitle("Years from surgery") 
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_failure_stand.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_failure_stand.svg)
+
+These are just 1 - the standardized survival functions. There are more untreated women (88.6%) which is why the "No Treatment" function is closer to the combined function. The attributable fraction could be calculated using
+
+```stata
+<<dd_do >>
+frame Ft {
+  gen AF_tmp = 1 - F_hormon1/F_all
+  list timevar F_hormon1 F_all AF_tmp if inlist(timevar,1,5,10), noobs
+}
+<</dd_do>>
+```
+
+I have listed the $AF$ at 1, 5 and 10 years. If I just wanted a point estimate I could stop here. However, generally we will want to calculate confidence intervals. This is where the `userfunction()` option comes in. We can calculate a transformation of our standardized estimates with standard errors estimated using the delta method where derivatives are calculated numerically (similar to `nlcom` and `predictnl`). I "borrowed" the idea of a `userfunction()` from Arvid Sjölander's `stdReg` R package (Sjölander 2018).
+
+
+The user function needs to be written in Mata. The function should receive one argument `at`, which refer to the various `at` options and can be indexed by `at[1]`, `at[2]` etc. The code below calculates the AF assuming that `at1` is the standardized failure function in the population as a whole and `at2` is the standardized failure function assuming everyone is unexposed (takes hormonal treatment). We need to be careful to specify the `at()` options is this order.
+
+```stata
+<<dd_do >>
+mata
+function calcAF(at) {
+    // at2 is F(t|unexposed,Z)
+    // at1 is F(t,Z)
+    return(1 - at[2]/at[1])
+}
+end
+<</dd_do>>
+```
+
+Having defined the Mata function I just pass this to `standsurv` using the `userfunction()` option.
+
+```stata
+<<dd_do >>
+standsurv, failure timevar(timevar) ci frame(Ft2, replace)   ///
+           at1(.) at2(hormon 0) atvar(F_hormon1 F_all)       ///    
+           userfunction(calcAF) userfunctionvar(AF) 
+<</dd_do>>
+```
+
+I have specified the `userfunctionvar(AF)` option so that the new variable is called `AF`. Without this option
+the default is `_userfunc`. I can now plot the AF as a function of follow-up time.
+
+
+```stata
+<<dd_do >>
+frame Ft2 {
+  twoway (rarea AF_lci AF_uci timevar, color(red%30)) ///
+         (line AF timevar, lcolor(red))               ///
+         , legend(off)                                /// 
+         ylabel(0(0.05)0.3, format(%4.2f))            ///
+         ytitle("AF")                                 ///
+         xtitle("Years from surgery") 
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_AF_stand.svg, replace width(700px)
+<</dd_do>>
+![](/statasvg/standsurv_AF_stand.svg)
+
+I purposely chose for the effect of hormonal treatment to be proportional as this example is illustrative. When I relaxed this assumption, the AF was negative for the first few months.
+
+Samualson (2008) defines alternative based on the hazard function. I am less keen on this than the use of the survival function, but show how this can be
+estimated using `standsurv` for completeness.
+
+Samualson defines this is the attributable hazard fraction. The equation is similar to the AF defined above, but we replace the failure function with the hazard function.
+
+$$
+AHF(t) = \frac{E[\lambda(t|Z)] - E[\lambda(t|X=0,Z)]}{E[\lambda(t|Z)]} = 1 - \frac{E[\lambda(t|X=0,Z)]}{E[\lambda(t|Z)]}
+$$
+
+This give the proportion of preventable events **at** time $t$ rather than **by** time $t$.
+
+See the page of [The hazard function of the standardized survival curve.](/docs/software/standsurv/standardized_survival_hazard.qmd) for a description of standardized hazard functions. 
+
+As I just have to replace the failure probability with the hazard function, I can just use the same Mata function. This means that I just have the change the option `failure` to `hazard` in `standsurv`.
+
+```stata
+<<dd_do >>
+standsurv, hazard timevar(timevar) ci frame(haz, replace)   ///
+           at1(.) at2(hormon 0) atvar(F_hormon1 F_all)      ///    
+           userfunction(calcAF) userfunctionvar(AHF) 
+<</dd_do>>
+```
+
+I can now plot the results.
+
+```stata
+<<dd_do >>
+frame haz {
+  twoway (rarea AHF_lci AHF_uci timevar, color(red%30)) ///
+         (line AHF timevar, lcolor(red))                ///
+         , legend(off)                                  /// 
+         ylabel(0(0.05)0.3, format(%4.2f))              ///
+         ytitle("AHF")                                  ///
+         xtitle("Years from surgery") 
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_AHF_stand.svg, replace width(700px)
+<</dd_do>>
+![](/statasvg/standsurv_AHF_stand.svg)
+
+
+
+## References
+
+Samuelsen S.O., Eide G.E. Attributable fractions with survival data. *Statistics in Medicine* 2008;**27**:1447--1467
+
+Sjölander A. Estimation of causal effect measures with the R-package stdReg.*European Journal of Epidemiology* 2018

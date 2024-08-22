@@ -1,0 +1,6 @@
+cd "${DRIVE}/github/pclambert/scripts/dofiles/standsurv/"
+dyntext standardized_survival_rmst.txt, saving(../../../software/standsurv\standardized_survival_rmstqmd) replace
+	
+	
+		
+	

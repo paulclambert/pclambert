@@ -19,14 +19,14 @@ You can install `standsurv` within Stata using
 ### Standard Survival Models
 - [Standardized survival functions and contrasts.](/software/standsurv/standardized_survival.qmd)
 - [Centiles of the standardized survival function.](/software/standsurv/standardized_survival_centiles.qmd)
-- [Restricted mean survival using standardized survival functions.](/software/standsurv/standardized_survival_rmst/)
-- [The hazard function of the standardized survival curve.](/software/standsurv/standardized_survival_hazard/)
-- [Estimating attributable fractions in cohort studies](/software/standsurv/standardized_survival_AF/)
+- [Restricted mean survival using standardized survival functions.](/software/standsurv/standardized_survival_rmst.qmd)
+- [The hazard function of the standardized survival curve.](/software/standsurv/standardized_survival_hazard.qmd)
+- [Estimating attributable fractions in cohort studies](/software/standsurv/standardized_survival_AF.qmd)
 - [Some comments on why I am not so keen on `stteffects`](/software/standsurv/why_not_stteffects/)
 - Why just not use `margins`?
 
 ### Competing Risk Models
-- [Standardized cause-specific cumulative incidence functions.](/software/standsurv/standardized_cif/)
+- [Standardized cause-specific cumulative incidence functions.](/software/standsurv/standardized_cif.qmd)
 - Other useful standardized measures in competing risks
 
 ### Relative/Net Survival Models 

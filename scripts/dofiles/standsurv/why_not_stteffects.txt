@@ -1,0 +1,307 @@
+---
+title: "Some comments on using steffects in Stata"
+---
+
+<<dd_do: quietly>>
+set scheme fpsaus_c
+<</dd_do>>
+
+
+## Using `stteffects`
+
+There is a command in Stata called `stteffects` which calculates marginal effects for survival-time data. This is the description in the helpfile:
+
+*"`stteffects` estimates average treatment effects, average treatment effects on the treated, and potential-outcome means using observational survival-time data.  The available estimators are regression adjustment, inverse-probability weighting, and    more efficient methods that combine regression adjustment and inverse-probability weighting."*
+
+I will concentrate on regression adjustment as this is essentially what `standsurv` does. The other estimators are just different methods to estimate the same underlying quantities.
+
+I do not use `stteffects` as the estimand of interest is based on the mean survival time. In many cases this relies on extrapolation beyond the range of follow-up. In my applications I am not willing to make such strong assumptions. I will illustrate this with an example using the Rotterdam Breast cancer data. The code below loads and `stset`'s the data. I restrict follow-up time to 5 years as ths highlights some of the extrapolation issues. I would usually use the `exit()` option of `stset` to restrict follow-up time, but for some reason `sttefects` does not allow you to do this.
+
+```stata
+<<dd_do >>
+use https://www.pclambert.net/data/rott3 if nodes>0, clear
+gen os2  = cond(os<(5*12),os,60)
+gen osi2 = cond(os<(5*12),osi,0)
+stset os2, f(osi2==1) scale(12) 
+
+sts graph, by(hormon)
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_stteffects_km.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_stteffects_km.svg)
+
+I have plotted the Kaplan-Meier curve comparing those who receive and do not receive hormonal treatment, which shows that those taking treatment have slightly better survival. As shown in other examples there is imbalance between the groups for a number of potential confounders. For simplicity, I will just use age at diagnosis and the number of positive lymph nodes as potential confounders. 
+
+```stata
+<<dd_do >>
+tabstat age nodes ,by(hormon)
+<</dd_do>>
+```
+
+Those receiving treatment are older and have slightly more positive lymph nodes. 
+
+
+I will first use `stteffects` using regression adjustment (`ra`) with `age` and `enodes` as covariates. I will use the potential outcomes framework,
+
+- $T^{x=0}$ is the potential survival time for the non-treated/unexposed.
+- $T^{x=1}$ is the potential survival time for the treated/exposed.
+
+An average causal effect could be defined as the difference in the expected values of these two potential outcomes
+
+$$
+E\left[T^{x=1}\right] - E\left[T^{x=0}\right]
+$$
+
+I use `stteffects` to estimate this below,
+
+```stata
+<<dd_do >>
+stteffects ra (age enodes, weibull) (hormon), 
+<</dd_do>>
+```
+
+The output has given the mean potential outcome for those not receiving treatment and the average causal difference (labelled ATE). Thus, the estimated mean survival time is 7.84 years for those not taking treatment and estimated to be 1.07 year lower for those taking treatmnet. The 95% confidence interval for this difference spans zero.
+
+What has `stteffects` done? Well effectively it has fitted a Weibull regression model that includes `age` and `enodes` and `hormon` and the interactions between `enodes` and `hormon` and between `age` and `hormon`. It has also allowed the shape parameter of the Weibull model to vary by `hormon`. This model is the same as fitting separate Weibull models for the untreated and treated groups. It has also estimated the mean survival time if all individuals were untreated and the mean difference in survival time between the treated and untreated. It actually simultaneously estimates all this, but as I will show below, it is doing exactly the same as regression standardization using `standsurv`.
+
+I have assumed a Weibull model in the above code, so it is of interest to see if fitting a different model gives notable differences. Below I run `steffects` again, but now using a lognormal model.
+
+```stata
+<<dd_do >>
+stteffects ra (age enodes, lnormal) (hormon), 
+<</dd_do>>
+```
+
+The mean survival time for the non-treated has increased from 7.84 years to 12.57 and the average causal difference has increased from 1.07 years to 3.43 years. This should be concerning has the estimates appear to be strongly dependent on the choice of parametric distribution. 
+
+Let's explore what is happening here and why the estimates are so different. The code below fits all models available in `streg` to the non-treated group (`hormon=0`) and compares the estimated survival functions to the Kaplan-Meier estimate. I am not fitting covariates here as I am just making a point about extrapolating beyond the range of your data.
+
+```stata
+<<dd_do:quietly>>
+foreach dist in weibull gompertz loglogistic lognormal ggamma {
+    streg if hormon == 1, dist(`dist')
+    predict surv_`dist', surv
+    estimates store `dist'
+}
+
+sts gen s_km = s if hormon == 1 
+twoway  (line s_km _t, connect(stairstep) sort lcolor(black))   ///
+        (line surv_* _t, sort),                                 ///
+        legend(order(1 "Kaplan-Meier" 2 "Weibull" 3 "Gompertz"  ///
+		             4 "LogLogistic" 5 "LogNormal" 6 "Ggamma")  ///
+                     ring(0) cols(1) pos(1))                    ///
+        xtitle("Years from Surgery")                            ///
+        ytitle("S(t)")                                          ///
+        ylabel(,format(%3.1f))
+<</dd_do>>
+```
+
+```stata
+foreach dist in weibull gompertz loglogistic lognormal ggamma {
+    streg if hormon == 1, dist(`dist')
+    predict surv_`dist', surv
+    estimates store `dist'
+}
+
+sts gen s_km = s if hormon == 1 
+twoway  (line s_km _t, connect(stairstep) sort lcolor(black))   ///
+        (line surv_* _t, sort),                                 ///
+        legend(order(1 "Kaplan-Meier" 2 "Weibull" 3 "Gompertz"  ///
+		             4 "LogLogistic" 5 "LogNormal" 6 "Ggamma")  ///
+                     ring(0) cols(1) pos(1))                    ///
+        xtitle("Years from Surgery")                            ///
+        ytitle("S(t)")                                          ///
+        ylabel(,format(%3.1f))
+```
+
+
+<<dd_do: quietly>>
+graph export  ${DRIVE}/github/pclambert/statasvg/standsurv_stteffects_streg_5years.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_stteffects_streg_5years.svg)
+
+None of the fitted lines are perfect (we will do better with `stpm3` later), but are in broad agreement. The problems is we have censored survival data and the maximum follow-up time is 5 years. Mean survival can be calculated as the area under the survival function and so the graph above does not show what we want. I now perform predictions up to 80 years. Here were are extrapolating beyond the range of our follow-up.
+
+
+```stata
+<<dd_do: quietly>>
+preserve
+gen oldt = _t
+drop _t
+range _t 0 80
+foreach dist in weibull gompertz loglogistic lognormal ggamma {
+    estimates restore `dist'
+    predict surv80_`dist', surv
+}
+
+twoway  (line s_km oldt, connect(stairstep) sort lcolor(black)) ///
+        (line surv80_* _t, sort),                               ///
+        legend(order(1 "Kaplan-Meier" 2 "Weibull" 3 "Gompertz"  ///
+		             4 "LogLogistic" 5 "LogNormal" 6 "Ggamma")  ///
+          ring(0) cols(1) pos(1))                               ///
+        xtitle("Years from Surgery")                            ///
+        ytitle("S(t)")                                          ///
+        ylabel(,format(%3.1f))                                  ///
+        xline(5, lpattern(dash))
+restore		
+<</dd_do>>
+```
+
+```stata
+preserve
+gen oldt = _t
+drop _t
+range _t 0 80
+foreach dist in weibull gompertz loglogistic lognormal ggamma {
+    estimates restore `dist'
+    predict surv80_`dist', surv
+}
+
+twoway  (line s_km oldt, connect(stairstep) sort lcolor(black)) ///
+        (line surv80_* _t, sort),                               ///
+        legend(order(1 "Kaplan-Meier" 2 "Weibull" 3 "Gompertz"  ///
+		             4 "LogLogistic" 5 "LogNormal" 6 "Ggamma")  ///
+          ring(0) cols(1) pos(1))                               ///
+        xtitle("Years from Surgery")                            ///
+        ytitle("S(t)")                                          ///
+        ylabel(,format(%3.1f))                                  ///
+        xline(5, lpattern(dash))
+restore		
+```
+
+<<dd_do: quietly>>
+graph export  ${DRIVE}/github/pclambert/statasvg/standsurv_stteffects_streg_80years.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_stteffects_streg_80years.svg)
+
+
+
+Now we can see the difference between the estimated survival functions between the different models.  There is very little difference up to 5 years, where we have follow-up information to, but they are very different beyond this point. The mean survival time is the area under each curve and we can see why the Weibull model gives a lower mean than the log-normal model. In fact the Log-logistic and Log-Normal model are still clearly above zero at 80 years.
+
+What does this mean? Well if you have a lot of censoring and the survival function is clearly above zero at the end of your follow-up then you are making strong assumptions about what happens beyond where you have data if you use `stteffects`. 
+
+## Equivalent model using `stpm3` and `standsurv`
+
+I will show that I can get the same estimates as `stteffects` by fitting an `stpm3` model followed by using `standsurv`. 
+
+```stata
+<<dd_do>>
+stpm3 i.hormon##(c.age c.enodes), ///
+      scale(lncumhazard) df(1) eform nolog tvc(i.hormon) dftvc(1)
+<</dd_do>>
+```
+
+I have used `df(1)` as this is equivalent to a Weibull model. By using `tvc(i.hormon)` and `dftvc(1)` 
+I have allowed the shape parameter of the Weibull model to vary between those receiving and not-receiving treatment. 
+I could have fitted separate models by treatment group and the parameter estimates would be the same, 
+but by fitting one model I will be able to form contrasts between the treatment groups using `standsurv`.
+
+
+I will now `standsurv` to estimate the marginal survival functions up to 40 years 
+for the non-treated and treated subjects. 
+
+```stata
+<<dd_do>>
+range ttlong 0 40 100
+standsurv, surv  timevar(ttlong) ci frame(survextrap, replace)   ///
+           at1(hormon 0)                                         ///
+           at2(hormon 1)                                         ///
+           atvar(S_h0b S_h1b)
+<</dd_do>>
+```
+
+The two survival functions can then plotted. A reference line at 5 years has been added to indicate where we have follow-up information to.
+
+```stata
+<<dd_do>>
+frame survextrap {
+  twoway (line S_h0b ttlong, sort lcolor(red))                            ///
+         (line S_h1b ttlong, sort lcolor(blue))                           ///
+         , legend(order(1 "No hormonal treatment" 2 "Hormonal treatment") ///
+                  ring(0) cols(1) pos(1))                                 ///
+         ylabel(0(0.1)1,angle(h) format(%3.1f))                           ///
+         ytitle("S(t)")                                                   ///
+         xtitle("Years from surgery")                                     ///
+         xline(5, lpattern(dash) lcolor(black%50))
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export  ${DRIVE}/github/pclambert/statasvg/standsurv_stteffects_marginal_survival.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_stteffects_marginal_survival.svg)
+
+
+The estimated average potential outcome for the untreated can be approximated by using `integ` to approximate the area under the survival curve (I will use `standsurv` to do this better shortly).
+
+
+```stata
+<<dd_do>>
+frame survextrap: integ S_h0b ttlong
+<</dd_do>>
+```
+
+This is similar to the output from `stteffects above` (7.841406 vs 7.8376078). Using the `rmst` option of `standsurv` will do more accurate integration. I will integrate up to 100 years (theoretically the integral is to infinity, but the survival is virtually zero at 100 years). `rmst` stands for restricted mean survival time, but if $t$ is large enough so that $S(t)\approx 0$ then this is effectively the area under the full survival curve.
+
+
+```stata
+<<dd_do>>
+gen tt100 = 100 in 1 
+standsurv, rmst ci  timevar(tt100) trans(none) frame(survextrap2, replace) ///
+           at1(hormon 0)                                                   ///
+           at2(hormon 1)                                                   ///
+           atvars(rmst_h0 rmst_h1)                                         /// 
+           contrast(difference)                                            ///
+           contrastvar(rmstdiff100) 
+frame survextrap2: list rmst_h0 rmst_h1 rmstdiff100* in 1, noobs
+<</dd_do>>
+```
+
+I have used the `mestimation` option to calculate the equivalent of robust standard errors so that these and the confidence intervals are comparable with `stteffects`. I have also used the `trans(none)` option as `sttefects` calculates standard errors on the untransformed survival scale, while the default in `standsurv` is the log scale.
+
+The estimates are now very similar to `stteffects` (to 4 or 5 decimal places).
+
+This has shown that I can obtain the same estimates as `stteffects` using `standsurv`, but generally I would not be happy in doing so as to obtain the estimated mean of the potential outcomes I have had to extrapolate my  two survival functions way beyond the end of follow-up. I am not sure is this is obvious to users of `stteffects`.
+
+## Using restricted mean survival time (RMST) as an alternative.
+
+I have previous discussed using RMST in another [tutorial](./standardized_survival_rmst/). As a reminder the restricted mean survival time at time $t^*$ is defined as,
+$$
+E\left[min(t,t^*)\right]
+$$
+i.e. it is the mean up to some point $t^*$. The RMST can be estimated by calculating the area under the survival curve between 0 and $t^*$. In an observational study where we need to take account of potential confounders, we can define the RMST of the standardized survival function as
+
+$$
+RMST(t^*|X=x,Z) = \int_0^{t^*} E\left[S(t|X=x,Z)\right]
+$$
+
+We used the `rmst` option of `standsurv` above, but integrated the survival function to 100 years, to where $S(t)\approx 0$. So if we feed the `timevar` option a lower value of $t$, then we can calculate RMST to a point within our follow-up period. In the code below I use 5 years.
+
+```stata
+<<dd_do>>
+gen tt5 = 5 in 1 
+standsurv, rmst ci  timevar(tt5) trans(none) frame(rmst5) ///
+           at1(hormon 0)                                  ///
+           at2(hormon 1)                                  ///
+           atvars(rmst5_h0 rmst5_h1)                      ///
+           contrast(difference)                           ///
+           contrastvar(rmstdiff5) 
+frame rmst5: list rmst5_h0 rmst5_h1 rmstdiff5* in 1, noobs
+<</dd_do>>
+```
+
+We get a difference of 0.199 (95% CI 0.055 to 0.343) years between the two groups.  The difference in RMST can still be interpreted as a causal effect under the usual assumptions, but, unlike `stteffects`, does not reply on extrapolation. Alternatively, the difference in standardized survival functions could be presented.
+
+
+## References
+
+
+

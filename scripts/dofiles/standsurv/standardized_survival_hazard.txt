@@ -1,0 +1,132 @@
+---
+title: "Hazard of Standardized Survival Functions"
+---
+
+This will be a short tutorial as the ideas are very simple. I have previously discussed standardized survival functions. In survival analysis we know that there is a simple mathematical transformation from hazard to survival function and vice versa. The idea here is to transform  to a hazard function from the *standardized* survival function. Recall that a standardized survival funnction; $S_s(t|X=x,Z)$ is estimated by
+
+$$
+S_s(t|X=x,Z) = \frac{1}{N}\sum\_{i=1}^{N}S(t|X=x,Z=z_i)
+$$
+
+If we apply the usual transformation from survival to hazard to function ($h(t) = \frac{-d}{dt}\log[S(t)]$) we get
+
+$$
+h_s(t|X=x,Z) = \frac{\sum\_{i=1}^{N}S(t|X=x,Z=z_i)h(t|X=x,Z=z_i)}{\sum\_{i=1}^{N}S(t|X=x,Z=z_i)}
+$$
+
+This is a weighted average of the $N$ individual hazard functions with weights equal to $S(t|X=x,Z=z_i)$, i.e. the predicted survival function for individual $i$ when forced to take a specific value of the exposure variable, $X$, but their observed values of confounding variables, $Z$.
+
+This is implemented in `standsurv` using the `hazard` option.
+
+## Example
+
+I will use the Rotterdam Breast cancer data. The code below loads and `stset`'s the data and then fits a model using `stpm3`. 
+
+```stata
+<<dd_do >>
+use https://www.pclambert.net/data/rott3, clear
+stset os, f(osi==1) scale(12) exit(time 120)
+stpm3 hormon age enodes pr_1, scale(lncumhazard) df(4) eform nolog tvc(hormon) dftvc(3)
+<</dd_do>>
+```
+
+I have made the effect of our exposure, `hormon`, time-dependent using the `tvc` option.
+
+
+I first calculate the standardized survival curves where everyone is forced to be exposed and then unexposed.
+
+```stata
+<<dd_do >>
+range timevar 0 10 100
+standsurv, surv timevar(timevar) ci frame(surv, replace) ///
+           at1(hormon 0) at2(hormon 1) atvar(S0 S1)      ///
+           contrast(difference) contrastvar(Sdiff) 
+
+frame surv {
+  twoway (rarea S0_lci S0_uci timevar, color(red%25))                     ///
+         (rarea S1_lci S1_uci timevar, color(blue%25))                    ///
+         (line S0 timevar, sort lcolor(red))                              ///
+         (line S1  timevar, sort lcolor(blue))                            ///
+         , legend(order(1 "No hormonal treatment" 2 "Hormonal treatment") ///
+                  ring(0) cols(1) pos(1))                                 ///
+         ylabel(0.5(0.1)1,angle(h) format(%3.1f))                         ///
+         ytitle("S(t)")                                                   ///
+         xtitle("Years from surgery")
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_survival_stand_hormon_hazard.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_survival_stand_hormon_hazard.svg)
+
+
+If I run `standsurv` again with the `hazard` option I get the corresponding hazard functions 
+of the standardized curves. This is the marginal hazard ratio (as a function of time).
+
+
+```stata
+<<dd_do >>
+standsurv, hazard  timevar(timevar) ci per(1000) frame(hazard, replace) ///
+           at1(hormon 0) at2(hormon 1) atvar(h0 h1)                     /// 
+           contrast(ratio) contrastvar(hr)
+<</dd_do>>
+```
+
+Plot the standardized hazard functions.
+
+```stata
+<<dd_do >>
+frame hazard {
+  twoway (rarea h0_lci h0_uci timevar, color(red%30))  ///
+         (rarea h1_lci h1_uci timevar, color(blue%30)) ///
+         (line h0 timevar, color(red))                 ///
+         (line h1 timevar, color(blue))                ///
+          , legend(off)                                ///
+          ylabel(,angle(h) format(%3.1f))              ///
+          xtitle("Years from surgery")	 
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_hazard_stand_hormon_hazard.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_hazard_stand_hormon_hazard.svg)
+
+
+I can't explain the lower and then higher hazard for those on hormon therapy. Perhaps better adjustment for confounders would change this.
+
+I can also plot the ratio of these two hazard functions with a 95% confidence interval.
+
+```stata
+<<dd_do >>
+frame hazard {
+  twoway (rarea hr_lci hr_uci timevar, color(red%30))      ///
+         (line hr timevar, color(red))                     ///
+         if timevar>0, yscale(log)                         ///
+         ylabel(0.5 1 2 4 8 20 40, angle(h) format(%3.1f)) ///
+         xtitle("Years from surgery")                      ///
+         legend(off)                                       ///
+         yscale(log) 
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/standsurv_hazard_stand_hormon_hazard_ratio.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/standsurv_hazard_stand_hormon_hazard_ratio.svg)
+
+
+If I had used the `difference` argument of the `contrast()` option I would have obtained the absolute difference in the standardized hazard functions.
+
+I am still thinking about the usefulness of this - in general I prefer the idea of standardized survival functions rather than the corresponding hazard function. However, it is harder to see how the risk of events changes over follow-up time with a cumulative measure (i.e. standardized survival). 
+
+
+
+

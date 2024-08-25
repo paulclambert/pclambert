@@ -285,14 +285,14 @@ scalars:
                  e(ll) =  -18772.43865176562
          e(k_eq_model) =  1
                e(df_m) =  7
-               e(chi2) =  408.225406844193
-                  e(p) =  4.10585674056e-84
+               e(chi2) =  408.2254068441905
+                  e(p) =  4.10585674057e-84
                 e(dev) =  37544.87730353124
                 e(AIC) =  37594.87730353124
                 e(BIC) =  37769.09675940969
 
 macros:
-            e(cmdline) : "i.sex##@ns(agediag,df(3)), scale(lncumhazard) df(5)       tvc(i.sex @ns(agediag,df(3) winsor(.."
+            e(cmdline) : "i.sex##@ns(agediag,df(3)), scale(lncumhazard) df(5)       tvc(i.sex @ns(agediag,df(3) winsor(1 99))) dftvc(3)       bhazard(ra.."
                 e(cmd) : "stpm3"
             e(predict) : "stpm3_pred"
            e(ef_Nuser) : "0"
@@ -316,10 +316,10 @@ macros:
             e(tvcvars) : "_ns_f2_agediag1 _ns_f2_agediag2 _ns_f2_agediag3 sex"
     e(sharedtvc_knots) : "1"
              e(dfbase) : "5"
-              e(knots) : "-6.536461339131925 -1.053905396170044 -.2327587090676477 .3761256188495483 .9678933294023275 .."
-        e(dsplinevars) : "_dns1 _dns2 _dns3 _dns4 _dns5 2.sex#c._dns_tvc1 2.sex#c._dns_tvc2 2.sex#c._dns_tvc3 c._ns_f2_.."
+              e(knots) : "-6.536461339131925 -1.053905396170044 -.2327587090676477 .3761256188495483 .9678933294023275 1.608766116357363"
+        e(dsplinevars) : "_dns1 _dns2 _dns3 _dns4 _dns5 2.sex#c._dns_tvc1 2.sex#c._dns_tvc2 2.sex#c._dns_tvc3 c._ns_f2_agediag1#c._dns_tvc1 c._ns_f2_age.."
      e(splinevars_tvc) : "_ns_tvc1 _ns_tvc2 _ns_tvc3"
-     e(splinelist_tvc) : "2.sex#c._ns_tvc1 2.sex#c._ns_tvc2 2.sex#c._ns_tvc3 c._ns_f2_agediag1#c._ns_tvc1 c._ns_f2_aged.."
+     e(splinelist_tvc) : "2.sex#c._ns_tvc1 2.sex#c._ns_tvc2 2.sex#c._ns_tvc3 c._ns_f2_agediag1#c._ns_tvc1 c._ns_f2_agediag1#c._ns_tvc2 c._ns_f2_agediag1.."
          e(splinelist) : "_ns1 _ns2 _ns3 _ns4 _ns5"
        e(tvc_included) : "2.sex _ns_f2_agediag1 _ns_f2_agediag2 _ns_f2_agediag3"
        e(tvc_original) : "i.sex @ns(agediag,df(3) winsor(1 99))"
@@ -360,25 +360,20 @@ The parameter estimates are listed below,
 . matrix list e(b)
 
 e(b)[1,29]
-               xb:            xb:            xb:            xb:            xb:            xb:            xb:            xb:
-               1b.             2.                                                     1b.sex#         2.sex#        1b.sex#
-              sex            sex   _ns_f1_age~1   _ns_f1_age~2   _ns_f1_age~3   co._ns_f1_~1   c._ns_f1_a~1   co._ns_f1_~2
-y1              0     -1.0744608     -10.733055      1.8383143     -1.3281127              0      7.4308452              0
+               xb:            xb:            xb:            xb:            xb:            xb:            xb:            xb:            xb:            xb:
+               1b.             2.                                                     1b.sex#         2.sex#        1b.sex#         2.sex#        1b.sex#
+              sex            sex   _ns_f1_age~1   _ns_f1_age~2   _ns_f1_age~3   co._ns_f1_~1   c._ns_f1_a~1   co._ns_f1_~2   c._ns_f1_a~2   co._ns_f1_~3
+y1              0     -1.0744608     -10.733055      1.8383143     -1.3281127              0      7.4308452              0     -2.2761439              0
 
-               xb:            xb:            xb:          time:          time:          time:          time:          time:
-            2.sex#        1b.sex#         2.sex#                                                                           
-     c._ns_f1_a~2   co._ns_f1_~3   c._ns_f1_a~3           _ns1           _ns2           _ns3           _ns4           _ns5
-y1     -2.2761439              0      2.1377088     -33.946056      13.164969     -.73366459     -.45175869      -.3260899
+               xb:          time:          time:          time:          time:          time:          time:          time:          time:          time:
+            2.sex#                                                                                    2.sex#         2.sex#         2.sex#  c._ns_f2_a~1#
+     c._ns_f1_a~3           _ns1           _ns2           _ns3           _ns4           _ns5     c._ns_tvc1     c._ns_tvc2     c._ns_tvc3     c._ns_tvc1
+y1      2.1377088     -33.946056      13.164969     -.73366459     -.45175869      -.3260899      4.0671502     -1.0929718      .33880061     -10.875241
 
-             time:          time:          time:          time:          time:          time:          time:          time:
-            2.sex#         2.sex#         2.sex#  c._ns_f2_a~1#  c._ns_f2_a~1#  c._ns_f2_a~1#  c._ns_f2_a~2#  c._ns_f2_a~2#
-       c._ns_tvc1     c._ns_tvc2     c._ns_tvc3     c._ns_tvc1     c._ns_tvc2     c._ns_tvc3     c._ns_tvc1     c._ns_tvc2
-y1      4.0671502     -1.0929718      .33880061     -10.875241     -2.6834564     -.06573629          5.078     -.64157254
-
-             time:          time:          time:          time:          time:
-     c._ns_f2_a~2#  c._ns_f2_a~3#  c._ns_f2_a~3#  c._ns_f2_a~3#               
-       c._ns_tvc3     c._ns_tvc1     c._ns_tvc2     c._ns_tvc3          _cons
-y1      -.6496364      2.5063795     -4.6381903     -.21574216      .23322305
+             time:          time:          time:          time:          time:          time:          time:          time:          time:
+     c._ns_f2_a~1#  c._ns_f2_a~1#  c._ns_f2_a~2#  c._ns_f2_a~2#  c._ns_f2_a~2#  c._ns_f2_a~3#  c._ns_f2_a~3#  c._ns_f2_a~3#               
+       c._ns_tvc2     c._ns_tvc3     c._ns_tvc1     c._ns_tvc2     c._ns_tvc3     c._ns_tvc1     c._ns_tvc2     c._ns_tvc3          _cons
+y1     -2.6834564     -.06573629          5.078     -.64157254      -.6496364      2.5063795     -4.6381903     -.21574216      .23322305
 
 ```
 

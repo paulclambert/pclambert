@@ -36,7 +36,7 @@ You can install `standsurv` within Stata using
 - [Standardized Crude Probabilities of death.](/software/standsurv/standardized_crude_probabilities_of_death) 
 
 ## General
-- [Comparing models in different countries](/software/standsurv/models_different_countries.qmd)  
+- [Comparing models fitted in different countries](/software/standsurv/models_different_countries.qmd)  
 
 ## Releases
 See [standsurv_releases.txt](/software/standsurv/standsurv_releases.txt)

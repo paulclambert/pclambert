@@ -4,6 +4,8 @@ title: "Talks"
 
 **Recent (and not so recent) Talks:**  
 
+30 August 2024 [A practical approach to fitting cancer survival models when data can’t move across borders.](pdf/Paul_LambertANCR2024.pdf) Association of Nordic Cancer Registries (ANCR) Symposium 2024, Bodø, Norway
+
 7 June 2024 [Recent developments in the fitting and assessment of flexible parametric survival models](pdf/Stata2024_Germany_Paul_Lambert.pdf) 2024 German Stata Conference, Mannheim, Germany.
 
 14th November 2023 [Reference adjusted cancer survival measures What are they and when should they be used?](pdf/IACR2023_Lambert.pdf) 2023 ENCR-IACR Scientific Conference, Granada, Spain.

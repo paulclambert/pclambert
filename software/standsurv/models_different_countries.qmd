@@ -1,14 +1,14 @@
 ---
-title: "Comparing models in different countries"
+title: "When data cannot cross borders"
 ---
 
 
 
-## When data cannot cross borders.
+## Comparing models fitted in different countries
 
 This example is based on a presentation at the
 [Association of Nordic Cancer Registries Conference 2024](https://confedent.eventsair.com/ancr-2023).
-The presentation can be found here [LINK]
+The presentation can be found [here](/pdf/Paul_Lambert_ANCR2024.pdf)
 
 International collaborative research using cancer registry data enables exploration of differences in cancer 
 incidence, mortality, and survival. 
@@ -57,16 +57,21 @@ Survival-time data settings
 Observed time interval: (0, survtime]
      Exit on or before: failure
 
---------------------------------------------------------------------------
+---------------------------------------------------------------------
+> -----
      20,997  total observations
           0  exclusions
---------------------------------------------------------------------------
+---------------------------------------------------------------------
+> -----
      20,997  observations remaining, representing
       7,854  failures in single-record/single-failure data
  59,517.533  total analysis time at risk and under observation
-                                                At risk from t =         0
-                                     Earliest observed entry t =         0
-                                          Last observed exit t =         5
+                                                At risk from t =     
+>     0
+                                     Earliest observed entry t =     
+>     0
+                                          Last observed exit t =     
+>     5
 
 . sts graph, title(Country A) name(CountryA_km, replace)
 
@@ -75,9 +80,12 @@ Observed time interval: (0, survtime]
 
 . summ agediag
 
-    Variable |        Obs        Mean    Std. dev.       Min        Max
--------------+---------------------------------------------------------
-     agediag |     20,997    74.78556    9.973784   18.12546   101.5784
+    Variable |        Obs        Mean    Std. dev.       Min        M
+> ax
+-------------+-------------------------------------------------------
+> --
+     agediag |     20,997    74.78556    9.973784   18.12546   101.57
+> 84
 
 . 
 . use https://www.pclambert.net/data/CountryB, clear
@@ -90,16 +98,21 @@ Survival-time data settings
 Observed time interval: (0, survtime]
      Exit on or before: failure
 
---------------------------------------------------------------------------
+---------------------------------------------------------------------
+> -----
      10,498  total observations
           0  exclusions
---------------------------------------------------------------------------
+---------------------------------------------------------------------
+> -----
      10,498  observations remaining, representing
       4,379  failures in single-record/single-failure data
  28,253.044  total analysis time at risk and under observation
-                                                At risk from t =         0
-                                     Earliest observed entry t =         0
-                                          Last observed exit t =         5
+                                                At risk from t =     
+>     0
+                                     Earliest observed entry t =     
+>     0
+                                          Last observed exit t =     
+>     5
 
 . sts graph, title(Country B) name(CountryB_km, replace)
 
@@ -108,9 +121,12 @@ Observed time interval: (0, survtime]
 
 . summ agediag
 
-    Variable |        Obs        Mean    Std. dev.       Min        Max
--------------+---------------------------------------------------------
-     agediag |     10,498    75.53747    10.05265   18.12765   102.4685
+    Variable |        Obs        Mean    Std. dev.       Min        M
+> ax
+-------------+-------------------------------------------------------
+> --
+     agediag |     10,498    75.53747    10.05265   18.12765   102.46
+> 85
 
 . 
 . graph combine CountryA_km CountryB_km
@@ -141,16 +157,21 @@ Survival-time data settings
 Observed time interval: (0, survtime]
      Exit on or before: failure
 
---------------------------------------------------------------------------
+---------------------------------------------------------------------
+> -----
      20,997  total observations
           0  exclusions
---------------------------------------------------------------------------
+---------------------------------------------------------------------
+> -----
      20,997  observations remaining, representing
       7,854  failures in single-record/single-failure data
  59,517.533  total analysis time at risk and under observation
-                                                At risk from t =         0
-                                     Earliest observed entry t =         0
-                                          Last observed exit t =         5
+                                                At risk from t =     
+>     0
+                                     Earliest observed entry t =     
+>     0
+                                          Last observed exit t =     
+>     5
 
 ```
 
@@ -163,7 +184,8 @@ at the event/censoring times.
 
 . gen _year = year(diagdate + _t*365.25)
 
-. merge m:1 _age _year sex using https://www.pclambert.net/data/popmortA, ///
+. merge m:1 _age _year sex using https://www.pclambert.net/data/popmo
+> rtA, ///
 >           keep(match master)   
 
     Result                      Number of obs
@@ -192,64 +214,124 @@ Iteration 2:  Log likelihood = -18772.486
 Iteration 3:  Log likelihood = -18772.439  
 Iteration 4:  Log likelihood = -18772.439  
 
-                                                        Number of obs = 20,997
-                                                        Wald chi2(7)  = 408.23
-Log likelihood = -18772.439                             Prob > chi2   = 0.0000
+                                                        Number of obs
+>  = 20,997
+                                                        Wald chi2(7) 
+>  = 408.23
+Log likelihood = -18772.439                             Prob > chi2  
+>  = 0.0000
 
-----------------------------------------------------------------------------------------------
-                             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
------------------------------+----------------------------------------------------------------
-xb                           |
-                       2.sex |  -1.074461   .2982228    -3.60   0.000    -1.658967   -.4899548
-             _ns_f1_agediag1 |  -10.73306   2.229922    -4.81   0.000    -15.10362   -6.362488
-             _ns_f1_agediag2 |   1.838314   1.074649     1.71   0.087    -.2679584    3.944587
-             _ns_f1_agediag3 |  -1.328113   .4536643    -2.93   0.003    -2.217278   -.4389471
-                             |
-       sex#c._ns_f1_agediag1 |
-                          2  |   7.430845    3.10376     2.39   0.017     1.347588     13.5141
-                             |
-       sex#c._ns_f1_agediag2 |
-                          2  |  -2.276144     1.5657    -1.45   0.146     -5.34486    .7925727
-                             |
-       sex#c._ns_f1_agediag3 |
-                          2  |   2.137709   .5439365     3.93   0.000     1.071613    3.203805
------------------------------+----------------------------------------------------------------
-time                         |
-                        _ns1 |  -33.94606   3.820788    -8.88   0.000    -41.43466   -26.45745
-                        _ns2 |   13.16497   1.857333     7.09   0.000     9.524664    16.80527
-                        _ns3 |  -.7336646   .1254783    -5.85   0.000    -.9795976   -.4877316
-                        _ns4 |  -.4517587   .1236179    -3.65   0.000    -.6940453   -.2094721
-                        _ns5 |  -.3260899   .1155413    -2.82   0.005    -.5525466   -.0996332
-                             |
-              sex#c._ns_tvc1 |
-                          2  |    4.06715   2.178313     1.87   0.062    -.2022648    8.336565
-                             |
-              sex#c._ns_tvc2 |
-                          2  |  -1.092972   1.153449    -0.95   0.343    -3.353691    1.167748
-                             |
-              sex#c._ns_tvc3 |
-                          2  |   .3388006   .0639397     5.30   0.000     .2134811    .4641201
-                             |
-c._ns_f2_agediag1#c._ns_tvc1 |  -10.87524   36.43505    -0.30   0.765    -82.28662    60.53614
-                             |
-c._ns_f2_agediag1#c._ns_tvc2 |  -2.683456   19.10172    -0.14   0.888    -40.12214    34.75523
-                             |
-c._ns_f2_agediag1#c._ns_tvc3 |  -.0657363   .8404523    -0.08   0.938    -1.712993     1.58152
-                             |
-c._ns_f2_agediag2#c._ns_tvc1 |      5.078   20.44475     0.25   0.804    -34.99297    45.14897
-                             |
-c._ns_f2_agediag2#c._ns_tvc2 |  -.6415725   10.72052    -0.06   0.952     -21.6534    20.37026
-                             |
-c._ns_f2_agediag2#c._ns_tvc3 |  -.6496364   .3865693    -1.68   0.093    -1.407298    .1080254
-                             |
-c._ns_f2_agediag3#c._ns_tvc1 |   2.506379   7.991825     0.31   0.754    -13.15731    18.17007
-                             |
-c._ns_f2_agediag3#c._ns_tvc2 |   -4.63819    4.24192    -1.09   0.274     -12.9522     3.67582
-                             |
-c._ns_f2_agediag3#c._ns_tvc3 |  -.2157422   .3409415    -0.63   0.527    -.8839752    .4524909
-                             |
-                       _cons |    .233223   .2607551     0.89   0.371    -.2778476    .7442937
-----------------------------------------------------------------------------------------------
+---------------------------------------------------------------------
+> ---------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. 
+> interval]
+-------------+-------------------------------------------------------
+> ---------
+xb           |
+       2.sex |  -1.074461   .2982228    -3.60   0.000    -1.658967   
+> -.4899548
+_ns_f1_age~1 |  -10.73306   2.229922    -4.81   0.000    -15.10362   
+> -6.362488
+_ns_f1_age~2 |   1.838314   1.074649     1.71   0.087    -.2679584   
+>  3.944587
+_ns_f1_age~3 |  -1.328113   .4536643    -2.93   0.003    -2.217278   
+> -.4389471
+             |
+         sex#|
+          c. |
+_ns_f1_age~1 |
+          2  |   7.430845    3.10376     2.39   0.017     1.347588   
+>   13.5141
+             |
+         sex#|
+          c. |
+_ns_f1_age~2 |
+          2  |  -2.276144     1.5657    -1.45   0.146     -5.34486   
+>  .7925727
+             |
+         sex#|
+          c. |
+_ns_f1_age~3 |
+          2  |   2.137709   .5439365     3.93   0.000     1.071613   
+>  3.203805
+-------------+-------------------------------------------------------
+> ---------
+time         |
+        _ns1 |  -33.94606   3.820788    -8.88   0.000    -41.43466   
+> -26.45745
+        _ns2 |   13.16497   1.857333     7.09   0.000     9.524664   
+>  16.80527
+        _ns3 |  -.7336646   .1254783    -5.85   0.000    -.9795976   
+> -.4877316
+        _ns4 |  -.4517587   .1236179    -3.65   0.000    -.6940453   
+> -.2094721
+        _ns5 |  -.3260899   .1155413    -2.82   0.005    -.5525466   
+> -.0996332
+             |
+         sex#|
+  c._ns_tvc1 |
+          2  |    4.06715   2.178313     1.87   0.062    -.2022648   
+>  8.336565
+             |
+         sex#|
+  c._ns_tvc2 |
+          2  |  -1.092972   1.153449    -0.95   0.343    -3.353691   
+>  1.167748
+             |
+         sex#|
+  c._ns_tvc3 |
+          2  |   .3388006   .0639397     5.30   0.000     .2134811   
+>  .4641201
+             |
+          c. |
+_ns_f2_age~1#|
+  c._ns_tvc1 |  -10.87524   36.43505    -0.30   0.765    -82.28662   
+>  60.53614
+             |
+          c. |
+_ns_f2_age~1#|
+  c._ns_tvc2 |  -2.683456   19.10172    -0.14   0.888    -40.12214   
+>  34.75523
+             |
+          c. |
+_ns_f2_age~1#|
+  c._ns_tvc3 |  -.0657363   .8404523    -0.08   0.938    -1.712993   
+>   1.58152
+             |
+          c. |
+_ns_f2_age~2#|
+  c._ns_tvc1 |      5.078   20.44475     0.25   0.804    -34.99297   
+>  45.14897
+             |
+          c. |
+_ns_f2_age~2#|
+  c._ns_tvc2 |  -.6415725   10.72052    -0.06   0.952     -21.6534   
+>  20.37026
+             |
+          c. |
+_ns_f2_age~2#|
+  c._ns_tvc3 |  -.6496364   .3865693    -1.68   0.093    -1.407298   
+>  .1080254
+             |
+          c. |
+_ns_f2_age~3#|
+  c._ns_tvc1 |   2.506379   7.991825     0.31   0.754    -13.15731   
+>  18.17007
+             |
+          c. |
+_ns_f2_age~3#|
+  c._ns_tvc2 |   -4.63819    4.24192    -1.09   0.274     -12.9522   
+>   3.67582
+             |
+          c. |
+_ns_f2_age~3#|
+  c._ns_tvc3 |  -.2157422   .3409415    -0.63   0.527    -.8839752   
+>  .4524909
+             |
+       _cons |    .233223   .2607551     0.89   0.371    -.2778476   
+>  .7442937
+---------------------------------------------------------------------
+> ---------
 Extended functions
  (1) @ns(agediag, df(3))
  (2) @ns(agediag, df(3) winsor(1 99))
@@ -285,23 +367,23 @@ scalars:
                  e(ll) =  -18772.43865176562
          e(k_eq_model) =  1
                e(df_m) =  7
-               e(chi2) =  408.2254068441905
-                  e(p) =  4.10585674057e-84
+               e(chi2) =  408.2254068442145
+                  e(p) =  4.10585674052e-84
                 e(dev) =  37544.87730353124
                 e(AIC) =  37594.87730353124
                 e(BIC) =  37769.09675940969
 
 macros:
-            e(cmdline) : "i.sex##@ns(agediag,df(3)), scale(lncumhazard) df(5)       tvc(i.sex @ns(agediag,df(3) winsor(1 99))) dftvc(3)       bhazard(ra.."
+            e(cmdline) : "i.sex##@ns(agediag,df(3)), scale(lncumh.."
                 e(cmd) : "stpm3"
             e(predict) : "stpm3_pred"
            e(ef_Nuser) : "0"
   e(ef_agediag_winsor
     2)                 : "46.43008277735672 93.75740895924326"
-  e(ef_agediag_knots2) : "46.43008277735672 71.40992416203093 79.36648884641677 93.75740895924326"
+  e(ef_agediag_knots2) : "46.43008277735672 71.40992416203093 79..."
    e(ef_agediag_opts2) : "df(3) winsor(1 99)"
      e(ef_agediag_fn2) : "ns"
-  e(ef_agediag_knots1) : "18.12545708589547 71.40992416203093 79.36648884641677 101.5784471531932"
+  e(ef_agediag_knots1) : "18.12545708589547 71.40992416203093 79..."
    e(ef_agediag_opts1) : "df(3)"
      e(ef_agediag_fn1) : "ns"
      e(ef_agediag_Nfn) : "2"
@@ -312,20 +394,20 @@ macros:
              e(degree) : "3"
              e(ttrans) : "lnt"
          e(splinetype) : "ns"
-          e(knots_tvc) : "-6.536461339131925 -.4699117670703595 .5745293293487912 1.608766116357363"
-            e(tvcvars) : "_ns_f2_agediag1 _ns_f2_agediag2 _ns_f2_agediag3 sex"
+          e(knots_tvc) : "-6.536461339131925 -.4699117670703595 ..."
+            e(tvcvars) : "_ns_f2_agediag1 _ns_f2_agediag2 _ns_f2_.."
     e(sharedtvc_knots) : "1"
              e(dfbase) : "5"
-              e(knots) : "-6.536461339131925 -1.053905396170044 -.2327587090676477 .3761256188495483 .9678933294023275 1.608766116357363"
-        e(dsplinevars) : "_dns1 _dns2 _dns3 _dns4 _dns5 2.sex#c._dns_tvc1 2.sex#c._dns_tvc2 2.sex#c._dns_tvc3 c._ns_f2_agediag1#c._dns_tvc1 c._ns_f2_age.."
+              e(knots) : "-6.536461339131925 -1.053905396170044 -.."
+        e(dsplinevars) : "_dns1 _dns2 _dns3 _dns4 _dns5 2.sex#c._.."
      e(splinevars_tvc) : "_ns_tvc1 _ns_tvc2 _ns_tvc3"
-     e(splinelist_tvc) : "2.sex#c._ns_tvc1 2.sex#c._ns_tvc2 2.sex#c._ns_tvc3 c._ns_f2_agediag1#c._ns_tvc1 c._ns_f2_agediag1#c._ns_tvc2 c._ns_f2_agediag1.."
+     e(splinelist_tvc) : "2.sex#c._ns_tvc1 2.sex#c._ns_tvc2 2.sex.."
          e(splinelist) : "_ns1 _ns2 _ns3 _ns4 _ns5"
-       e(tvc_included) : "2.sex _ns_f2_agediag1 _ns_f2_agediag2 _ns_f2_agediag3"
+       e(tvc_included) : "2.sex _ns_f2_agediag1 _ns_f2_agediag2 _.."
        e(tvc_original) : "i.sex @ns(agediag,df(3) winsor(1 99))"
-                e(tvc) : "i.sex c.(_ns_f2_agediag1 _ns_f2_agediag2 _ns_f2_agediag3)"
+                e(tvc) : "i.sex c.(_ns_f2_agediag1 _ns_f2_agediag.."
    e(varlist_original) : "i.sex##@ns(agediag,df(3))"
-            e(varlist) : "i.sex##c.(_ns_f1_agediag1 _ns_f1_agediag2 _ns_f1_agediag3)"
+            e(varlist) : "i.sex##c.(_ns_f1_agediag1 _ns_f1_agedia.."
            e(chi2type) : "Wald"
   e(deriv_useminbound) : "off"
                 e(opt) : "moptimize"
@@ -360,20 +442,45 @@ The parameter estimates are listed below,
 . matrix list e(b)
 
 e(b)[1,29]
-               xb:            xb:            xb:            xb:            xb:            xb:            xb:            xb:            xb:            xb:
-               1b.             2.                                                     1b.sex#         2.sex#        1b.sex#         2.sex#        1b.sex#
-              sex            sex   _ns_f1_age~1   _ns_f1_age~2   _ns_f1_age~3   co._ns_f1_~1   c._ns_f1_a~1   co._ns_f1_~2   c._ns_f1_a~2   co._ns_f1_~3
-y1              0     -1.0744608     -10.733055      1.8383143     -1.3281127              0      7.4308452              0     -2.2761439              0
+               xb:            xb:            xb:            xb:
+               1b.             2.                              
+              sex            sex   _ns_f1_age~1   _ns_f1_age~2
+y1              0     -1.0744608     -10.733055      1.8383143
 
-               xb:          time:          time:          time:          time:          time:          time:          time:          time:          time:
-            2.sex#                                                                                    2.sex#         2.sex#         2.sex#  c._ns_f2_a~1#
-     c._ns_f1_a~3           _ns1           _ns2           _ns3           _ns4           _ns5     c._ns_tvc1     c._ns_tvc2     c._ns_tvc3     c._ns_tvc1
-y1      2.1377088     -33.946056      13.164969     -.73366459     -.45175869      -.3260899      4.0671502     -1.0929718      .33880061     -10.875241
+               xb:            xb:            xb:            xb:
+                          1b.sex#         2.sex#        1b.sex#
+     _ns_f1_age~3   co._ns_f1_~1   c._ns_f1_a~1   co._ns_f1_~2
+y1     -1.3281127              0      7.4308452              0
 
-             time:          time:          time:          time:          time:          time:          time:          time:          time:
-     c._ns_f2_a~1#  c._ns_f2_a~1#  c._ns_f2_a~2#  c._ns_f2_a~2#  c._ns_f2_a~2#  c._ns_f2_a~3#  c._ns_f2_a~3#  c._ns_f2_a~3#               
-       c._ns_tvc2     c._ns_tvc3     c._ns_tvc1     c._ns_tvc2     c._ns_tvc3     c._ns_tvc1     c._ns_tvc2     c._ns_tvc3          _cons
-y1     -2.6834564     -.06573629          5.078     -.64157254      -.6496364      2.5063795     -4.6381903     -.21574216      .23322305
+               xb:            xb:            xb:          time:
+            2.sex#        1b.sex#         2.sex#               
+     c._ns_f1_a~2   co._ns_f1_~3   c._ns_f1_a~3           _ns1
+y1     -2.2761439              0      2.1377088     -33.946056
+
+             time:          time:          time:          time:
+                                                               
+             _ns2           _ns3           _ns4           _ns5
+y1      13.164969     -.73366459     -.45175869      -.3260899
+
+             time:          time:          time:          time:
+            2.sex#         2.sex#         2.sex#  c._ns_f2_a~1#
+       c._ns_tvc1     c._ns_tvc2     c._ns_tvc3     c._ns_tvc1
+y1      4.0671502     -1.0929718      .33880061     -10.875241
+
+             time:          time:          time:          time:
+     c._ns_f2_a~1#  c._ns_f2_a~1#  c._ns_f2_a~2#  c._ns_f2_a~2#
+       c._ns_tvc2     c._ns_tvc3     c._ns_tvc1     c._ns_tvc2
+y1     -2.6834564     -.06573629          5.078     -.64157254
+
+             time:          time:          time:          time:
+     c._ns_f2_a~2#  c._ns_f2_a~3#  c._ns_f2_a~3#  c._ns_f2_a~3#
+       c._ns_tvc3     c._ns_tvc1     c._ns_tvc2     c._ns_tvc3
+y1      -.6496364      2.5063795     -4.6381903     -.21574216
+
+             time:
+                  
+            _cons
+y1      .23322305
 
 ```
 
@@ -403,16 +510,21 @@ Survival-time data settings
 Observed time interval: (0, survtime]
      Exit on or before: failure
 
---------------------------------------------------------------------------
+---------------------------------------------------------------------
+> -----
      10,498  total observations
           0  exclusions
---------------------------------------------------------------------------
+---------------------------------------------------------------------
+> -----
      10,498  observations remaining, representing
       4,379  failures in single-record/single-failure data
  28,253.044  total analysis time at risk and under observation
-                                                At risk from t =         0
-                                     Earliest observed entry t =         0
-                                          Last observed exit t =         5
+                                                At risk from t =     
+>     0
+                                     Earliest observed entry t =     
+>     0
+                                          Last observed exit t =     
+>     5
 
 . 
 . // merge in rates
@@ -420,7 +532,8 @@ Observed time interval: (0, survtime]
 
 . gen _year = year(diagdate + _t*365.25)
 
-. merge m:1 _age _year sex using https://www.pclambert.net/data/popmortA, ///
+. merge m:1 _age _year sex using https://www.pclambert.net/data/popmo
+> rtA, ///
 >           keep(match master)   
 
     Result                      Number of obs
@@ -440,64 +553,124 @@ Iteration 2:  Log likelihood = -9844.5096
 Iteration 3:  Log likelihood =  -9844.268  
 Iteration 4:  Log likelihood = -9844.2677  
 
-                                                        Number of obs = 10,498
-                                                        Wald chi2(7)  = 281.55
-Log likelihood = -9844.2677                             Prob > chi2   = 0.0000
+                                                        Number of obs
+>  = 10,498
+                                                        Wald chi2(7) 
+>  = 281.55
+Log likelihood = -9844.2677                             Prob > chi2  
+>  = 0.0000
 
-----------------------------------------------------------------------------------------------
-                             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
------------------------------+----------------------------------------------------------------
-xb                           |
-                       2.sex |  -.5367956   .3572884    -1.50   0.133    -1.237068    .1634767
-             _ns_f1_agediag1 |  -17.11178   3.507369    -4.88   0.000    -23.98609   -10.23746
-             _ns_f1_agediag2 |    4.56246   1.740491     2.62   0.009     1.151161    7.973759
-             _ns_f1_agediag3 |  -2.074449   .5580852    -3.72   0.000    -3.168276   -.9806221
-                             |
-       sex#c._ns_f1_agediag1 |
-                          2  |   10.21369   4.610953     2.22   0.027     1.176392      19.251
-                             |
-       sex#c._ns_f1_agediag2 |
-                          2  |  -4.779487   2.362219    -2.02   0.043     -9.40935   -.1496237
-                             |
-       sex#c._ns_f1_agediag3 |
-                          2  |   1.155039   .6679121     1.73   0.084     -.154045    2.464122
------------------------------+----------------------------------------------------------------
-time                         |
-                        _ns1 |  -26.61548   3.729184    -7.14   0.000    -33.92454   -19.30641
-                        _ns2 |   9.032865   1.781381     5.07   0.000     5.541423    12.52431
-                        _ns3 |  -1.155737   .1753568    -6.59   0.000     -1.49943   -.8120444
-                        _ns4 |  -.7050778   .1712158    -4.12   0.000    -1.040655   -.3695009
-                        _ns5 |  -.5002046   .1657581    -3.02   0.003    -.8250844   -.1753247
-                             |
-              sex#c._ns_tvc1 |
-                          2  |   2.543556   1.996199     1.27   0.203    -1.368922    6.456034
-                             |
-              sex#c._ns_tvc2 |
-                          2  |  -.4942632   1.061708    -0.47   0.642    -2.575173    1.586647
-                             |
-              sex#c._ns_tvc3 |
-                          2  |   .3206083   .0887039     3.61   0.000     .1467518    .4944648
-                             |
-c._ns_f2_agediag1#c._ns_tvc1 |  -.3671341   29.36376    -0.01   0.990    -57.91905    57.18478
-                             |
-c._ns_f2_agediag1#c._ns_tvc2 |  -2.516029   15.62894    -0.16   0.872    -33.14818    28.11612
-                             |
-c._ns_f2_agediag1#c._ns_tvc3 |   1.186299   1.126176     1.05   0.292    -1.020966    3.393564
-                             |
-c._ns_f2_agediag2#c._ns_tvc1 |   3.057383   16.23862     0.19   0.851    -28.76972    34.88449
-                             |
-c._ns_f2_agediag2#c._ns_tvc2 |  -1.467367   8.623812    -0.17   0.865    -18.36973    15.43499
-                             |
-c._ns_f2_agediag2#c._ns_tvc3 |  -1.063785   .4957864    -2.15   0.032    -2.035508   -.0920615
-                             |
-c._ns_f2_agediag3#c._ns_tvc1 |  -2.472087   7.672579    -0.32   0.747    -17.51006    12.56589
-                             |
-c._ns_f2_agediag3#c._ns_tvc2 |   .5907294   4.114411     0.14   0.886    -7.473367    8.654826
-                             |
-c._ns_f2_agediag3#c._ns_tvc3 |   .1797678   .4757156     0.38   0.706    -.7526177    1.112153
-                             |
-                       _cons |   .9081922    .317337     2.86   0.004     .2862231    1.530161
-----------------------------------------------------------------------------------------------
+---------------------------------------------------------------------
+> ---------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. 
+> interval]
+-------------+-------------------------------------------------------
+> ---------
+xb           |
+       2.sex |  -.5367956   .3572884    -1.50   0.133    -1.237068   
+>  .1634767
+_ns_f1_age~1 |  -17.11178   3.507369    -4.88   0.000    -23.98609   
+> -10.23746
+_ns_f1_age~2 |    4.56246   1.740491     2.62   0.009     1.151161   
+>  7.973759
+_ns_f1_age~3 |  -2.074449   .5580852    -3.72   0.000    -3.168276   
+> -.9806221
+             |
+         sex#|
+          c. |
+_ns_f1_age~1 |
+          2  |   10.21369   4.610953     2.22   0.027     1.176392   
+>    19.251
+             |
+         sex#|
+          c. |
+_ns_f1_age~2 |
+          2  |  -4.779487   2.362219    -2.02   0.043     -9.40935   
+> -.1496237
+             |
+         sex#|
+          c. |
+_ns_f1_age~3 |
+          2  |   1.155039   .6679121     1.73   0.084     -.154045   
+>  2.464122
+-------------+-------------------------------------------------------
+> ---------
+time         |
+        _ns1 |  -26.61548   3.729184    -7.14   0.000    -33.92454   
+> -19.30641
+        _ns2 |   9.032865   1.781381     5.07   0.000     5.541423   
+>  12.52431
+        _ns3 |  -1.155737   .1753568    -6.59   0.000     -1.49943   
+> -.8120444
+        _ns4 |  -.7050778   .1712158    -4.12   0.000    -1.040655   
+> -.3695009
+        _ns5 |  -.5002046   .1657581    -3.02   0.003    -.8250844   
+> -.1753247
+             |
+         sex#|
+  c._ns_tvc1 |
+          2  |   2.543556   1.996199     1.27   0.203    -1.368922   
+>  6.456034
+             |
+         sex#|
+  c._ns_tvc2 |
+          2  |  -.4942632   1.061708    -0.47   0.642    -2.575173   
+>  1.586647
+             |
+         sex#|
+  c._ns_tvc3 |
+          2  |   .3206083   .0887039     3.61   0.000     .1467518   
+>  .4944648
+             |
+          c. |
+_ns_f2_age~1#|
+  c._ns_tvc1 |  -.3671341   29.36376    -0.01   0.990    -57.91905   
+>  57.18478
+             |
+          c. |
+_ns_f2_age~1#|
+  c._ns_tvc2 |  -2.516029   15.62894    -0.16   0.872    -33.14818   
+>  28.11612
+             |
+          c. |
+_ns_f2_age~1#|
+  c._ns_tvc3 |   1.186299   1.126176     1.05   0.292    -1.020966   
+>  3.393564
+             |
+          c. |
+_ns_f2_age~2#|
+  c._ns_tvc1 |   3.057383   16.23862     0.19   0.851    -28.76972   
+>  34.88449
+             |
+          c. |
+_ns_f2_age~2#|
+  c._ns_tvc2 |  -1.467367   8.623812    -0.17   0.865    -18.36973   
+>  15.43499
+             |
+          c. |
+_ns_f2_age~2#|
+  c._ns_tvc3 |  -1.063785   .4957864    -2.15   0.032    -2.035508   
+> -.0920615
+             |
+          c. |
+_ns_f2_age~3#|
+  c._ns_tvc1 |  -2.472087   7.672579    -0.32   0.747    -17.51006   
+>  12.56589
+             |
+          c. |
+_ns_f2_age~3#|
+  c._ns_tvc2 |   .5907294   4.114411     0.14   0.886    -7.473367   
+>  8.654826
+             |
+          c. |
+_ns_f2_age~3#|
+  c._ns_tvc3 |   .1797678   .4757156     0.38   0.706    -.7526177   
+>  1.112153
+             |
+       _cons |   .9081922    .317337     2.86   0.004     .2862231   
+>  1.530161
+---------------------------------------------------------------------
+> ---------
 Extended functions
  (1) @ns(agediag, df(3))
  (2) @ns(agediag, df(3) winsor(1 99))
@@ -535,16 +708,21 @@ Survival-time data settings
 Observed time interval: (0, survtime]
      Exit on or before: failure
 
---------------------------------------------------------------------------
+---------------------------------------------------------------------
+> -----
      10,498  total observations
           0  exclusions
---------------------------------------------------------------------------
+---------------------------------------------------------------------
+> -----
      10,498  observations remaining, representing
       4,379  failures in single-record/single-failure data
  28,253.044  total analysis time at risk and under observation
-                                                At risk from t =         0
-                                     Earliest observed entry t =         0
-                                          Last observed exit t =         5
+                                                At risk from t =     
+>     0
+                                     Earliest observed entry t =     
+>     0
+                                          Last observed exit t =     
+>     5
 
 ```  
 
@@ -608,14 +786,22 @@ We can now plot the marginal relative survival.
 
 ```stata
 . frame RS {
-.   twoway (rarea RS_A_lci RS_A_uci tt, color(%30))                ///
->          (line RS_A tt, pstyle(p1line))                          /// 
->          (rarea RS_B_lci RS_B_uci tt, pstyle(p2line) color(%30)) ///
->          (line RS_B tt, pstyle(p2line)),                         ///
->          xtitle("Years from diagnosis")                          ///
->          ytitle("Marginal Relative Survival")                    ///
->          ylabel(,format(%3.1f))                                  ///
->          legend(order(2 "Country A" 4 "Country B") pos(1))       ///
+.   twoway (rarea RS_A_lci RS_A_uci tt, color(%30))                //
+> /
+>          (line RS_A tt, pstyle(p1line))                          //
+> / 
+>          (rarea RS_B_lci RS_B_uci tt, pstyle(p2line) color(%30)) //
+> /
+>          (line RS_B tt, pstyle(p2line)),                         //
+> /
+>          xtitle("Years from diagnosis")                          //
+> /
+>          ytitle("Marginal Relative Survival")                    //
+> /
+>          ylabel(,format(%3.1f))                                  //
+> /
+>          legend(order(2 "Country A" 4 "Country B") pos(1))       //
+> /
 >          name(RS, replace)
 . }
 
@@ -664,14 +850,22 @@ Having generated the predictions, we can plot the results.
 
 ```stata
 . frame ageplot {
-.   twoway (rarea RS5_A_lci RS5_A_uci agediag, color(%30))                ///
->          (line RS5_A agediag, pstyle(p1line))                           ///
->          (rarea RS5_B_lci RS5_B_uci agediag, color(%30) pstyle(p2line)) ///
->          (line RS5_B agediag, pstyle(p2line)),                          ///
->          xtitle("Years from diagnosis")                                 ///
->          ytitle("Marginal 5-year Relative Survival")                    ///
->          ylabel(,format(%3.1f))                                         ///
->          legend(order(2 "Country A" 4 "Country B") pos(1))              ///
+.   twoway (rarea RS5_A_lci RS5_A_uci agediag, color(%30))           
+>      ///
+>          (line RS5_A agediag, pstyle(p1line))                      
+>      ///
+>          (rarea RS5_B_lci RS5_B_uci agediag, color(%30) pstyle(p2li
+> ne)) ///
+>          (line RS5_B agediag, pstyle(p2line)),                     
+>      ///
+>          xtitle("Years from diagnosis")                            
+>      ///
+>          ytitle("Marginal 5-year Relative Survival")               
+>      ///
+>          ylabel(,format(%3.1f))                                    
+>      ///
+>          legend(order(2 "Country A" 4 "Country B") pos(1))         
+>      ///
 >          name(RS_age, replace)
 . }
 
@@ -702,14 +896,22 @@ First the predictions for Country A
 ```stata
 . estimates use CountryA
 
-. standsurv S_A, surv timevar(tt) ci frame(AC, replace)                    ///
->                   expsurv(datediag(diagdate)                             ///
->                           agediag(agediag)                               ///
->                           using(https://www.pclambert.net/data/popmortA) ///
->                           pmrate(rate)                                   ///
->                           pmyear(_year)                                  ///
->                           pmage(_age)                                    ///
->                           pmother(sex)                                   ///
+. standsurv S_A, surv timevar(tt) ci frame(AC, replace)              
+>       ///
+>                   expsurv(datediag(diagdate)                       
+>       ///
+>                           agediag(agediag)                         
+>       ///
+>                           using(https://www.pclambert.net/data/popm
+> ortA) ///
+>                           pmrate(rate)                             
+>       ///
+>                           pmyear(_year)                            
+>       ///
+>                           pmage(_age)                              
+>       ///
+>                           pmother(sex)                             
+>       ///
 >                           pmmaxyear(2020))  
 !!WARNING!! You are including observations not included in the model
 when calculating standardized estimates.
@@ -722,14 +924,22 @@ Ensure this is what you intended.
 ```stata
 . estimates use CountryB
 
-. standsurv S_B, surv ci frame(AC, merge)                                  ///
->                   expsurv(datediag(diagdate)                             ///
->                           agediag(agediag)                               ///
->                           using(https://www.pclambert.net/data/popmortB) ///
->                           pmrate(rate)                                   ///
->                           pmyear(_year)                                  ///
->                           pmage(_age)                                    ///
->                           pmother(sex)                                   ///
+. standsurv S_B, surv ci frame(AC, merge)                            
+>       ///
+>                   expsurv(datediag(diagdate)                       
+>       ///
+>                           agediag(agediag)                         
+>       ///
+>                           using(https://www.pclambert.net/data/popm
+> ortB) ///
+>                           pmrate(rate)                             
+>       ///
+>                           pmyear(_year)                            
+>       ///
+>                           pmage(_age)                              
+>       ///
+>                           pmother(sex)                             
+>       ///
 >                           pmmaxyear(2020))  
 !!WARNING!! You are including observations not included in the model
 when calculating standardized estimates.
@@ -741,14 +951,22 @@ We can now plot the model based estimate of all-cause survival.
                           
 ```stata
 . frame AC {
-.   twoway (rarea S_A_lci S_A_uci tt, color(%30))                  ///
->          (line  S_A tt, pstyle(p1line))                          /// 
->          (rarea S_B_lci S_B_uci tt, pstyle(p2line) color(%30))   ///
->          (line  S_B tt, pstyle(p2line)),                         ///
->          xtitle("Years from diagnosis")                          ///
->          ytitle("Marginal All cause Survival")                   ///
->          ylabel(,format(%3.1f))                                  ///
->          legend(order(2 "Country A" 4 "Country B") pos(1))       ///
+.   twoway (rarea S_A_lci S_A_uci tt, color(%30))                  //
+> /
+>          (line  S_A tt, pstyle(p1line))                          //
+> / 
+>          (rarea S_B_lci S_B_uci tt, pstyle(p2line) color(%30))   //
+> /
+>          (line  S_B tt, pstyle(p2line)),                         //
+> /
+>          xtitle("Years from diagnosis")                          //
+> /
+>          ytitle("Marginal All cause Survival")                   //
+> /
+>          ylabel(,format(%3.1f))                                  //
+> /
+>          legend(order(2 "Country A" 4 "Country B") pos(1))       //
+> /
 >          name(RS, replace)
 . }                        
 
@@ -801,14 +1019,22 @@ We reload the estimates for the model fitted to Country B and then run `standsur
 ```stata
 . estimates use CountryB
 
-. standsurv Sref_B, surv timevar(tt) ci frame(RefAdj, replace)             ///
->                   expsurv(datediag(diagdate)                             ///
->                           agediag(agediag)                               ///
->                           using(https://www.pclambert.net/data/popmortB) ///
->                           pmrate(rate)                                   ///
->                           pmyear(_year)                                  ///
->                           pmage(_age)                                    ///
->                           pmother(sex)                                   ///
+. standsurv Sref_B, surv timevar(tt) ci frame(RefAdj, replace)       
+>       ///
+>                   expsurv(datediag(diagdate)                       
+>       ///
+>                           agediag(agediag)                         
+>       ///
+>                           using(https://www.pclambert.net/data/popm
+> ortB) ///
+>                           pmrate(rate)                             
+>       ///
+>                           pmyear(_year)                            
+>       ///
+>                           pmage(_age)                              
+>       ///
+>                           pmother(sex)                             
+>       ///
 >                           pmmaxyear(2020))  
 !!WARNING!! You are including observations not included in the model
 when calculating standardized estimates.
@@ -821,14 +1047,22 @@ We then reload the estimates for the model fitted to Country A and run `standsur
 ```stata
 . estimates use CountryA
 
-. standsurv Sref_A, surv ci frame(RefAdj, merge)                           ///
->                   expsurv(datediag(diagdate)                             ///
->                           agediag(agediag)                               ///
->                           using(https://www.pclambert.net/data/popmortB) ///
->                           pmrate(rate)                                   ///
->                           pmyear(_year)                                  ///
->                           pmage(_age)                                    ///
->                           pmother(sex)                                   ///
+. standsurv Sref_A, surv ci frame(RefAdj, merge)                     
+>       ///
+>                   expsurv(datediag(diagdate)                       
+>       ///
+>                           agediag(agediag)                         
+>       ///
+>                           using(https://www.pclambert.net/data/popm
+> ortB) ///
+>                           pmrate(rate)                             
+>       ///
+>                           pmyear(_year)                            
+>       ///
+>                           pmage(_age)                              
+>       ///
+>                           pmother(sex)                             
+>       ///
 >                           pmmaxyear(2020))  
 !!WARNING!! You are including observations not included in the model
 when calculating standardized estimates.
@@ -841,14 +1075,22 @@ And finally plot the results.
                           
 ```stata
 . frame RefAdj {
-.   twoway (rarea Sref_A_lci Sref_A_uci tt, color(%30))                ///
->          (line  Sref_A tt, pstyle(p1line))                           /// 
->          (rarea Sref_B_lci Sref_B_uci tt, pstyle(p2line) color(%30)) ///
->          (line  Sref_B tt, pstyle(p2line)),                          ///
->          xtitle("Years from diagnosis")                              ///
->          ytitle("Reference Adjusted All cause Survival")             ///
->          ylabel(,format(%3.1f))                                      ///
->          legend(order(2 "Country A" 4 "Country B") pos(1))           ///
+.   twoway (rarea Sref_A_lci Sref_A_uci tt, color(%30))              
+>   ///
+>          (line  Sref_A tt, pstyle(p1line))                         
+>   /// 
+>          (rarea Sref_B_lci Sref_B_uci tt, pstyle(p2line) color(%30)
+> ) ///
+>          (line  Sref_B tt, pstyle(p2line)),                        
+>   ///
+>          xtitle("Years from diagnosis")                            
+>   ///
+>          ytitle("Reference Adjusted All cause Survival")           
+>   ///
+>          ylabel(,format(%3.1f))                                    
+>   ///
+>          legend(order(2 "Country A" 4 "Country B") pos(1))         
+>   ///
 >          name(RS, replace)
 . }                                   
 
@@ -883,10 +1125,12 @@ The following code calcuates the ICSS age groups and associated weights.
 
 ```stata
 . //Define ICSS age groups and weights
-. recode agediag (min/44.999=1) (45/54.999=2) (55/64.999=3) (65/74.999=4) (75/max=5), gen(ICSSagegrp)
+. recode agediag (min/44.999=1) (45/54.999=2) (55/64.999=3) (65/74.99
+> 9=4) (75/max=5), gen(ICSSagegrp)
 (10,498 differences between agediag and ICSSagegrp)
 
-. recode ICSSagegrp (1=0.07) (2=0.12) (3=0.23) (4=0.29) (5=0.29), gen(ICSSwt)
+. recode ICSSagegrp (1=0.07) (2=0.12) (3=0.23) (4=0.29) (5=0.29), gen
+> (ICSSwt)
 (10,498 differences between ICSSagegrp and ICSSwt)
 
 ```  
@@ -937,7 +1181,8 @@ We do this first for Country B,
 ```stata
 . estimates use CountryB
 
-. standsurv RS_B if sex==1, surv timevar(tt) ci frame(RS_ICSS, replace) ///
+. standsurv RS_B if sex==1, surv timevar(tt) ci frame(RS_ICSS, replac
+> e) ///
 >                               indweights(wt_age)
 !!WARNING!! You are including observations not included in the model
 when calculating standardized estimates.
@@ -962,14 +1207,22 @@ Finally, we can plot the results.
 
 ```stata
 . frame RS_ICSS {
-.   twoway (rarea RS_A_lci RS_A_uci tt, color(%30))                ///
->          (line RS_A tt, pstyle(p1line))                          /// 
->          (rarea RS_B_lci RS_B_uci tt, pstyle(p2line) color(%30)) ///
->          (line RS_B tt, pstyle(p2line)),                         ///
->          xtitle("Years from diagnosis")                          ///
->          ytitle("Marginal Relative Survival")                    ///
->          ylabel(,format(%3.1f))                                  ///
->          legend(order(2 "Country A" 4 "Country B") pos(1))       ///
+.   twoway (rarea RS_A_lci RS_A_uci tt, color(%30))                //
+> /
+>          (line RS_A tt, pstyle(p1line))                          //
+> / 
+>          (rarea RS_B_lci RS_B_uci tt, pstyle(p2line) color(%30)) //
+> /
+>          (line RS_B tt, pstyle(p2line)),                         //
+> /
+>          xtitle("Years from diagnosis")                          //
+> /
+>          ytitle("Marginal Relative Survival")                    //
+> /
+>          ylabel(,format(%3.1f))                                  //
+> /
+>          legend(order(2 "Country A" 4 "Country B") pos(1))       //
+> /
 >          name(RS_ICSS, replace)
 . }       
 
@@ -1085,14 +1338,22 @@ This can be plotted.
 
 ```stata
 . frame RS_standA1 {
-.   twoway (rarea RS_A_lci RS_A_uci tt, color(%30))                ///
->          (line RS_A tt, pstyle(p1line))                          /// 
->          (rarea RS_B_lci RS_B_uci tt, pstyle(p2line) color(%30)) ///
->          (line RS_B tt, pstyle(p2line)),                         ///
->          xtitle("Years from diagnosis")                          ///
->          ytitle("Marginal Relative Survival")                    ///
->          ylabel(,format(%3.1f))                                  ///
->          legend(order(2 "Country A" 4 "Country B") pos(1))       ///
+.   twoway (rarea RS_A_lci RS_A_uci tt, color(%30))                //
+> /
+>          (line RS_A tt, pstyle(p1line))                          //
+> / 
+>          (rarea RS_B_lci RS_B_uci tt, pstyle(p2line) color(%30)) //
+> /
+>          (line RS_B tt, pstyle(p2line)),                         //
+> /
+>          xtitle("Years from diagnosis")                          //
+> /
+>          ytitle("Marginal Relative Survival")                    //
+> /
+>          ylabel(,format(%3.1f))                                  //
+> /
+>          legend(order(2 "Country A" 4 "Country B") pos(1))       //
+> /
 >          name(RS, replace)
 . }
 
@@ -1139,14 +1400,22 @@ This avoids having to use the `indweights()` option.
 
 ```stata
 . frame RS_standA2 {
-.   twoway (rarea RS_A_lci RS_A_uci tt, color(%30))                ///
->          (line RS_A tt, pstyle(p1line))                          /// 
->          (rarea RS_B_lci RS_B_uci tt, pstyle(p2line) color(%30)) ///
->          (line RS_B tt, pstyle(p2line)),                         ///
->          xtitle("Years from diagnosis")                          ///
->          ytitle("Marginal Relative Survival")                    ///
->          ylabel(,format(%3.1f))                                  ///
->          legend(order(2 "Country A" 4 "Country B") pos(1))       ///
+.   twoway (rarea RS_A_lci RS_A_uci tt, color(%30))                //
+> /
+>          (line RS_A tt, pstyle(p1line))                          //
+> / 
+>          (rarea RS_B_lci RS_B_uci tt, pstyle(p2line) color(%30)) //
+> /
+>          (line RS_B tt, pstyle(p2line)),                         //
+> /
+>          xtitle("Years from diagnosis")                          //
+> /
+>          ytitle("Marginal Relative Survival")                    //
+> /
+>          ylabel(,format(%3.1f))                                  //
+> /
+>          legend(order(2 "Country A" 4 "Country B") pos(1))       //
+> /
 >          name(RS, replace)
 . }
 

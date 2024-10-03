@@ -67,3 +67,7 @@
                          -- Predictions from a relative survival model using 
                             rmst resulted in an error if using ci 
                             and the expvar() options.
+							
+2024-09-05 Version 1.13  -- Fixed issue with lnhazard models with 3 part
+                            tanh-sinh integration when having multiple at
+							options.

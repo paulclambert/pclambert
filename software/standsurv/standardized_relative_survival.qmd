@@ -1,0 +1,403 @@
+---
+title: "Standardized relative survival"
+---
+
+
+
+
+> You will need to install `standsurv`, `stpm3` and `gensplines` to run the example. [Details here](https://pclambert.net/software/standsurv/)
+
+
+## Background
+
+Here I will describe how to obtain estimates of standardized relative survival after fitting a relative survival model.
+The relative survival framework is used extensively in population-based cancer studies for the analysis of  cancer registry data.
+Rather than use cause of death information, the relative survival framework uses expected mortality rates in order 
+to estimate the mortality in excess of that expected in the general population. 
+
+In a relative survival model the underlying all cause mortality rate, $h(t|Z=z_i)$, for the $i^{th}$ individual with covariate pattern, $Z=z_i$, is partitioned into 
+the expected mortality rate if they did not have cancer, $h^*(t|Z_1 = z_{1i})$, and their excess mortality rate due to the cancer, $\lambda(t|Z_2=z_{2i})$.
+
+$$
+h(t|Z=z_i) = h^*(t|Z_1 = z_{1i}) + \lambda(t|Z_2=z_{2i})
+$$
+
+with $Z$ denoting the set of all covariates. $Z_1$ and $Z_2$ denote the covariates for expected and excess mortalities respectively. In the example below $Z_1$ and $Z_2$ will be the same.
+
+The survival analogue of excess mortality is relative survival. The relative survival of individual $i$, $R(t|Z_2=z_{2i}⁠)$, is defined as their all-cause survival, $S(t|Z=z_i)⁠$, divided by their expected survival, $S^*(t|Z1=z_{1i})$⁠. The all-cause survival is thus,  
+
+$$
+S(t|Z=z_i) = S^*(t|Z_1 = z_{1i})R(t|Z_2=z_{2i})
+$$
+
+There are a number of different relative survival models. I will use an adaption of Royston-Parmar (flexible parametric survival) models to the relative survival framework (Nelson *et al.* 2007). These models are conditional models, i.e. the can predict relative survival/excess mortality conditional on specific covariate patterns. I will use these models to obtain marginal (standardized) estimates using `standsurv`, but first I need to fit the conditional model.
+
+
+## Example (simulated colon cancer data)
+
+I will use simulated data. The data is simulated in a way to be similar to colon cancer data in England. There are just three covariates, age at diagnosis (`agediag`), sex (`female`) and deprivation group (`dep`). There are five derpivation groups derived from national quintiles of the income domain of the area of patients’ residence at diagnosis (in real data, but simulated here).
+
+
+I first load and `stset` the data.
+
+```stata
+. use https://www.pclambert.net/data/colonsim, clear      
+
+. stset t, failure(dead=1,2) id(id) exit(time 5)
+
+Survival-time data settings
+
+           ID variable: id
+         Failure event: dead==1 2
+Observed time interval: (t[_n-1], t]
+     Exit on or before: time 5
+
+--------------------------------------------------------------------------
+     20,000  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+     20,000  observations remaining, representing
+     20,000  subjects
+     10,677  failures in single-failure-per-subject data
+ 60,922.154  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =         5
+
+```
+
+There are 20,000 individuals and follow-up has been restricted to 5 years.
+
+
+For simplicity in this example I will only keep the least and most deprived groups.
+
+```stata
+. keep if inlist(dep,1,5)
+(12,667 observations deleted)
+
+```
+
+In a relative survival model the expected mortality rates at the event times are required. Expected mortality rates are stored in a "popmort file". Attained age and attained calendar year can be calculated through making use of `_t`, and then the expected rates can be merged in. 
+
+```stata
+. // attained age
+. gen age = min(floor(agediag + _t),99)
+
+. // attained calendar year
+. gen year = floor(yeardiag + _t)
+
+. merge m:1 age year dep sex using https://www.pclambert.net/data/popmort_uk_2017, ///
+>       keep(match master) keepusing(rate)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             7,333  (_merge==3)
+    -----------------------------------------
+
+. drop age year      
+
+```
+
+I have drop attained age (`age`) and attained year (`year`) variables as we do
+not need them now we have the rates and it avoids potential confusion with the `agediag`
+variable.
+
+
+
+
+
+Rather than create age groups, age will be modelled continuously using natural spline with 4 knots (3 natural splines variables). I create  a dummy variable, `female` (so I don't have to remember how `sex` is coded). 
+
+
+```stata
+. gen female = sex == 2 
+
+```
+
+The model can now be fitted. I include the main effect and the twoway interactions. In addition time-dependent effect of deprivation, sex and age are incorporated though use of the `tvc()` and `dftvc` options. Time-dependent effects are an interaction with time.
+
+```stata
+. stpm3 i.dep i.female i.dep#i.female @ns(agediag,df(3))                        ///
+>       (i.dep i.female)#@ns(agediag,df(3)), scale(lncumhazard) df(5)           ///
+>                                        tvc(i.dep i.female @ns(agediag,df(3))) ///
+>                                        dftvc(3)                               ///
+>                                        bhazard(rate)
+
+Iteration 0:  Log likelihood = -8428.5345  
+Iteration 1:  Log likelihood =    -8278.5  
+Iteration 2:  Log likelihood = -8265.7391  
+Iteration 3:  Log likelihood = -8265.6187  
+Iteration 4:  Log likelihood = -8265.6186  
+
+                                                        Number of obs =  7,333
+                                                        Wald chi2(12) = 113.87
+Log likelihood = -8265.6186                             Prob > chi2   = 0.0000
+
+----------------------------------------------------------------------------------------------
+                             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-----------------------------+----------------------------------------------------------------
+xb                           |
+                       5.dep |  -.6419774   .5845227    -1.10   0.272    -1.787621    .5036659
+                    1.female |    -1.3657    .582489    -2.34   0.019    -2.507357    -.224042
+                             |
+                  dep#female |
+                        5 1  |  -.0191719   .0827025    -0.23   0.817    -.1812658    .1429219
+                             |
+             _ns_f1_agediag1 |   6.501771   2.152943     3.02   0.003      2.28208    10.72146
+             _ns_f1_agediag2 |  -2.279435   .6160949    -3.70   0.000    -3.486958   -1.071911
+             _ns_f1_agediag3 |    2.81975    .956029     2.95   0.003     .9459672    4.693532
+                             |
+       dep#c._ns_f1_agediag1 |
+                          5  |   .9056399   2.348349     0.39   0.700     -3.69704    5.508319
+                             |
+       dep#c._ns_f1_agediag2 |
+                          5  |   1.345686   .7804873     1.72   0.085    -.1840408    2.875413
+                             |
+       dep#c._ns_f1_agediag3 |
+                          5  |   1.117606   .9777112     1.14   0.253    -.7986725    3.033885
+                             |
+    female#c._ns_f1_agediag1 |
+                          1  |   5.925897   2.384517     2.49   0.013     1.252329    10.59947
+                             |
+    female#c._ns_f1_agediag2 |
+                          1  |  -1.433401   .8081704    -1.77   0.076    -3.017386     .150584
+                             |
+    female#c._ns_f1_agediag3 |
+                          1  |   2.310526   .9781133     2.36   0.018      .393459    4.227593
+-----------------------------+----------------------------------------------------------------
+time                         |
+                        _ns1 |  -14.65779   5.375015    -2.73   0.006    -25.19263   -4.122953
+                        _ns2 |   5.887241    2.32776     2.53   0.011     1.324915    10.44957
+                        _ns3 |  -.1530168   .4739203    -0.32   0.747    -1.081884      .77585
+                        _ns4 |  -.2829653   .4219911    -0.67   0.503    -1.110053    .5441221
+                        _ns5 |  -.1131354   .3294513    -0.34   0.731    -.7588481    .5325774
+                             |
+              dep#c._ns_tvc1 |
+                          5  |   1.100971   .7883876     1.40   0.163    -.4442405    2.646182
+                             |
+              dep#c._ns_tvc2 |
+                          5  |    .187929   .4241331     0.44   0.658    -.6433566    1.019215
+                             |
+              dep#c._ns_tvc3 |
+                          5  |   .0426729   .0602108     0.71   0.478    -.0753381     .160684
+                             |
+           female#c._ns_tvc1 |
+                          1  |  -.1184546   .7751156    -0.15   0.879    -1.637653    1.400744
+                             |
+           female#c._ns_tvc2 |
+                          1  |  -.0180684   .4172699    -0.04   0.965    -.8359023    .7997655
+                             |
+           female#c._ns_tvc3 |
+                          1  |   .0901707   .0600834     1.50   0.133    -.0275906    .2079319
+                             |
+c._ns_f1_agediag1#c._ns_tvc1 |  -6.021449   30.79645    -0.20   0.845    -66.38139    54.33849
+                             |
+c._ns_f1_agediag1#c._ns_tvc2 |  -11.14933   15.88018    -0.70   0.483     -42.2739    19.97524
+                             |
+c._ns_f1_agediag1#c._ns_tvc3 |  -.6694085   2.162692    -0.31   0.757    -4.908207     3.56939
+                             |
+c._ns_f1_agediag2#c._ns_tvc1 |   -2.16063   12.96547    -0.17   0.868    -27.57248    23.25122
+                             |
+c._ns_f1_agediag2#c._ns_tvc2 |   1.459072   6.675109     0.22   0.827     -11.6239    14.54205
+                             |
+c._ns_f1_agediag2#c._ns_tvc3 |  -.5614446   .5591487    -1.00   0.315    -1.657356    .5344667
+                             |
+c._ns_f1_agediag3#c._ns_tvc1 |    1.75344   9.352329     0.19   0.851    -16.57679    20.08367
+                             |
+c._ns_f1_agediag3#c._ns_tvc2 |  -3.286367   4.893296    -0.67   0.502    -12.87705    6.304317
+                             |
+c._ns_f1_agediag3#c._ns_tvc3 |   .0178396   .9596607     0.02   0.985    -1.863061     1.89874
+                             |
+                       _cons |  -2.112934   .5808717    -3.64   0.000    -3.251422   -.9744464
+----------------------------------------------------------------------------------------------
+Extended functions
+ (1) @ns(agediag, df(3))
+
+```
+
+This is a complex model and I would not attempt to interpret individual parameters. However, the model can predict relative survival for any covariate pattern at any time point. For example, the code below predicts relative survival for 50, 65 and 80 year old females in each deprivation group
+
+
+
+```stata
+. foreach age in 50 65 80 {
+  2.   predict S`age'_dep1 S`age'_dep5, survival timevar(0 5, step(0.1)) ci ///
+>                                    frame(surv_age, mergecreate)        ///
+>                                    at1(agediag `age' dep 1 female 1)       ///
+>                                    at2(agediag `age' dep 5 female 1)                
+  3. }
+Predictions are stored in frame - surv_age
+Predictions are stored in frame - surv_age
+Predictions are stored in frame - surv_age
+
+```
+
+I could have performed all 6 predictions in call to `predict`, but have chosen to
+loop over ages. Note the use of `frame(surv_age, mergecreate)`. The `mergecreate` 
+option will create the frame if it does not exist, otherwise it will merge in predictions
+to the existing frame. It is useful when writing predictions in loops.
+
+
+
+The predictions can then be plotted.
+
+![](/statasvg/standsurv_relative_survival_byage.svg)
+
+Relative survival is lower as age increases and lower among those who live in more deprived areas. These are conditional predictions, i.e. prediction conditional on specific covariate patterns. By using `standsurv` we can obtain marginal predictions in order to obtain an overall summary of relative survival and perform contrasts between different population groups.
+
+### Using `standsurv`
+
+`standsurv` enables various marginal estimates to be obtained. For a review of marginal measures in survival analysis see our recent [*International Journal of Epidemiology*](https://academic.oup.com/ije/article/49/2/619/5709483) paper (Syrioupoulou *et al*. 2020).
+
+If an overall population summary of relative survival is required then marginal (standardized) measures can be obtained. For example marginal relative survival is simply the expectation over covariates $Z_2$,
+
+$$
+R_M(t) = E\left[R(t|Z_2) \right]
+$$
+
+
+In a modelling framework an estimate can be calculated by obtaining predictions for each of the $N$ individuals in the study at the observed values of their covariates, and then taking an average of these predictions.
+
+$$
+\widehat{R}_{M}(t) =  \frac{1}{N} \sum_{i=1}^{N} {\widehat{R}(t|Z_2=z\_{2i})}
+$$
+
+`standsurv` will do these calculations
+
+```stata
+. range tt 0 5 101
+(7,232 missing values generated)
+
+. standsurv, surv timevar(tt) ci frame(mrs) ///
+>            atvar(mrs) at1(.) 
+
+```
+
+Note the `at(.)` option requests `standsurv` uses the observed covariate distribution to average over. Here `standsurv` has predicted a survival function for each of the 7,333 individuals in our study and then taken the average of these functions. The results can then be plotted.
+
+
+
+
+
+![](/statasvg/standsurv_relative_survival_marginal.svg)
+
+
+I have overlayed the non-parametric Pohar Perme estimator of marginal relative survival (using [stpp](/software/stpp/)) that shows the model is doing a pretty good job, at least in terms of estimating the average well.
+
+I have referred to this is marginal relative survival. Under assumptions this can be interpreted as marginal *net* survival. Net survival is survival in the hypothetical situation where it is not possible to die from  other causes. For details of these interpretations and of the assumptons, see (Lambert *et al.* 2015, Pavlic, K. & Pohar Perme 2018).
+
+This measure is a summary for our population, but there is often interest in comparing different population subgroups. In these comparisons it is important to account for the fact that the age (and other covariate)  distribution may be different between the groups being compared. This is where `standsurv` is useful through allowing one to "force" the same covariate distribution on both groups.
+
+
+Note that in the relative survival framework it is common to standardise to an external age distribution. This is shown in a [separate tutorial]() and here I will use the covariate distribution observed in the study. 
+
+The key issue is that by applying a simple comparison of marginal relative survival betwen population groups, the differences could be due to differences in the covariate distribution between the groups. For example. if one group was older an average then this could explain any observed difference in marginal relative survival.
+
+With two or more population groups it is useful to perform contrasts. Here we will compare the absolute difference in marginal relative survival between the two deprivation groups.
+
+
+To illustrate the methods I will compare the least and the most deprived individuals. First I will average over the combined covariate distribution of the two groups. The estimand of interest here is as follows,
+
+$$
+E\left[R(t|X=1,Z_2\right)] - E\left[R(t|X=0,Z_2\right)]
+$$
+
+Here $X$ denotes a binary exposure (deprivation group in our case) with $X=1$ denoting the most deprived and $X=0$ denoting the least deprived. Thus, the left hand term is the marginal relative survival among the exposed and the right hand term is the marginal relative survival among the unexposed.
+
+
+This can be estimated using using two standardized survival functions, one where all individuals are forced to be exposed and one where there are forced to be unexposed.
+
+$$
+\frac{1}{N}\sum_{i=1}^N{\widehat{R}(t|X=1,Z_2=z_{2i})} - \frac{1}{N}\sum_{i=1}^N{\widehat{R}(t|X=0,Z_2=z_{2i})}
+$$
+
+
+The code required for `standsurv` to estimate this is a follows,
+
+```stata
+. standsurv, surv frame(mrs, merge) ci                  ///
+>            atvar(ms_dep1a ms_dep5a)                   ///
+>            at1(dep 1) at2(dep 5)                      ///
+>            contrast(difference) contrastvar(ms_diffa)
+
+.            
+```
+Note that even though there are interactions in the model, standsurv will incorporate these.
+In `stpm2` this was not the case. By using `at1(dep5 1)` we force everyone to be in the least deprived group 
+and using `at2(dep 5)` forces everyone to be in the most deprived group.
+
+
+
+
+The resulting predictions can then be plotted.
+
+![](/statasvg/standsurv_relative_survival_marginal_dep_all.svg)
+
+An important point here is that we have not averaged over the covariate pattern within each deprivation group as the distribution of age and sex will be different and thus could potentially explain any differences we see. We have averaged over same covariate distribution (of age and sex). The estimate in each group is hypothetical in that it is the estimated relative survival if each of the deprivation groups had the age/sex distribution of the group as a whole. It is done to give a "fair" comparison.
+
+When performing standardization, it is possible to standardise to the covariate distribution of one of the groups, so at least one of the groups does not have a hypothetical covariate distribution. In the code below I use an `if` statement to restrict the standardisation to the covariate distribution among the deprived group.
+
+```stata
+. standsurv if dep==5, surv ci frame(mrs, merge) ///
+>                      atvar(ms_dep1b ms_dep5b)  ///
+>                      at1(dep 1) at2(dep 5)   
+
+```
+
+
+
+The resulting predictions can then be plotted.
+
+![](/statasvg/standsurv_relative_survival_marginal_dep_dep5.svg)
+
+
+You probably can't see much of a difference between the different graphs in this case as the age/sex distribution is very similar between the two groups.
+
+```stata
+. tab sex dep, row
+
++----------------+
+| Key            |
+|----------------|
+|   frequency    |
+| row percentage |
++----------------+
+
+           |          dep
+       sex |         1          5 |     Total
+-----------+----------------------+----------
+      Male |     2,122      1,703 |     3,825 
+           |     55.48      44.52 |    100.00 
+-----------+----------------------+----------
+    Female |     1,949      1,559 |     3,508 
+           |     55.56      44.44 |    100.00 
+-----------+----------------------+----------
+     Total |     4,071      3,262 |     7,333 
+           |     55.52      44.48 |    100.00 
+
+. tabstat agediag, by(dep)               
+
+Summary for variables: agediag
+Group variable: dep 
+
+   dep |      Mean
+-------+----------
+     1 |  71.47067
+     5 |  71.12984
+-------+----------
+ Total |  71.31905
+------------------
+
+```
+An important point here is that the above analysis is fine for internal comparisons for this study, but could not be directly compared to other studies where the age/sex distribution could be different. See the tutorial on [external standardzation in relative survival]() for how this can be done.
+
+## References
+
+Lambert, P. C.; Dickman, P. W. & Rutherford, M. J. Comparison of approaches to estimating age-standardized net survival. *BMC Med Res Methodol* 2015;**15**:64
+
+Nelson, C. P.; Lambert, P. C.; Squire, I. B. & Jones, D. R. Flexible parametric models for relative survival, with application in coronary heart disease. *Statistics in Medicine* 2007;**26**:5486-5498
+
+Pavlic, K. & Pohar Perme, M. Using pseudo-observations for estimation in relative survival. *Biostatistics* 2018;**20**:384-399
+
+Syriopoulou, E.; Rutherford, M. J. & Lambert, P. C. Marginal measures and causal effects using the relative survival framework. *International Journal of Epidemiology* 2020;**49**:619–628  

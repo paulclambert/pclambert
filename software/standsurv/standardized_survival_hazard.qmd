@@ -5,13 +5,13 @@ title: "Hazard of Standardized Survival Functions"
 This will be a short tutorial as the ideas are very simple. I have previously discussed standardized survival functions. In survival analysis we know that there is a simple mathematical transformation from hazard to survival function and vice versa. The idea here is to transform  to a hazard function from the *standardized* survival function. Recall that a standardized survival funnction; $S_s(t|X=x,Z)$ is estimated by
 
 $$
-S_s(t|X=x,Z) = \frac{1}{N}\sum\_{i=1}^{N}S(t|X=x,Z=z_i)
+S_s(t|X=x,Z) = \frac{1}{N}\sum_{i=1}^{N}S(t|X=x,Z=z_i)
 $$
 
 If we apply the usual transformation from survival to hazard to function ($h(t) = \frac{-d}{dt}\log[S(t)]$) we get
 
 $$
-h_s(t|X=x,Z) = \frac{\sum\_{i=1}^{N}S(t|X=x,Z=z_i)h(t|X=x,Z=z_i)}{\sum\_{i=1}^{N}S(t|X=x,Z=z_i)}
+h_s(t|X=x,Z) = \frac{\sum_{i=1}^{N}S(t|X=x,Z=z_i)h(t|X=x,Z=z_i)}{\sum_{i=1}^{N}S(t|X=x,Z=z_i)}
 $$
 
 This is a weighted average of the $N$ individual hazard functions with weights equal to $S(t|X=x,Z=z_i)$, i.e. the predicted survival function for individual $i$ when forced to take a specific value of the exposure variable, $X$, but their observed values of confounding variables, $Z$.

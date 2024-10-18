@@ -1,3 +1,25 @@
 ---
-title: "stpp"
+title: "`stpp`"
 ---
+
+`stpp` calculates the Pohar-Perme non-parametric estimate of marginal relative survival, which under assumptions can be interpreted as marginal net survival. The estimate is a step function and changes at each event time. 
+This is a different implementation to `strs` and `stnet` where the time-scale is split into a number of intervals. `stns` is another command
+that can be used to give an estimate of marginal relative survival. The motivation for developing `stpp` was to directly standardize
+the estimates using both traditional standardization and by using individual weights and to extend to estimation of other related measures. The other measures include crude probabilities and the ability to incorporate a second expected rate file, which can be used to estimate measures defined by [Sasieni and Brentnall](https://onlinelibrary.wiley.com/doi/full/10.1111/biom.12578) and non-parametric estimates of [reference adjusted measures](https://academic.oup.com/ije/article-abstract/49/5/1614/5896134).
+
+
+
+The single example currently just replicates the help file, but with some added description.
+ 
+## Examples
+
+### Basic examples
+- [Using stpp](/software/stpp/using_stpp.qmd) 
+- All cause and crude probabilities
+- Reference adjusted all cause and crude probabilities
+
+## Releases
+See [stpp_releases.txt](/software/stpp/stpp_releases.txt)
+
+  
+  

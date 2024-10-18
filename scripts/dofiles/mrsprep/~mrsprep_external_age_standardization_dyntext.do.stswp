@@ -1,0 +1,7 @@
+cd "${DRIVE}/github/pclambert/scripts/dofiles/mrsprep/"
+dyntext mrsprep_external_age_standardization.txt, saving(../../../software/mrsprep/mrsprep_external_age_standardization.qmd) replace
+	
+	 
+cd "${DRIVE}/github/pclambert/scripts/dofiles/mrsprep/"
+dyntext mrsprep_marginal_relative_survival.txt, saving(../../../software/mrsprep/mrsprep_marginal_relative_survival.qmd) replace
+	

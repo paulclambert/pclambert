@@ -1,0 +1,5 @@
+cd "${DRIVE}/github/pclambert/scripts/dofiles/mrsprep/"
+dyntext mrsprep_marginal_relative_survival.txt, saving(../../../software/mrsprep/mrsprep_marginal_relative_survival.qmd) replace
+	
+	 
+    dyntext gensplines_vs_makesplines.txt, saving(../../../software/gensplines/gensplines_vs_makesplines.qmd) replace

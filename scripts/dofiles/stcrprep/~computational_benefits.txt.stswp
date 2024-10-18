@@ -1,0 +1,103 @@
+---
+title: "`stcrprep` - computational benefits"
+---
+
+When using `stcrprep` there are some computational benefits when compared to using Stata's inbuilt `stcrreg`. One reason for this is that everytime you fit a model using `stcrreg`, the probability of censoring weights are calculated and the data must be expanded (in the background) when maximising the likelihood. When using `stcrprep` the data is expanded once and then diffenet models can be fitted to this expanded data. 
+
+I have run some timings. If I fit a simple model to the `embt1` data with risk score as the only covariate (2 dummy variables) then these are the timings on my current work laptop (Intel i5 - running Stata 15 MP4).
+
+First I load and `stset` the data.
+
+```stata
+<<dd_do:>>
+use https://www.pclambert.net/data/ebmt1_stata.dta, clear
+stset time, failure(status==1) scale(365.25) id(patid) noshow
+<</dd_do>>
+```
+
+Now, I use Stata's inbuilt `stcrreg`,
+
+```stata
+<<dd_do>>
+timer clear
+timer on 1
+stcrreg i.score, compete(status==2) nolog noshow
+timer off 1
+timer list
+<</dd_do>>
+```
+
+This takes <<dd_display:%4.1f r(t1)>> seconds to fit. 
+
+I now reload and `stset` the data, but this time declaring both `status=1` and `status=2` as events.
+
+```stata
+<<dd_do: nooutput>>
+use https://www.pclambert.net/data/ebmt1_stata.dta, clear
+stset time, failure(status==1,2) scale(365.25) id(patid)
+<</dd_do>>
+```
+
+We can now run `stcrprep`.
+
+```stata
+<<dd_do>>
+timer on 2
+stcrprep, events(status) keep(score) trans(1)	
+timer off 2
+timer list 2
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+local stcrprep_time = `r(t2)'
+<</dd_do>>
+
+
+This takes <<dd_display:%4.1f r(t2)>> seconds to run. However, this only restructures the data and calculates the weights. To fit the model, we first generate the event indicator and  use `stset`.
+
+
+```stata
+<<dd_do:nooutput>>
+gen	 event = status == failcode
+stset tstop [iw=weight_c], failure(event) enter(tstart) 
+<</dd_do>>
+```
+
+We use `stcox` to fit the proportional subhazards model to the expanded data.
+
+```stata
+<<dd_do:>>
+timer on 3
+stcox i.score
+timer off 3
+timer list
+<</dd_do>>
+```
+
+This takes <<dd_display:%4.1f r(t3)>> seconds to run giving a combined total of <<dd_display:%4.1f r(t3)+`stcrprep_time'>> seconds. What is important is that if we want to fit other models (including other covariates etc), then we do not need to run `stcrprep` again.
+
+To assess the time on larger data I have expanded the data by 20 times and added a small random number to each time, so that there are no ties. I used the following code.
+
+```stata
+expand 20
+replace time = time + runiform()*0.0001
+replace patid = _n
+```
+
+This leads to 19,770 indviduals in the analysis. The fact that there are no ties is perhaps a little unrealistic in a dataset this size, but this is still a usefull assessment of computational speed. The same analysis as above on this larger dataset gave the following times.
+
+
+|command|Time|
+|---|---|
+|`stcrreg`|2066.3 seconds|
+|`stcrprep`|890.2 seconds|
+|`stcox`|46.1 seconds|
+
+I think this really highlights the benfits of restructuring the data and using `stcox` in terms of computational time. Unless there is need to recalculate the probability of censoring weights, there is no need to do this every time you fit a model. Thus, in this case the `stcrreg` model takes almost 35 minutes, whilst the same model using `stcox`, after using `stcrprep`, takes only 46 seconds.
+
+It is worthwhile noting that Stata's implementation of Fine and Grays proportional subhazards model using `stcrreg` seems particularly slow. If I fit the model in R using `crr` the model fitted to the expanded data it only takes 370 seconds compared to 2066 in Stata. 
+
+There are other benefits with using `stcox` to fit the subhazards model, mainly because we can now use many of the other commands and extensions associated with `stcox`. I will discuss these in other tutorials.
+
+

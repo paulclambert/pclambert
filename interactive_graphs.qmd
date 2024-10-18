@@ -1,3 +1,44 @@
 ---
-title: "Interative Graphs"
+title: "Interactive Graphs"
 ---
+
+Many years ago I wrote a few programs in JavaScript using the excellent [D3 library](https://d3js.org). I still use some of these as a teaching guide to using splines in regression models and to illustrate some additional issues in survival analysis. I have found these to be excellent teaching tools and use them in lectures, but also encourage course participants to try them out to help gain an understanding of key concepts. I strongly believe that to be able to interact with graphs leads to a much better understanding of various methods.
+
+
+## Splines
+### [The number and location of knots](interactive_graphs/spline_eg/){target="_blank"}
+The first graph fits a non-linear function using splines using a linear regression model. The user is allowed to move, add and remove knots. The
+fitted regression function updated as you change the position or number of knots. Follow the instructions below the graph. The user can also select different spline functions, including linear, quadratic, cubic and restricted cubic splines. To open the graph in a new window click [here](interactive_graphs/spline_eg/){target="_blank"}.
+
+### [Continuity restrictions](interactive_graphs/spline_continuity/){target="_blank"}
+A spline function of degree $n$ is a piecewise polynomial function whose function values and first $n-1$ derivatives agree at the knots, i.e. the function is constrained to be continuous and continuously differentiable up to order $n-1$. The continuity restrictions graph allows the user to investigate the impact of different continuity restrictions from piecewise polynomials with no restrictions to the function being continuously differentiable up to order 
+$n-1$. To open the graph in a new window click [here](interactive_graphs/spline_continuity/){target="_blank"}.
+
+## Survival Analysis
+### [Weibull proportional hazards model](interactive_graphs/survival_weibull/){target="_blank"}
+This graph plots the probability density function, the survival function and the hazard function from a Weibull model under proportional hazards where two groups are being compared (e.g. standard and new treatment). The Weibull model is as follows,
+
+$$
+h(t)=\lambda\gamma t^{\gamma-1}\exp\left(\beta x\right)
+$$
+where $h(t)$ is the hazard function and the hazard ratio is $\exp(\beta)$. 
+The user is able to change the parameters of the baseline hazard, i.e. $\lambda$ and $\gamma$, and also the hazard ratio, $\beta$ using the slide bars. It is useful to fix the range of the y-axis at an appropriate level. To open the graph in a new window clickMixture Weibull distribution
+We have used the mixture Weibull distribution to simulate data when evaluating how well spline function approximate true, complex survival/hazard functions. For example see Rutherford et al. (2014), Journal of Statistical Computation and Simulation or Crowther and Lambert (2014), Statistics in Medicine. This graph allows the user to play around with the parameters of a mixture Weibull distribution and see the hazard/survival curves. The component distributions of the mixture Weibull can also be displayed. To open the graph in a new window click here. [here](interactive_graphs/survival_weibull/){target="_blank"}.
+
+
+### [Mixture Weibull distribution](interactive_graphs/mixture_weibull/){target="_blank"}
+We have used the mixture Weibull distribution to simulate data when evaluating how well spline function approximate true, complex survival/hazard functions. For example see Rutherford et al. (2014), Journal of Statistical Computation and Simulation or Crowther and Lambert (2014), Statistics in Medicine. This graph allows the user to play around with the parameters of a mixture Weibull distribution and see the hazard/survival curves. The component distributions of the mixture Weibull can also be displayed. To open the graph in a new window click [here](interactive_graphs/mixture_weibull/){target="_blank"}.
+
+### [Competing Risks](interactive_graphs/competing_risks/){target="_blank"}
+This is a simple demonstration of the link between cause-specific hazards and cause-specific cumulative incidence functions. Assuming exponential distributions, i.e. a constant hazard, the cause-specific hazards for cancer and for other causes can be defined for those unexposed and exposed to a risk factor. By changing the underlying mortality (hazard) rate and/or the hazard ratio between the exposed and unexposed it is possible to see the impact on the cause-specific cumulative incidence function for both cancer and other causes.  To open the graph in a new window click [here](interactive_graphs/competing_risks/){target="_blank"}.
+
+### [Expected Survival](interactive_graphs/lifeexpectancy/){target="_blank"}
+This shows expected survival by deprivation quintile and sex. You can drag the age slide bar, so you can see the expected survival for someone of a given age. To open the graph in a new window click [here](interactive_graphs/lifeexpectancy/){target="_blank"}.
+
+
+### [InterPreT](https://interpret.le.ac.uk/)
+This is a webpage developed by Sarwar Mozumder, when he was a PhD student based in Leicester. This is far more professional looking than my attempts. What we have done here is export the model parameters and details about knot locations etc from a flexible parametric survival model fitted in Stata using `stpm2`. Various predictions can then be made instantly as they are just transformations of model parameters. I particularly like the ability to drag the y-axis in order to get conditional estimates.
+
+### [Model Sensitivity](interactive_graphs/model_sensitivity/){target="_blank"}.
+
+This is work with Elisavet Syriopoulou, Sarwar Mozumder and Mark Rutherford to assess how sensitive estimates obtained from flexible parametric survival models (FPM) with different number of knots are. A sensitivity analysis was performed for a range of cancer types. For each cancer type considered, 18 FPMs were fitted assuming varying degrees of freedom to model the log cumulative baseline excess hazard and the main and time dependent effect of age. Both estimates of relative survival and excess hazard functions over years since diagnosis are given and there is also an option to choose marginal or age-specific estimates. Age specific estimates are obtained by moving the slider in the age histogram that is available under the graphs. Agreement across different models is so good that for most of the cancers the estimates overlay.

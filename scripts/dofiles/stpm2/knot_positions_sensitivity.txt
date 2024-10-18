@@ -1,0 +1,357 @@
++++
+date = "2017-09-03"
+title = "Sensitivity analysis to location of knots (proportional hazards)"
+summary = "stpm2"
+tags = ["stpm2","survival","software","Stata","proportional hazards"]
+external_link = "" 
+math = true
+[header]
+image = ""
+caption = ""
++++
+
+# Sensitivity analysis to the location of knots
+
+When using `stpm2` with the `df()` option the location of the knots for the restricted cubic splines are selected using the defaults. These are the based at the centiles of $\ln(t)$ for the events (i.e. the non censored observations). The boundary knots are placed at the minimum and maximum log event times. For example, with 5 knots there will be knots placed at the $0^{th}$, $25^{th}$, $50^{th}$, $75^{th}$, and $100^{th}$ centiles of the log event times. The location of the internal knots can be changed using the `knots()` option and the location of the boundary knots can be changed using the `bknots()` option.
+
+I was asked recently by Enzo Coviello why we use these knot locations and why not the knot locations suggested by Frank Harrell when using restricted cubic spines in his execellent book *Regression Modeling Strategies: With Applications to Linear Models, Logistic Regression, and Survival Analysis*. The table below shows the knot locations suggested by Harrell and those we use in `stpm2`.
+
+|No. of knots|Percentiles (Harrell)|Percentiles (`stpm2`)
+|---|---|---|
+|3| 10 50 90| 0 50 100|
+|4| 5 35 65 95| 0  33 67 100|
+|5| 5 27.5 50 72.5 95|0 25 50 75 100|
+|6| 5 23 41 59 77 95|0 20 40 60 80 100|
+|7| 2.5 18.33 34.17 50 65.83 81.67 97.5|0 17 33 50 67 83 100|
+
+We have performed a number of sensitivity analysis to internal knot location, i.e. still keeping the boundary knots at the minimum and maximum log event times, and have found predicted hazard and survival functions to be very robust to these changes. However, we have not changed the boundary knots so much. The only time I can remember this is when fitting cure models (Andersson *et al.* 2011).
+
+In my reply to Enzo I explained that we had motivated our choice of knots by the fact that it is better not to make linearity assumptions within the range of the data, but the linearity assumption outside the range of the data adds some stability to the function at the extremes. I also ran a very quick simulation study based on the same scenarios in Mark Rutherford's simulation paper (Rutherford 2015 *et al.*). I extend that simulation study here.
+
+I will simulate the same 4 scenarios as in Mark's paper, but will not simulate any covariate effects as I am only really interested in how well the restricted cubic spline function performs. Each of the scenarios was simulated from a mixture Weibull distributon,
+
+$$
+S(t) = \pi \exp(-\lambda_1 t^{\gamma_1}) + (1-\pi)\exp(-\lambda_2 t^{\gamma_2})
+$$
+
+The following parameters are used for each scenario,
+
+|Scenario|$\lambda_1$|$\lambda_1$|$\gamma_1$|$\gamma_2$|$\pi$|
+|---|---|---|---|---|---|
+|1|0.6|-|0.8|–|1|
+|2| 0.2| 1.6| 0.8| 1.0| 0.2|
+|3| 1| 1| 1.5| 0.5| 0.5|
+|4| 0.03| 0.3| 1.9| 2.5| 0.7|
+
+The true survival and the hazard functions can be plotted for each scenario. Below is a program I use to do this. I first declare some local macros to define the Weibull mixture parameters in each scenario. These will also be used when running the simulations.
+
+```stata
+<<dd_do>>
+local scenario1 lambda1(0.6) lambda2(0.6) gamma1(0.8) gamma2(0.8) pi(1) maxt(5)
+local scenario2 lambda1(0.2) lambda2(1.6) gamma1(0.8) gamma2(1) pi(0.2) maxt(5)
+local scenario3 lambda1(1) lambda2(1) gamma1(1.5) gamma2(0.5) pi(0.5) maxt(5)
+local scenario4 lambda1(0.03) lambda2(0.3) gamma1(1.9) gamma2(2.5) pi(0.7) maxt(5)
+<</dd_do>>
+```
+
+I can then delclare and run the program to plot the true survival and hazard functions.
+```stata
+<<dd_do>>
+capture pr drop weibmixplot
+program define weibmixplot
+  syntax [, OBS(integer 1000) lambda1(real 1) lambda2(real 1) ///
+      gamma1(real 1) gamma2(real 1) pi(real 0.5) maxt(real 5)  scenario(integer 1)]
+  local S1 exp(-`lambda1'*x^(`gamma1'))
+  local S2 exp(-`lambda2'*x^(`gamma2'))
+  local h1 `lambda1'*`gamma1'*x^(`gamma1' - 1)
+  local h2 `lambda2'*`gamma2'*x^(`gamma2' - 1)
+  
+  twoway function y = `pi'*`S1' + (1-`pi')*`S2' ///
+    , range(0 `maxt') name(s`scenario',replace) ///
+    xtitle("Time (years)") ///
+    ytitle("S(t)") ///
+    ylabel(,angle(h) format(%3.1f)) ///
+	title("Scenario `scenario'")
+  twoway function y = (`pi'*`h1'*`S1' +(1-`pi')*`h2'*`S2') / ///
+                      (`pi'*`S1' + (1-`pi')*`S2') ///
+    , range(0 `maxt') name(h`scenario',replace) ///
+    xtitle("Time (years)") ///
+    ytitle("h(t)") ///
+    ylabel(,angle(h) format(%3.1f)) ///
+	title("Scenario `scenario'")
+end
+
+forvalues i = 1/4 {
+	weibmixplot ,  `scenario`i'' scenario(`i')
+}
+graph combine s1 s2 s3 s4, nocopies name(true_s, replace) title("Survival functions")
+graph combine h1 h2 h3 h4, nocopies name(true_h, replace) title("Hazard functions")
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export c:/website/static/statasvg/knot_position_true_survival.svg, replace name(true_s)
+graph export c:/website/static/statasvg/knot_position_true_hazard.svg, replace name(true_h)
+<</dd_do>>
+
+The true survival function for each scenario is shown below.
+
+![](/statasvg/knot_position_true_survival.svg)
+
+and here are the true hazard functions.
+
+![](/statasvg/knot_position_true_hazard.svg)
+
+For more details on the choice of these functions see Rutherford *et al.* 2015.
+
+### Simulation program
+
+In order to peform a simulation study I will write a program that does three jobs. It will (i) simulate the data, (ii) analyse the data (perhaps using different methods/models) and (iii) store the results. Once I have written the program I can use Stata's `simulate` command to run my program many times (e.g. 1000). In my program I will fit models with 4, 5 and 6 df (5, 6 and 7 knots) and use `stpm2`'s default knot positions and the knot positions given by Harrell. I will then store the AIC and BIC so that these can then be compared. The full program is shown below and I will then explain some of the lines of code.
+
+```stata
+clear all
+program define enzosim, rclass
+  syntax [, OBS(integer 1000) lambda1(real 1) lambda2(real 1) ///
+      gamma1(real 1) gamma2(real 1) pi(real 0.5) maxt(real 5)]
+  clear
+  set obs `obs'
+  survsim t d, mixture lambda(`lambda1' `lambda2') gamma(`gamma1' `gamma2') ///
+    pmix(`pi') maxt(`maxt')
+  replace t = ceil(t*365.24)/365.24
+  stset t, f(d==1)
+  local harrell4 27.5 50 72.5
+  local harrell4b 5 95
+  local harrell5 23 41 59 77
+  local harrell5b 5 95
+  local harrell6 18.33 34.17 50 65.83 81.67
+  local harrell6b 2.5 97.5
+  foreach i in 4 5 6  {
+    stpm2, df(`i') scale(hazard)
+    return scalar AIC1_df`i' = e(AIC)
+    return scalar BIC1_df`i' = e(BIC)
+    stpm2, knots(`harrell`i'') knscale(centile) scale(hazard) bknots(`harrell`i'b')
+    return scalar AIC2_df`i' = e(AIC)
+    return scalar BIC2_df`i' = e(BIC)
+  }
+  ereturn clear
+end
+```
+
+I first drop the program as I need to create a new version whilst I am editing it (fixing bugs etc). I name the program `enzosim` and make it an `rclass` program as I want it to return some results. I use the `syntax` command to allow my program to take options. The options include the number of observations in each simulated data set, the parameters of the mixture Weibull distribution and length of follow-up. Each of these is given a default value.
+
+The next five lines are as follows,
+
+```stata
+clear
+set obs `obs'
+survsim t d, mixture lambda(`lambda1' `lambda2') gamma(`gamma1' `gamma2') ///
+  pmix(`pi') maxt(`maxt')
+replace t = ceil(t*365.24)/365.24
+stset t, f(d==1)
+```
+
+I first clear any data in memory and set the observations to whatever was specified in the `obs()` option (or use the default of 1000 if not specified. I then use the `survsim` command to simulate from the mixture Weibull model (Crowther and Lambert 2012). The will create two new variables `t` (the survival time) and `d` the event indicator. The `maxt()` option means that any simulated time after 5 years will be censored at 5 years. Note that `survsim` uses the parameters I pass to my program for the mixture Weibull distribution. After generating data in years, I transform to days and round up to the nearest integer and then transform back to years. The reason for this is that some very small survival times can lead to numerical problems. It also better reflects real data, where survival is often measured to the nearest day. I then `stset` the data so I can now fit some models.
+
+I then declare some local macros to define the knots positions given by Harrell,
+
+```stata
+local harrell4 27.5 50 72.5
+local harrell4b 5 95
+local harrell5 23 41 59 77
+local harrell5b 5 95
+local harrell6 18.33 34.17 50 65.83 81.67
+local harrell6b 2.5 97.5
+```
+
+I have to give the internal knots and the boundary knots separately. 
+
+I then write a small loop that loops over different degrees of freedom (4, 5 and 6).  
+
+```stata
+foreach i in 4 5 6  {
+  stpm2, df(`i') scale(hazard)
+  return scalar AIC1_df`i' = e(AIC)
+  return scalar BIC1_df`i' = e(BIC)
+  stpm2, knots(`harrell`i'') knscale(centile) scale(hazard) bknots(`harrell`i'b')
+  return scalar AIC2_df`i' = e(AIC)
+  return scalar BIC2_df`i' = e(BIC)
+ }
+```
+
+For each df an `stpm2` model is fitted using the default knot placement and then using knot positions recommended by  Harrell. Note the use of the `knots()` option for the internal knots, the `bknots()` option for the boundary knots and the `knscale(centile)` option so I can specify the knots as centiles rather than specific point in time (the default). After fitting each model I use `return` to store both the AIC and BIC.
+
+The final line of code,
+
+```stata
+ereturn clear
+```
+is just a bit of laziness on my part as if you do not specify anything to monitor when using the `simulate` command it will monitor the coefficients of the model in memory. If no model is stored in memory then it will monitor anything stored in `r()`, which is what I want. Therefore, I use `ereturn clear` to remove the last model from memory and now I do not have to give a long list of the things I want to monitor.
+
+### Testing the simulation program
+
+When I am developing a simulation program I will run it once. This allows me to check any variables that have been created, spot any potential bugs, make sure any analysis I am performing is correct and make sure the results I want to store are actually stored. If I just type `enzosim` then it will run my program using the default values specified in the `syntax` statement of the program. This give the following results,
+
+```stata
+. enzosim,
+number of observations (_N) was 0, now 1,000
+Warning: 8 survival times were above the upper limit of 5
+         They have been set to 5 and can be considered censored
+         You can identify them by _survsim_rc = 3
+
+     failure event:  d == 1
+obs. time interval:  (0, t]
+ exit on or before:  failure
+
+------------------------------------------------------------------------------
+      1,000  total observations
+          0  exclusions
+------------------------------------------------------------------------------
+      1,000  observations remaining, representing
+        992  failures in single-record/single-failure data
+  1,006.047  total analysis time at risk and under observation
+                                                at risk from t =         0
+                                     earliest observed entry t =         0
+                                          last observed exit t =         5
+
+Iteration 0:   log likelihood = -1615.2795  
+Iteration 1:   log likelihood = -1615.0025  
+Iteration 2:   log likelihood = -1615.0024  
+
+Log likelihood = -1615.0024                     Number of obs     =      1,000
+
+------------------------------------------------------------------------------
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+xb           |
+       _rcs1 |   1.275779   .0422624    30.19   0.000     1.192946    1.358612
+       _rcs2 |  -.0492945   .0335147    -1.47   0.141    -.1149821    .0163931
+       _rcs3 |   .0072627    .019518     0.37   0.710    -.0309919    .0455174
+       _rcs4 |   .0009645   .0117572     0.08   0.935    -.0220792    .0240082
+       _cons |  -.5789954   .0405764   -14.27   0.000    -.6585236   -.4994671
+------------------------------------------------------------------------------
+
+..... remaining output has been omitted.
+```
+
+The program runs without error and fit the models I intend. I can check that everything I want stored is actually stored using `return list`.
+
+```stata
+. return list
+
+scalars:
+           r(BIC2_df6) =  3275.609609295175
+           r(AIC2_df6) =  3241.325674693275
+           r(BIC1_df6) =  3275.271719530712
+           r(AIC1_df6) =  3240.987784928811
+           r(BIC2_df5) =  3273.020999377406
+           r(AIC2_df5) =  3243.634769718634
+           r(BIC1_df5) =  3273.049041974547
+           r(AIC1_df5) =  3243.662812315775
+           r(BIC2_df4) =  3267.19499496639
+           r(AIC2_df4) =  3242.706470250746
+           r(BIC1_df4) =  3266.905797538291
+           r(AIC1_df4) =  3242.417272822648
+```
+I can see that all the AIC and BIC values have been returned.
+
+### Running the simulations
+
+Now I am ready to simulate 1000 data sets for each scenario using the `simulate` command. I can loop over the 4 scenarios making use of the local macros already declared for each scenario.
+
+```stata
+set seed 78126378
+forvalues i = 1/4 {
+  simulate , reps(1000) saving(sim_scenaro`i', replace double): enzosim, `scenario`i''
+}
+```
+I pass the relevent local macro for the options for each scenario. The results are saved using the `saving` option. Each of the created data sets will contain 1000 observations, one for each simulated data set. I then go and make a cup of coffee while I wait for the results...
+
+### Summarising the simulations
+
+Once the simulations have run I can start looking at the results. I will first plot the data comparing the AIC between the default knot placement with Harrell's knot placement for each  of the 4, 5 ad 6 df models. 
+
+```stata
+<<dd_do:>>
+forvalues s =1/4 {
+  quietly {
+    use sim_scenaro`s', replace
+    forvalues df = 4/6 {
+	  gen AICdiff_df`df' = AIC2_df`df' - AIC1_df`df'
+	  hist AICdiff_df`df', name(AIC`df', replace) ylabel(none) ///
+		ytitle("") xline(0) ///
+		xtitle("Difference in AIC") ///
+		title("`df' df", ring(0) pos(1) size(*0.8))
+
+    }
+  }
+  graph combine AIC4 AIC5 AIC6, cols(3) nocopies name(scenario`s', replace) ///
+    ycommon xcommon title("Scenario `s'", size(*0.8))
+}
+graph combine scenario1 scenario2 scenario3 scenario4, nocopies cols(1) imargin(0 0 0 0)
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export c:/website/static/statasvg/knot_position_sensitivity_AIC.svg, replace
+<</dd_do>>
+
+This code calculates the difference in the AIC between Harrell's knot locations and `stpm2`'s default knot locations. A positive value indicates a lower AIC for the default knot locations. Note there is no point calculating the difference in the BIC as well as this is identical to the difference in the AIC as the number of parameters is the same in the models we are comparing. The resulting plot can be seen below.
+
+![](/statasvg/knot_position_sensitivity_AIC.svg)
+ 
+This plot shows that for all scenarios there tends to be a lower AIC for the default knot locations. This is particularly so for scenarios 2 and 3. The change in the AIC is much larger for these two scenarios.
+
+I will next calculate the percentage of time the AIC is lower for the default knot locations.
+
+```stata
+<<dd_do:>>
+forvalues s =1/4 {
+  quietly use sim_scenaro`s', replace
+  display _newline "Scenario `s'"
+  display "------------"
+  forvalues df = 4/6 {
+    quietly count if AIC2_df`df' > AIC1_df`df'
+    di "Default knot locations had lower AIC for `df' df:" %4.1f 100*`r(N)'/_N "%"
+  }
+}
+<</dd_do>>
+```
+Again we can see the dominance of the default knot locations, particularly for scenarios 2 and 3. 
+
+Another question is to see which of the models fitted to each simulated data set gives the lowest AIC and whether this differs between the default knot locations and Harrell's knot locations. I create some code to find the df with the lowest AIC and BIC.
+
+```stata
+<<dd_do:>>
+forvalues s =1/4 {
+  quietly use sim_scenaro`s', replace
+  egen double minAIC1 = rowmin(AIC1_df?)
+  egen double minAIC2 = rowmin(AIC2_df?)
+  gen AICmin1 = 4*(minAIC1==AIC1_df4) + 5*(minAIC1==AIC1_df5)+6*(minAIC1==AIC1_df6)
+  gen AICmin2 = 4*(minAIC2==AIC2_df4) + 5*(minAIC2==AIC2_df5)+6*(minAIC2==AIC2_df6)
+  egen double minBIC1 = rowmin(BIC1_df?)
+  egen double minBIC2 = rowmin(BIC2_df?)
+  gen BICmin1 = 4*(minBIC1==BIC1_df4) + 5*(minBIC1==BIC1_df5)+6*(minBIC1==BIC1_df6)
+  gen BICmin2 = 4*(minBIC2==BIC2_df4) + 5*(minBIC2==BIC2_df5)+6*(minBIC2==BIC2_df6)
+  di _newline "Scenario `s'"
+  di "AIC"
+  tab AICmin1 AICmin2
+  di "BIC"
+  tab BICmin1 BICmin2
+}
+<</dd_do>>
+```
+
+What I find interesting is that there is a tendency for AIC to select fewer knots for the default knot locations. As above, this is especially so for scenarios 2 and 3. This is not the case for the more simple scenario 1. Here the truth is a Weibull distribution and so all models are overfitting when compared with the truth.
+
+I don't think the differences we see here are that great and of course we are only looking at a few scenarios. However, it is reassuring to me that our default knot locations seem sensible. A more deatailed analysis would compare hazard and survival functions with the true function. When we use splines, I don't really think that they represent the true model, but they should give a very good approximation to it. This is of crucial importance as with real data, we never know the true model. 
+
+
+## References
+
+Andersson, T.M.-L., Dickman, P.W., Eloranta, S., Lambert, P.C. Estimating and modelling cure in population-based cancer studies within the framework of flexible parametric survival models. *BMC Med Res Methodol* 2011;**11**:96
+
+Crowther, M.J., Lambert, P.C. Simulating complex survival data. *The Stata Journal* 2012;**12**:674-687.
+
+Harrell, F.E. *Regression modeling strategies with application to linear models, logistic regression and survival analysis*. Springer, 2001
+
+Rutherford, M.J., Crowther, M.J., Lambert, P.C. The use of restricted cubic splines to approximate complex hazard functions in the analysis of time-to-event data: a simulation study. *Journal of Statistical Computation and Simulation* 2015;**85**:777-793

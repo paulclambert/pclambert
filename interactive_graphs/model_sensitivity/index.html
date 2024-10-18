@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html >
+<script src="d3/d3v4.min.js"></script>
+
+
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="CSS/layout.css" />	
+    <link rel="stylesheet" type="text/css" href="CSS/graph.css" />
+<title>Model Sensitivity	</title>
+</head>
+
+<body>
+<!--Header-->
+  
+<div class="grid">
+	<div class="col-1-4" id="LHS">
+  		<div id="GraphSelect" class="styled-select" > </div>
+        <div id="EstimatesSelect" class="styled-select" > </div>
+ 		<div id="ModelList">  </div>
+ 		
+	</div>
+    <div class="col-3-4" id="RHS">
+	<div id="CancerSelect" class="styled-select" > </div>
+  	<div id="Graph" > </div>
+ 	<div id="AgeSliderDiv" > 
+ 	</div>          
+</div>
+ 
+<!--          	<input type="range" min="0" max="4"  oninput="CSslide()" id="CondSurvSlide"/><a id="condsurvtext">XXX: 65 yrs</a>  </div>
+--> 
+<!-- <input type="range" min="18" max="90"  onslide="ageslide()" oninput="ageslide()" id="AgeSlider"/><a id="agetext">Age: 65 yrs</a>  </div>      
+--> 
+
+<script src = "model_sensitivity.js" defer></script>
+
+ 
+</body>
+
+
+
+</html>
+
+
+
+
+
+

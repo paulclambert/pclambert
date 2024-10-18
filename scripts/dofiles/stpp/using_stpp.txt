@@ -1,0 +1,277 @@
+---
+title: "`stpp` - Estimating marginal relative (net) survival"
+---
+
+<<dd_do: quietly>>
+clear frames
+set scheme fpsaus_c
+<</dd_do>>
+
+All examples below use the colon cancer data available with `strs`. I first load and `stset` the data.  
+
+```stata
+<<dd_do>>
+use "https://pclambert.net/data/colon.dta", clear
+stset surv_mm,f(status=1,2) id(id) scale(12) exit(time 120.5)
+<</dd_do>>
+```
+
+I have restricted follow-up time to 120.5 months (just over 10 years). Survival time information is available in completed months, so is 0.5 if someone died in the first month after diagnosis etc. `stpp` requires survival time in years, so I have used the `scale(12)` option to transform
+from months to years.
+
+### Marginal relative survival in the study population   
+   
+I will first estimate marginal relative survival in the study population as a whole.
+   
+```stata
+<<dd_do>>
+stpp R_pp1 using "https://pclambert.net/data/popmort.dta", ///
+                agediag(age) datediag(dx)                  ///
+                pmother(sex) list(1 5 10)                  ///
+                frame(PP1, replace)
+<</dd_do>>
+```
+
+This creates a new variable `R_pp1` containing the marginal relative survival evaluated at each value of `_t`.
+Confidence limits are stored in `R_pp1_lci` and `R_pp1_uci`.
+
+A filename that stores the expected mortality rates needs to be given. In addition options the age at diagnosis (`agediag()`) and the date of diagnosis (`datediag()`) are required. The age at diagnosis should be in years, but it is best to avoid using truncated (integer) age as this assumes that each person was diagnosed on their birthday. The `pmother(sex)` option is required as the expected rates vary by sex. If the expected rates vary by other factors, for example region, deprivation etc, then these should be added to the `pmother()` option, and these variables should exist in both the data and the population mortality file. 
+
+There are options to define the names of the attained age and attained calendar year variables as well as the name of the rate variable in the 
+population mortality file. My syntax is simple here as I have relying on the default names. See the help file for more details.
+
+The `list()` option lists the times at which estimates are to be displayed on screen. Note that when using the `list()` option, the results are saved to a matrix, so that these can be accessed for table creation etc.
+
+```stata
+<<dd_do>>
+matrix list r(PP)
+<</dd_do>>
+```
+
+In addition, if you use the `frame()` option, this information is saved to a frame.
+
+```stata
+<<dd_do>>
+frame PP1: list, noobs
+<</dd_do>>
+```
+
+
+
+The marginal relative survival can be plotted against `_t`.
+
+```stata
+<<dd_do>>
+twoway (rarea R_pp1_lci R_pp1_uci _t, sort color(red%30) connect(stairstep)) ///
+      (line R_pp1 _t, sort lcolor(red) connect(stairstep))                   ///
+      ,legend(off)                                                           ///
+      xtitle("Years from diagnosis")                                         ///
+      ytitle(Marginal relative survival)                                     ///
+      ylabel(,format(%3.1f))                                                 ///
+      name(R_pp1, replace)
+<</dd_do>>
+```
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/using_stpp1.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/using_stpp1.svg)
+
+### Marginal relative survival stratified by sex   
+
+Using the by option will give estimates separately by sex.
+
+```stata
+<<dd_do>>
+stpp R_pp2 using "https://pclambert.net/data/popmort.dta", ///
+      agediag(age) datediag(dx)                            ///
+      pmother(sex) list(1 5 10)                            ///
+      by(sex)
+<</dd_do>>
+```
+
+And can be plotted as deparate lines through use of `if` statements.
+
+```stata
+<<dd_do>>
+twoway (rarea R_pp2_lci R_pp2_uci _t if sex==1, sort color(red%30) connect(stairstep)) ///
+      (line R_pp2 _t if sex==1, sort lcolor(red) connect(stairstep))                   ///
+      (rarea R_pp2_lci R_pp2_uci _t if sex==2, sort color(blue%30) connect(stairstep)) ///
+      (line R_pp2 _t if sex==2, sort lcolor(blue) connect(stairstep))                  ///
+      ,legend(order(2 "males" 4 "females") ring(0) pos(1))                             ///
+      xtitle("Years from diagnosis")                                                   ///
+      ytitle(Marginal relative survival)                                               ///
+      ylabel(,format(%3.1f))                                                           ///
+      name(R_pp2, replace)
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/using_stpp2.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/using_stpp2.svg)
+
+
+What is important to note here is that the marginal relative survival estimates may not
+be comparable due to differences in the age distribution. Each line gives an estimate of 
+marginal net survival which can be considerd an average over each groups own age distribution
+(strictly is is an estimate averaged over other variables in the population mortality file too.)
+Although, the age distributions do not differ much in this case, in general it is sensible to 
+age standardize so that differences are not due to differences in the age distribution.
+
+There are two ways to age standardize using `stpp`, which are explained in the next two
+sections.
+
+### Traditional age standardization
+
+Traditional age standardization first obtains estimates separately with each age group and then 
+obtains a weighted average. The weights for each age group could be derived from 
+the study data, e.g. the combined age distribution of males and females or the
+age distribution of one of the sexes. Alternatively, a reference age distibution 
+could be used, such as the International Cancer Survival Standard (ICSS) (Corazziari 2004).
+
+I will use the ICSS weights. First the same agegroups used in ICSS are created
+
+```stata
+<<dd_do>>
+recode age (min/44=1) (45/54=2) (55/64=3) (65/74=4) (75/max=5), gen(ICSSagegrp)
+tab ICSSagegrp
+<</dd_do>>
+```
+
+Then `stpp` can be used with the `standstrata()` and `standweight()` options.
+
+```stata
+<<dd_do>>
+stpp R_pp3 using "https://pclambert.net/data/popmort.dta", ///
+      agediag(age) datediag(dx)                            ///
+      pmother(sex) list(1 5 10)                            ///
+      by(sex)                                              ///
+      standstrata(ICSSagegrp)                              ///
+      standweight(0.07 0.12 0.23 0.29 0.29)
+<</dd_do>>
+```
+
+Note that the weights given in the `standweight()` option give the ICSS weights
+for each age group.
+
+These estimates can now be plotted.
+
+```stata
+<<dd_do>>
+twoway (rarea R_pp3_lci R_pp3_uci _t if sex==1, sort color(red%30) connect(stairstep)) ///
+      (line R_pp3 _t if sex==1, sort lcolor(red) connect(stairstep))                   ///
+      (rarea R_pp3_lci R_pp3_uci _t if sex==2, sort color(blue%30) connect(stairstep)) ///
+      (line R_pp3 _t if sex==2, sort lcolor(blue) connect(stairstep))                  ///
+      ,legend(order(2 "males" 4 "females") ring(0) pos(1))                             ///
+      xtitle("Years from diagnosis")                                                   ///
+      ytitle(Marginal relative survival)                                               ///
+      ylabel(,format(%3.1f))                                                           ///
+      name(R_pp3, replace)
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/using_stpp3.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/using_stpp3.svg)
+
+## Age standardization using individual weights
+
+An alternative way to age standardize is to upweight or downweight individuals
+relative to the reference population (Rutherford _et al_ 2020). This avoids the need to estimate separately
+in each if the age groups.
+
+First the weights need to be stored in a variable and then weights are calulated
+as the ratio of the proportion in the reference population to the proportion 
+in the age group to which an individual belongs.
+
+```stata
+<<dd_do>>
+recode ICSSagegrp (1=0.07) (2=0.12) (3=0.23) (4=0.29) (5=0.29), gen(ICSSwt)
+label define ICSSlab 1 "<45" 2 "45-54" 3 "55-64" 4 "65-75" 5 "75+"  
+label values ICSSagegrp ICSSlab
+bysort sex: gen sextotal= _N
+bysort ICSSagegrp sex:gen a_age = _N/sextotal
+gen double wt_age = ICSSwt/a_age
+<</dd_do>>
+```
+
+The weights for males are shown below
+
+```stata
+<<dd_do>>
+by ICSSagegrp sex: gen firstrow = _n==1
+list ICSSagegrp ICSSwt a_age wt_age if firstrow & sex==1, noobs ab(12)
+<</dd_do>>
+```
+
+The variable `ICSSwt` shows the proportion in each age group in the reference
+population and the `a_age` variables gives the proportion observed in the study popopulation.
+For the youngest age group there are slightly smaller proportion in the study population and so each
+individual in this group is upweighted by 1.156. In the oldest age group there is a slighly higher
+proportion in the study population compared to the reference population and so each individual is slightly downweighted
+by 0.977.
+
+
+
+Now the weights have been calculated these can be passed to `stpp` using the 
+`indweights()` option.
+
+```stata
+<<dd_do>>
+stpp R_pp4 using "https://pclambert.net/data/popmort.dta", ///
+      agediag(age) datediag(dx)                            ///
+      pmother(sex) list(1 5 10)                            ///
+      by(sex)                                              ///
+      indweights(wt_age)                                   ///
+      frame(PP4, replace)
+<</dd_do>>
+```
+
+When using the `frame()` option, we get the following.
+
+```stata
+<<dd_do>>
+frame PP4: list, noobs sepby(sex)
+<</dd_do>>
+```
+
+We can plot the non-parametric estimate as a function of time.
+
+```stata
+<<dd_do>>
+twoway (rarea R_pp4_lci R_pp4_uci _t if sex==1, sort color(red%30) connect(stairstep)) ///
+      (line R_pp4 _t if sex==1, sort lcolor(red) connect(stairstep))                   ///
+      (rarea R_pp4_lci R_pp4_uci _t if sex==2, sort color(blue%30) connect(stairstep)) ///
+      (line R_pp4 _t if sex==2, sort lcolor(blue) connect(stairstep))                  ///
+      ,legend(order(2 "males" 4 "females") ring(0) pos(1))                             ///
+      xtitle("Years from diagnosis")                                                   ///
+      ytitle(Marginal relative survival)                                               ///
+      ylabel(,format(%3.1f))                                                           ///
+      name(R_pp4, replace)
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/using_stpp4.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/using_stpp4.svg)
+
+## References
+
+I. Corazziari, M. Quinn, R. Capocaccia, R. Standard cancer patient population 
+for age standardising survival ratios. _Eur J Cancer_ 2004:**40**:2307-2316
+
+E. Coviello, P.W. Dickman, K. Seppä, A. Pokhrel. Estimating net survival using a life table approach.
+_The Stata Journal_ 2015;**15**:173-185
+
+P.W. Dickman, E. Coviello, M.Hills, M. Estimating and modelling relative survival. _The Stata Journal_ 2015;**15**:186-215
+
+M. Pohar Perme, J. Stare, J. Estève. On Estimation in Relative Survival 
+_Biometrics_ 2012;**68**:113-120 
+
+Rutherford, M.J., Dickman, P.W., Coviello, E. & Lambert, P.C. Estimation of age-standardized net survival, even when age-specific data are sparse. _Cancer Epidemiology_ 2020, *67*, 101745. 

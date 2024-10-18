@@ -1,0 +1,178 @@
+---
+title: "Derivatives and integrals of spline functions."
+---
+
+<<dd_do: quietly>>
+clear frames
+set scheme fpsaus_c
+<</dd_do>>
+
+
+One advantage of using spline functions is that we get analytical
+expressions for the derivative and integral of the spline function.
+
+I will illustrate this using B-splines. I first generate some data and plot it.
+
+```stata
+<<dd_do>>
+clear
+set obs 1000
+range x 0 5
+gen y = 2 + sin(x) + rnormal(0,0.1)
+scatter y x, color(%30) ylabel(0(0.5)3.5, format(%3.1f))
+<</dd_do>>
+```
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/gensplines_deriv_integ_scatter.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/gensplines_deriv_integ_scatter.svg)
+
+
+We use B-splines to fit a non-linear function to this data and then obtain
+the derivative and integral of this function. 
+
+If our spline function estimate $f(x)$, we can generate the derivative, $f'(x)$ by
+obtaining the derivative of each spline variable w.r.t. $x$. 
+
+In `gensplines` this is done by including the dgen() option.
+
+
+```stata
+<<dd_do>>
+gensplines x, type(bs) df(4) gen(_bs) dgen(_dbs)
+global knots `r(knots)'
+regress y _bs*
+predict mu
+<</dd_do>>
+```
+Below I add the fitted regression line to the scatter plot 
+
+```stata
+<<dd_do>>
+twoway (scatter y x, color(%30))         ///
+       (line mu x, sort),                ///
+       ylabel(0(0.5)3.5, format(%3.1f))  ///
+       legend(off)
+<</dd_do>>
+```
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/gensplines_deriv_integ_scatter_fit.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/gensplines_deriv_integ_scatter_fit.svg)
+
+       
+To generate the dervative of the fitted function we can  multipy the
+coefficients by the variables created by the dgen() option, 
+the derivative of each spline variable w.r.t. $x$..
+
+```stata
+<<dd_do>>
+gen double deriv1 = _b[_bs1]*_dbs1 + _b[_bs2]*_dbs2 + _b[_bs3]*_dbs3 + _b[_bs4]*_dbs4      
+<</dd_do>>
+```
+As a comparison I calculate the derivatives numerically using the `dydx` command.
+
+```stata
+<<dd_do>>
+dydx mu x, gen(deriv2) double
+compare deriv1 deriv2
+<</dd_do>>
+```
+We can plot the function and can see that the derivative is zero at the turning
+points of the original function.
+
+```stata
+<<dd_do>>
+line deriv2 x
+<</dd_do>>
+```
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/gensplines_deriv_integ_deriv_plot.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/gensplines_deriv_integ_deriv_plot.svg)
+
+
+In order to calculate the integral of the function we need to generate the
+integral of each of the spline variables. This can be done by using
+the `type(ibs)` option of `gensplines`. 
+If we use `df(4)` as above, then the knots will be in 
+exactly the same location. Alternatively, we could have saved the knots
+when we generated the original spline variables and used the `allknots()` option.
+
+```stata
+<<dd_do>>
+gensplines x, type(ibs) df(4) gen(_ibs) 
+<</dd_do>>
+```
+We need to integrate the intercept and then incude the integrated spline functions
+and multiply each by the associated coefficient.
+```stata
+<<dd_do>>
+gen double integ1 = _b[_cons]*x + _b[_bs1]*_ibs1 + _b[_bs2]*_ibs2 + _b[_bs3]*_ibs3 + _b[_bs4]*_ibs4      
+<</dd_do>>
+```
+
+We can compare to the numerically integrated function.
+```stata
+<<dd_do>>
+integ mu x, gen(integ2) double
+compare integ1 integ2
+<</dd_do>>
+```
+And plot the integral at each value of `x`.
+```stata
+<<dd_do>>
+line integ1 x
+<</dd_do>>
+```
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/gensplines_deriv_integ_integ_plot.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/gensplines_deriv_integ_integ_plot.svg)
+
+
+If we are just interested in the integral at one value of x, we 
+just pass this value to `gensplines`. For example, the integral at
+`x=5` is,
+
+```stata
+<<dd_do>>
+gensplines 5, type(ibs) allknots(${knots}) gen(_k) 
+lincom _b[_cons]*5 + _b[_bs1]*_k1 + _b[_bs2]*_k2 + _b[_bs3]*_k3 + _b[_bs4]*_k4
+<</dd_do>>
+```
+
+Note we also get a confidence interval for the integral as I used `lincom`.
+
+
+Adding the integral of the intercept can be avoided by generating an extra
+spline variable and then using the `nonconstant` option when fitting the model.
+Below I do this and then obtain the integral in a frame. By naming the 
+integrated B-spline variables the same as the spline variables, I can use 
+the `predict` command to obtain the integrated function.
+
+```stata
+<<dd_do>>
+drop _*
+gensplines x, type(bs) df(4) gen(_bs) intercept
+regress y _bs*, nocons
+ 
+cap frame drop integral
+frame put y x, into(integral)
+frame integral {
+  gensplines x, type(ibs) df(4) gen(_bs) intercept
+  predict mu,
+  line mu x, ytitle(Integral of fitted values)
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/gensplines_deriv_integ_integ_plot2.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/gensplines_deriv_integ_integ_plot2.svg)

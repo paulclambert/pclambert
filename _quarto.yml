@@ -1,6 +1,6 @@
 project:
   type: website
-  output-dir: docs
+  output-dir: _site
   render: 
     - index.qmd
     - publications.qmd
@@ -8,7 +8,10 @@ project:
     - software.qmd
     - talks.qmd
     - interactive_graphs.qmd
-    - software/
+    - software/*
+    - courses/*
+
+  
     
   post-render:
     - scripts/make_lambert_bold.R
@@ -16,6 +19,7 @@ project:
   resources:    
     - data/
     - downloads/
+    - interactive_graphs/
 
 website:
   navbar:
@@ -48,4 +52,5 @@ format:
     css: styles.css
     toc: true
     page-layout: full
+    highlight-style: monochrome
 

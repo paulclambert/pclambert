@@ -1,0 +1,19 @@
+---
+title: "`stpm2`"
+---
+
+`stpm2` fits flexible parametric survival models. 
+These pages are rather old and will not be updated. 
+I recommend you look at [`stpm3'](stpm3.qmd)
+
+## Examples
+
+### Proportional hazards models
+ - [Comparison with a Cox model](stpm2/comparewithcox.qmd)
+ - [Predicting hazard and survival functions (use of the `timevar()` option)](stpm2/stpm2_timevar.qmd)
+ - [Sensitivity analysis for the number of knots](stpm2/sensitivity_analysis.qmd)
+ - [The default knot positions - are they sensible?](stpm2/knot_positions_sensitivity.qmd)
+ - [Out of sample predictions (by Sarah Booth)](stpm2/out_of_sample_predictions.qmd)
+
+### Prognostic Models
+ - [Temporal Recalibration (by Sarah Booth)](stpm2/temporal_recalibration.qmd)

@@ -1,0 +1,204 @@
+---
+title: "Comparison of `gensplines` and `makespline`"
+---
+
+<<dd_do: quietly>>
+clear frames
+set scheme fpsaus_c
+<</dd_do>>
+
+Stata has it's own command, `makespline` to generate spline basis functions.
+This will show similarities and differeneces between the commands.
+
+I will show how to obtain identical basis functions for B-splines, and 
+how when using restricted cubic splines, the basis functions are different,
+but give identical fitted values when included in a statistical model.
+
+## B-Splines
+
+I will use the auto data. 
+
+```stata
+<<dd_do>>
+sysuse auto, clear
+<</dd_do>>
+```
+
+I will first use Stata's `makespline` command to obtain the spline variables 
+for `weight`.
+
+```stata
+<<dd_do>>
+makespline bspline weight, bsepsilon(0) basis(bs_ms)
+<</dd_do>>
+```
+
+Five new variables have been created, `bs_ms_1_1`-`bs_ms_1_5`.
+I have used the option `bsepsilon(0)` as by default `makespline` adds a 
+small value to the minimum and subtracts a small value from the maxiumum when
+considering knot placement. The `gensplines` command happily put knots at the
+minimum and maximum values.
+
+We can add these spline variables to a regression model.
+For example, in the auto data, we can let `mpg` be a non-linear function of `weight`.
+
+```stata
+<<dd_do>>
+regress mpg bs_ms*, nocons
+predict mu_ms1
+twoway (scatter mpg weight) ///
+       (line mu_ms1 weight, sort)
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/gensplines_makespline_ms1.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/gensplines_makespline_ms1.svg)
+
+
+Note I have used the `nocons` option. If I do not then one of the spline variables
+would be dropped due to collinearity. I can get exactly the same fitted values if 
+I drop either the first of last spline variable and now estimate a constant term.
+Below I drop the first spline variable and show the predicted values are essentially
+the same.
+
+```stata
+<<dd_do>>
+regress mpg bs_ms_1_2-bs_ms_1_5, 
+predict mu_ms2
+compare mu_ms1 mu_ms2
+<</dd_do>>
+```
+
+I will now use the `gensplines` command.
+
+```stata
+<<dd_do>>
+gensplines weight, type(bs) df(4) gen(bs_gs) 
+<</dd_do>>
+```
+
+Four splines variables have been created. This is one less than `makespline` as
+it is assumed that a model with an intercept term will be fitted. 
+Fitting a model (with an intercept) will give essentially 
+identical fitted values to when using `makespline`.
+
+
+```stata
+<<dd_do>>
+regress mpg bs_gs1-bs_gs4, 
+predict mu_gs1
+compare mu_gs1 mu_ms2
+<</dd_do>>
+```
+
+In `gensplines` the intercept option can be used which will calculate the 
+additional spline variable (i.e. the default behavior of `makespline`).
+
+```stata
+<<dd_do>>
+drop bs_gs*
+gensplines weight, type(bs) df(4) gen(bs_gs) intercept
+regress mpg bs_gs1-bs_gs5, nocons
+predict mu_gs2
+compare mu_gs1 mu_gs2
+<</dd_do>>
+```
+
+## Restricted Cubic Splines
+
+I will now use the default behaviour for calculating restricted cubic splines
+using `makespline`.
+
+```stata
+<<dd_do>>
+sysuse auto, clear
+makespline rcs weight, knots(5) basis(rcs_ms) 
+<</dd_do>>
+```
+
+`makespline` creates 3 spline variables, `rcs_ms_1_1`-`rcs_ms_1_3`.
+In addition it creates the rescaled weight variable named `_rs_rcs_1`.
+I found this confusing and would prefer this variable to be named 
+the same way as defined in the `basis()` option. 
+The  default behaviour of `makespline` is to rescale the variable (`weight`)
+to be in the range [0,1].
+
+I will store the knots so I can use these later in `gensplines`.
+
+```stata
+<<dd_do>>
+mata: st_local("knots",invtokens(strofreal(st_matrix("r(knots)"))))
+<</dd_do>>
+```
+
+I now fit a regression model where a model `mpg` as a non-linear function of
+`weight`. Note that I have to include `_rs_rcs_1` as well as the variables created
+and named due to the `basis()` option.
+
+```stata
+<<dd_do>>
+regress mpg _rs_rcs_1 rcs_ms_1_*
+predict mu_ms1
+twoway (scatter mpg weight)                        ///
+       (line mu_ms1 weight, sort),                 ///
+       xline(`knots', lcolor(gs10) lpattern(dash)) ///
+       plotr(margin(1 0 1 0))
+<</dd_do>>
+```
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/gensplines_makespline_rcs1.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/gensplines_makespline_rcs1.svg)
+
+
+
+Now I will use `gensplines`. As the default location of the knots in `gensplines`
+is different from `makespline`, I define the knots using the `allknots()` option.
+
+```stata
+<<dd_do>>      
+gensplines weight, type(rcs) gen(rcs_gs) allknots(`knots')  
+regress mpg rcs_gs*
+predict mu_gs1
+compare mu_ms1 mu_gs1
+<</dd_do>>
+```
+
+The predicted values are essentially the same.
+
+
+It is unclear where the boundary knots are placed in `makespline`. I could not
+find details in the documentation. The graph shows they are fairly far from the 
+miniumum and maximum values. When using restricted cubic splines, we usually
+have the boundary knots at the minimum and maximum values. This means that we are
+not imposing linearity in the range of the data, but allowing the function to be
+stable towards the boundaries, due to the linearity assumption beyond. This is
+the default behaviour in `gensplines`, as I show below.
+
+
+```stata
+<<dd_do>>    
+drop rcs_gs*
+gensplines weight, type(rcs) gen(rcs_gs) df(4)
+local knots `r(knots)'
+regress mpg rcs_gs*
+predict mu_gs2
+twoway (scatter mpg weight)                         ///
+       (line mu_ms1 weight, sort),                  ///
+       xline(`knots',  lcolor(gs10) lpattern(dash)) ///
+       plotr(margin(1 0 1 0))
+<</dd_do>>
+```      
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/gensplines_makespline_rcs2.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/gensplines_makespline_rcs2.svg) 
+
+In `makespline` it is not possible to obtain the basis functions for the 
+derivative and intergral of the fitted function, 
+[as is possible in `gensplines`](derivatives_and_integrals_of_spline_functions.)

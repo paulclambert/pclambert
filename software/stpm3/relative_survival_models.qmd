@@ -1,5 +1,6 @@
 ---
 title: "Relative Survival Models"
+highlight-style: monochrome
 ---
 
 

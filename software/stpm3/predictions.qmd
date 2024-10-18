@@ -1,5 +1,6 @@
 ---
 title: "Using `frames` for predictions"
+highlight-style: monochrome
 ---
 
 

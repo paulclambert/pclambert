@@ -1,0 +1,143 @@
+---
+title: "`stcrprep` - using `stpm3' to model cause-specific CIFs"
+---
+
+          
+The ideas of Geskus (2011) to expand the data and then the Cox modelling
+framework to fit a subhazard model can be also applied to parametric models.
+When fitting a parametric model for the CIF using weighted maximum likelihood, 
+the censoring distribution is a continuous function of time, so rather than
+using the Kaplan-Meier estimate a (flexible) parametric model is used to
+obtain the weights. 
+
+The likelihood involves a non-tractible integral and so an approximation is used
+by splitting the time scale into a number of intervals. See out paper on this
+where we show that these intervals can be fairly wide, which is useful in large
+datasets (Lambert *et al*. 2016).
+
+With this approach then, after restructuring the data and calculating the weights, 
+we can use standard parametric survival models to estimate the cause-specific CIF.
+I now use `stpm3` to fit a flexible parametric survival model.
+
+First I load and `stset` the data.
+
+
+```stata
+<<dd_do>>
+use http://www.pclambert.net/data/ebmt1_stata.dta, clear
+stset time, failure(status==1,2) scale(365.25) id(patid)
+<</dd_do>>
+```
+
+
+
+
+I use `stcrprep` as I wantted to fit a Cox model, but now I ask that
+the time-dependent weights are calculated using `stpm2` with 4 d.f. to model
+the baseline. Note that `stcrprep` was written before I released `stpm3`, which
+is why the options is `wtstpm2`. The `every(0.25)` option requests that the
+time scale is split every 0.25 years. This means that the weights are updated
+every quarter of a year in the expanded dataset.
+
+```stata
+<<dd_do>>
+stcrprep, events(status) keep(score) trans(1 2) wtstpm2 censdf(4) every(0.25)
+<</dd_do>>
+```
+
+
+```stata
+<<dd_do>>
+generate event = status == failcode 
+stset tstop [iw=weight_c], failure(event) enter(tstart) noshow
+stpm3 i.score if failcode == 1, scale(lncumhazard) df(4) eform nolog
+<</dd_do>>
+```
+
+We can the predict command to obtain estimates of the CIFs.
+
+```stata
+<<dd_do>>
+predict CIF1 CIF2 CIF3, failure timevar(0 8, step(0.1)) ci            ///
+                        frame(CIFs, replace)                          ///
+                        at1(score 1) at2(score 2) at3(score 3)        ///
+                        contrast(difference) contrastvar(diff2 diff3)
+<</dd_do>>
+```
+
+I have predicted the CIFs for each of the 3 risk groups together with
+95% confidence intervals. In addition, I have calculated the difference in CIFs
+(with score group 1 as the reference).
+
+I can plot the baseline CIF with 95% CI.
+
+```stata
+<<dd_do>>
+frame CIFs {
+  twoway (rarea CIF1_lci CIF1_uci tt, color(%30)) ///
+         (line CIF1 tt, pstyle(p1line)),          ///
+         xtitle(Years since transplantation)      ///
+         ytitle(CIF)                              ///
+         ylabel(,format(%3.1f))                   ///
+         legend(off)
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/stcrprep_stpm3_cif1.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/stcrprep_stpm3_cif1.svg)
+
+I can plot all three predicted CIFs.
+
+```stata
+<<dd_do>>
+frame CIFs {
+  twoway (line CIF1 CIF2 CIF3 tt),            ///
+         xtitle(Years since transplantation)  ///
+         ytitle(CIF)                          ///
+         ylabel(,format(%3.1f))               ///
+         legend(order(1 "Low Risk"            ///
+                      2 "Medium Risk"         ///
+                      3 "High Risk") pos(5))
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/stcrprep_stpm3_cif123.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/stcrprep_stpm3_cif123.svg)
+
+I can plot the difference in CIFs between the high and low risk group.
+
+
+```stata
+<<dd_do>>
+frame CIFs {
+  twoway (rarea diff3_lci diff3_uci tt, color(%30)) ///
+         (line diff3 tt, pstyle(p1line)),           ///
+         xtitle(Years since transplantation)        ///
+         ytitle(Difference in CIF)                  ///
+         ylabel(,format(%3.1f))                     ///
+         legend(off)
+}
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/stcrprep_stpm3_cifdiff3.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/stcrprep_stpm3_cifdi1.svg)
+
+
+
+## References
+
+Geskus, R. B. Cause-specific cumulative incidence estimation and the Fine and Gray model under both left truncation and right censoring. *Biometrics* 2011; **67**:39–49.
+
+Lambert, P.C., S.R. Wilkes, and M.J. Crowther. Flexible parametric modelling of the cause-specific cumulative incidence function. *Statistics in Medicine* 2016;**36**:1429-1446. 

@@ -1,5 +1,6 @@
 ---
 title: "Change to the `scale()` option"
+highlight-style: monochrome
 ---
 
 # The `scale()` option has changed

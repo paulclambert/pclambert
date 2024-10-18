@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.555">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Sensitivity analysis to location of knots (proportional hazards)</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark.min.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Paul Lambert</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../publications.html"> 
+<span class="menu-text">Publications</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../software.html"> 
+<span class="menu-text">Software</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../talks.html"> 
+<span class="menu-text">Talks</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../courses.html"> 
+<span class="menu-text">Courses</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../interactive_graphs.html"> 
+<span class="menu-text">Interactive graphs</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+          <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#sensitivity-analysis-to-the-location-of-knots" id="toc-sensitivity-analysis-to-the-location-of-knots" class="nav-link active" data-scroll-target="#sensitivity-analysis-to-the-location-of-knots">Sensitivity analysis to the location of knots</a>
+  <ul class="collapse">
+  <li><a href="#simulation-program" id="toc-simulation-program" class="nav-link" data-scroll-target="#simulation-program">Simulation program</a></li>
+  <li><a href="#testing-the-simulation-program" id="toc-testing-the-simulation-program" class="nav-link" data-scroll-target="#testing-the-simulation-program">Testing the simulation program</a></li>
+  <li><a href="#running-the-simulations" id="toc-running-the-simulations" class="nav-link" data-scroll-target="#running-the-simulations">Running the simulations</a></li>
+  <li><a href="#summarising-the-simulations" id="toc-summarising-the-simulations" class="nav-link" data-scroll-target="#summarising-the-simulations">Summarising the simulations</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content column-page-left" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Sensitivity analysis to location of knots (proportional hazards)</h1>
+</div>
+
+
+
+<div class="quarto-title-meta column-page-left">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="sensitivity-analysis-to-the-location-of-knots" class="level1">
+<h1>Sensitivity analysis to the location of knots</h1>
+<p>When using <code>stpm2</code> with the <code>df()</code> option the location of the knots for the restricted cubic splines are selected using the defaults. These are the based at the centiles of <span class="math inline">\(\ln(t)\)</span> for the events (i.e.&nbsp;the non censored observations). The boundary knots are placed at the minimum and maximum log event times. For example, with 5 knots there will be knots placed at the <span class="math inline">\(0^{th}\)</span>, <span class="math inline">\(25^{th}\)</span>, <span class="math inline">\(50^{th}\)</span>, <span class="math inline">\(75^{th}\)</span>, and <span class="math inline">\(100^{th}\)</span> centiles of the log event times. The location of the internal knots can be changed using the <code>knots()</code> option and the location of the boundary knots can be changed using the <code>bknots()</code> option.</p>
+<p>I was asked recently by Enzo Coviello why we use these knot locations and why not the knot locations suggested by Frank Harrell when using restricted cubic spines in his execellent book <em>Regression Modeling Strategies: With Applications to Linear Models, Logistic Regression, and Survival Analysis</em>. The table below shows the knot locations suggested by Harrell and those we use in <code>stpm2</code>.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>No.&nbsp;of knots</th>
+<th>Percentiles (Harrell)</th>
+<th>Percentiles (<code>stpm2</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>3</td>
+<td>10 50 90</td>
+<td>0 50 100</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>5 35 65 95</td>
+<td>0 33 67 100</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td>5 27.5 50 72.5 95</td>
+<td>0 25 50 75 100</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td>5 23 41 59 77 95</td>
+<td>0 20 40 60 80 100</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td>2.5 18.33 34.17 50 65.83 81.67 97.5</td>
+<td>0 17 33 50 67 83 100</td>
+</tr>
+</tbody>
+</table>
+<p>We have performed a number of sensitivity analysis to internal knot location, i.e.&nbsp;still keeping the boundary knots at the minimum and maximum log event times, and have found predicted hazard and survival functions to be very robust to these changes. However, we have not changed the boundary knots so much. The only time I can remember this is when fitting cure models (Andersson <em>et al.</em> 2011).</p>
+<p>In my reply to Enzo I explained that we had motivated our choice of knots by the fact that it is better not to make linearity assumptions within the range of the data, but the linearity assumption outside the range of the data adds some stability to the function at the extremes. I also ran a very quick simulation study based on the same scenarios in Mark Rutherford’s simulation paper (Rutherford 2015 <em>et al.</em>). I extend that simulation study here.</p>
+<p>I will simulate the same 4 scenarios as in Mark’s paper, but will not simulate any covariate effects as I am only really interested in how well the restricted cubic spline function performs. Each of the scenarios was simulated from a mixture Weibull distributon,</p>
+<p><span class="math display">\[
+S(t) = \pi \exp(-\lambda_1 t^{\gamma_1}) + (1-\pi)\exp(-\lambda_2 t^{\gamma_2})
+\]</span></p>
+<p>The following parameters are used for each scenario,</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Scenario</th>
+<th><span class="math inline">\(\lambda_1\)</span></th>
+<th><span class="math inline">\(\lambda_1\)</span></th>
+<th><span class="math inline">\(\gamma_1\)</span></th>
+<th><span class="math inline">\(\gamma_2\)</span></th>
+<th><span class="math inline">\(\pi\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>0.6</td>
+<td>-</td>
+<td>0.8</td>
+<td>–</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>0.2</td>
+<td>1.6</td>
+<td>0.8</td>
+<td>1.0</td>
+<td>0.2</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>1</td>
+<td>1</td>
+<td>1.5</td>
+<td>0.5</td>
+<td>0.5</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>0.03</td>
+<td>0.3</td>
+<td>1.9</td>
+<td>2.5</td>
+<td>0.7</td>
+</tr>
+</tbody>
+</table>
+<p>The true survival and the hazard functions can be plotted for each scenario. Below is a program I use to do this. I first declare some local macros to define the Weibull mixture parameters in each scenario. These will also be used when running the simulations.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>. <span class="kw">local</span> scenario1 lambda1(0.6) lambda2(0.6) gamma1(0.8) gamma2(0.8) <span class="kw">pi</span>(1) maxt(5)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>. <span class="kw">local</span> scenario2 lambda1(0.2) lambda2(1.6) gamma1(0.8) gamma2(1) <span class="kw">pi</span>(0.2) maxt(5)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>. <span class="kw">local</span> scenario3 lambda1(1) lambda2(1) gamma1(1.5) gamma2(0.5) <span class="kw">pi</span>(0.5) maxt(5)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>. <span class="kw">local</span> scenario4 lambda1(0.03) lambda2(0.3) gamma1(1.9) gamma2(2.5) <span class="kw">pi</span>(0.7) maxt(5)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>I can then delclare and run the program to plot the true survival and hazard functions.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>. <span class="kw">capture</span> pr <span class="kw">drop</span> weibmixplot</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>. <span class="kw">program</span> <span class="kw">define</span> weibmixplot</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  1.   <span class="kw">syntax</span> [, OBS(integer 1000) lambda1(<span class="fu">real</span> 1) lambda2(<span class="fu">real</span> 1) <span class="co">///</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>&gt;       gamma1(<span class="fu">real</span> 1) gamma2(<span class="fu">real</span> 1) <span class="kw">pi</span>(<span class="fu">real</span> 0.5) maxt(<span class="fu">real</span> 5)  scenario(integer 1)]</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  2.   <span class="kw">local</span> S1 <span class="fu">exp</span>(-<span class="ot">`lambda1'</span>*x^(<span class="ot">`gamma1'</span>))</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  3.   <span class="kw">local</span> S2 <span class="fu">exp</span>(-<span class="ot">`lambda2'</span>*x^(<span class="ot">`gamma2'</span>))</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  4.   <span class="kw">local</span> h1 <span class="ot">`lambda1'</span>*<span class="ot">`gamma1'</span>*x^(<span class="ot">`gamma1'</span> - 1)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  5.   <span class="kw">local</span> h2 <span class="ot">`lambda2'</span>*<span class="ot">`gamma2'</span>*x^(<span class="ot">`gamma2'</span> - 1)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  6.   </span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>.   <span class="kw">twoway</span> <span class="kw">function</span> <span class="fu">y</span> = <span class="ot">`pi'</span>*<span class="ot">`S1'</span> + (1-<span class="ot">`pi'</span>)*<span class="ot">`S2'</span> <span class="co">///</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>&gt;     , <span class="kw">range</span>(0 <span class="ot">`maxt'</span>) <span class="bn">name</span>(s<span class="ot">`scenario'</span>,<span class="kw">replace</span>) <span class="co">///</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>&gt;     <span class="bn">xtitle</span>(<span class="st">"Time (years)"</span>) <span class="co">///</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>&gt;     <span class="bn">ytitle</span>(<span class="st">"S(t)"</span>) <span class="co">///</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>&gt;     <span class="kw">ylabel</span>(,angle(<span class="kw">h</span>) <span class="kw">format</span>(%3.1f)) <span class="co">///</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>&gt;         <span class="bn">title</span>(<span class="st">"Scenario `scenario'"</span>)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>  7.   <span class="kw">twoway</span> <span class="kw">function</span> <span class="fu">y</span> = (<span class="ot">`pi'</span>*<span class="ot">`h1'</span>*<span class="ot">`S1'</span> +(1-<span class="ot">`pi'</span>)*<span class="ot">`h2'</span>*<span class="ot">`S2'</span>) / <span class="co">///</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>&gt;                       (<span class="ot">`pi'</span>*<span class="ot">`S1'</span> + (1-<span class="ot">`pi'</span>)*<span class="ot">`S2'</span>) <span class="co">///</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>&gt;     , <span class="kw">range</span>(0 <span class="ot">`maxt'</span>) <span class="bn">name</span>(h<span class="ot">`scenario'</span>,<span class="kw">replace</span>) <span class="co">///</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>&gt;     <span class="bn">xtitle</span>(<span class="st">"Time (years)"</span>) <span class="co">///</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>&gt;     <span class="bn">ytitle</span>(<span class="st">"h(t)"</span>) <span class="co">///</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>&gt;     <span class="kw">ylabel</span>(,angle(<span class="kw">h</span>) <span class="kw">format</span>(%3.1f)) <span class="co">///</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>&gt;         <span class="bn">title</span>(<span class="st">"Scenario `scenario'"</span>)</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>  8. <span class="kw">end</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>. </span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>. <span class="kw">forvalues</span> i = 1/4 {</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>  2.         weibmixplot ,  <span class="ot">`scenario`i'</span>' scenario(<span class="ot">`i'</span>)</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>  3. }</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>. <span class="kw">graph</span> <span class="bn">combine</span> s1 s2 s3 s4, nocopies <span class="bn">name</span>(true_s, <span class="kw">replace</span>) <span class="bn">title</span>(<span class="st">"Survival functions"</span>)</span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>. <span class="kw">graph</span> <span class="bn">combine</span> h1 h2 h3 h4, nocopies <span class="bn">name</span>(true_h, <span class="kw">replace</span>) <span class="bn">title</span>(<span class="st">"Hazard functions"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The true survival function for each scenario is shown below.</p>
+<p><img src="../..\statasvg/knot_position_true_survival.svg" class="img-fluid"></p>
+<p>and here are the true hazard functions.</p>
+<p><img src="../..\statasvg/knot_position_true_hazard.svg" class="img-fluid"></p>
+<p>For more details on the choice of these functions see Rutherford <em>et al.</em> 2015.</p>
+<section id="simulation-program" class="level3">
+<h3 class="anchored" data-anchor-id="simulation-program">Simulation program</h3>
+<p>In order to peform a simulation study I will write a program that does three jobs. It will (i) simulate the data, (ii) analyse the data (perhaps using different methods/models) and (iii) store the results. Once I have written the program I can use Stata’s <code>simulate</code> command to run my program many times (e.g.&nbsp;1000). In my program I will fit models with 4, 5 and 6 df (5, 6 and 7 knots) and use <code>stpm2</code>’s default knot positions and the knot positions given by Harrell. I will then store the AIC and BIC so that these can then be compared. The full program is shown below and I will then explain some of the lines of code.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">clear</span> <span class="ot">all</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">program</span> <span class="kw">define</span> enzosim, rclass</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">syntax</span> [, OBS(integer 1000) lambda1(<span class="fu">real</span> 1) lambda2(<span class="fu">real</span> 1) <span class="co">///</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>      gamma1(<span class="fu">real</span> 1) gamma2(<span class="fu">real</span> 1) <span class="kw">pi</span>(<span class="fu">real</span> 0.5) maxt(<span class="fu">real</span> 5)]</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">clear</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">set</span> <span class="kw">obs</span> <span class="ot">`obs'</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  survsim t <span class="kw">d</span>, mixture lambda(<span class="ot">`lambda1'</span> <span class="ot">`lambda2'</span>) <span class="kw">gamma</span>(<span class="ot">`gamma1'</span> <span class="ot">`gamma2'</span>) <span class="co">///</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    pmix(<span class="ot">`pi'</span>) maxt(<span class="ot">`maxt'</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">replace</span> t = <span class="fu">ceil</span>(t*365.24)/365.24</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">stset</span> t, f(<span class="kw">d</span>==1)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  <span class="kw">local</span> harrell4 27.5 50 72.5</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="kw">local</span> harrell4b 5 95</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="kw">local</span> harrell5 23 41 59 77</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  <span class="kw">local</span> harrell5b 5 95</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  <span class="kw">local</span> harrell6 18.33 34.17 50 65.83 81.67</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>  <span class="kw">local</span> harrell6b 2.5 97.5</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>  <span class="kw">foreach</span> i <span class="kw">in</span> 4 5 6  {</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    stpm2, df(<span class="ot">`i'</span>) <span class="kw">scale</span>(hazard)</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span> <span class="fu">scalar</span> AIC1_df<span class="ot">`i'</span> = <span class="fu">e</span>(AIC)</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span> <span class="fu">scalar</span> BIC1_df<span class="ot">`i'</span> = <span class="fu">e</span>(BIC)</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    stpm2, knots(<span class="ot">`harrell`i'</span>') knscale(<span class="kw">centile</span>) <span class="kw">scale</span>(hazard) bknots(<span class="ot">`harrell`i'</span>b')</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span> <span class="fu">scalar</span> AIC2_df<span class="ot">`i'</span> = <span class="fu">e</span>(AIC)</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span> <span class="fu">scalar</span> BIC2_df<span class="ot">`i'</span> = <span class="fu">e</span>(BIC)</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>  <span class="kw">ereturn</span> <span class="kw">clear</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>I first drop the program as I need to create a new version whilst I am editing it (fixing bugs etc). I name the program <code>enzosim</code> and make it an <code>rclass</code> program as I want it to return some results. I use the <code>syntax</code> command to allow my program to take options. The options include the number of observations in each simulated data set, the parameters of the mixture Weibull distribution and length of follow-up. Each of these is given a default value.</p>
+<p>The next five lines are as follows,</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">clear</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">set</span> <span class="kw">obs</span> <span class="ot">`obs'</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>survsim t <span class="kw">d</span>, mixture lambda(<span class="ot">`lambda1'</span> <span class="ot">`lambda2'</span>) <span class="kw">gamma</span>(<span class="ot">`gamma1'</span> <span class="ot">`gamma2'</span>) <span class="co">///</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  pmix(<span class="ot">`pi'</span>) maxt(<span class="ot">`maxt'</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="kw">replace</span> t = <span class="fu">ceil</span>(t*365.24)/365.24</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="kw">stset</span> t, f(<span class="kw">d</span>==1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>I first clear any data in memory and set the observations to whatever was specified in the <code>obs()</code> option (or use the default of 1000 if not specified. I then use the <code>survsim</code> command to simulate from the mixture Weibull model (Crowther and Lambert 2012). The will create two new variables <code>t</code> (the survival time) and <code>d</code> the event indicator. The <code>maxt()</code> option means that any simulated time after 5 years will be censored at 5 years. Note that <code>survsim</code> uses the parameters I pass to my program for the mixture Weibull distribution. After generating data in years, I transform to days and round up to the nearest integer and then transform back to years. The reason for this is that some very small survival times can lead to numerical problems. It also better reflects real data, where survival is often measured to the nearest day. I then <code>stset</code> the data so I can now fit some models.</p>
+<p>I then declare some local macros to define the knots positions given by Harrell,</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> harrell4 27.5 50 72.5</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> harrell4b 5 95</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> harrell5 23 41 59 77</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> harrell5b 5 95</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> harrell6 18.33 34.17 50 65.83 81.67</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> harrell6b 2.5 97.5</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>I have to give the internal knots and the boundary knots separately.</p>
+<p>I then write a small loop that loops over different degrees of freedom (4, 5 and 6).</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">foreach</span> i <span class="kw">in</span> 4 5 6  {</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  stpm2, df(<span class="ot">`i'</span>) <span class="kw">scale</span>(hazard)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span> <span class="fu">scalar</span> AIC1_df<span class="ot">`i'</span> = <span class="fu">e</span>(AIC)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span> <span class="fu">scalar</span> BIC1_df<span class="ot">`i'</span> = <span class="fu">e</span>(BIC)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  stpm2, knots(<span class="ot">`harrell`i'</span>') knscale(<span class="kw">centile</span>) <span class="kw">scale</span>(hazard) bknots(<span class="ot">`harrell`i'</span>b')</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span> <span class="fu">scalar</span> AIC2_df<span class="ot">`i'</span> = <span class="fu">e</span>(AIC)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span> <span class="fu">scalar</span> BIC2_df<span class="ot">`i'</span> = <span class="fu">e</span>(BIC)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a> }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>For each df an <code>stpm2</code> model is fitted using the default knot placement and then using knot positions recommended by Harrell. Note the use of the <code>knots()</code> option for the internal knots, the <code>bknots()</code> option for the boundary knots and the <code>knscale(centile)</code> option so I can specify the knots as centiles rather than specific point in time (the default). After fitting each model I use <code>return</code> to store both the AIC and BIC.</p>
+<p>The final line of code,</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">ereturn</span> <span class="kw">clear</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>is just a bit of laziness on my part as if you do not specify anything to monitor when using the <code>simulate</code> command it will monitor the coefficients of the model in memory. If no model is stored in memory then it will monitor anything stored in <code>r()</code>, which is what I want. Therefore, I use <code>ereturn clear</code> to remove the last model from memory and now I do not have to give a long list of the things I want to monitor.</p>
+</section>
+<section id="testing-the-simulation-program" class="level3">
+<h3 class="anchored" data-anchor-id="testing-the-simulation-program">Testing the simulation program</h3>
+<p>When I am developing a simulation program I will run it once. This allows me to check any variables that have been created, spot any potential bugs, make sure any analysis I am performing is correct and make sure the results I want to store are actually stored. If I just type <code>enzosim</code> then it will run my program using the default values specified in the <code>syntax</code> statement of the program. This give the following results,</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>. enzosim,</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>number <span class="kw">of</span> observations (_N) was 0, now 1,000</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>Warning: 8 survival times were above the <span class="fu">upper</span> limit <span class="kw">of</span> 5</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>         They have been <span class="kw">set</span> to 5 and can <span class="kw">be</span> considered censored</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>         You can identify them <span class="kw">by</span> _survsim_rc = 3</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>     failure event:  <span class="kw">d</span> == 1</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="kw">obs</span>. time interval:  (0, t]</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a> <span class="kw">exit</span> <span class="kw">on</span> <span class="kw">or</span> before:  failure</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>------------------------------------------------------------------------------</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>      1,000  <span class="kw">total</span> observations</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>          0  exclusions</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>------------------------------------------------------------------------------</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>      1,000  observations remaining, representing</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        992  failures <span class="kw">in</span> single-record/single-failure <span class="kw">data</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  1,006.047  <span class="kw">total</span> analysis time <span class="fu">at</span> risk and under observation</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>                                                <span class="fu">at</span> risk from t =         0</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>                                     earliest observed entry t =         0</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>                                          <span class="fu">last</span> observed <span class="kw">exit</span> t =         5</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>Iteration 0:   <span class="fu">log</span> likelihood = -1615.2795  </span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>Iteration 1:   <span class="fu">log</span> likelihood = -1615.0025  </span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>Iteration 2:   <span class="fu">log</span> likelihood = -1615.0024  </span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>Log likelihood = -1615.0024                     Number <span class="kw">of</span> <span class="kw">obs</span>     =      1,000</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>------------------------------------------------------------------------------</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>             |      Coef.   Std. Err.      z    P&gt;|z|     [95% Conf. Interval]</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>-------------+----------------------------------------------------------------</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a><span class="kw">xb</span>           |</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>       _rcs1 |   1.275779   .0422624    30.19   0.000     1.192946    1.358612</span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>       _rcs2 |  -.0492945   .0335147    -1.47   0.141    -.1149821    .0163931</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>       _rcs3 |   .0072627    .019518     0.37   0.710    -.0309919    .0455174</span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>       _rcs4 |   .0009645   .0117572     0.08   0.935    -.0220792    .0240082</span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>       <span class="dt">_cons</span> |  -.5789954   .0405764   -14.27   0.000    -.6585236   -.4994671</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>------------------------------------------------------------------------------</span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>..... remaining output has been omitted.</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The program runs without error and fit the models I intend. I can check that everything I want stored is actually stored using <code>return list</code>.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>. <span class="fu">return</span> <span class="ot">list</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>scalars:</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>           <span class="fu">r</span>(BIC2_df6) =  3275.609609295175</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>           <span class="fu">r</span>(AIC2_df6) =  3241.325674693275</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>           <span class="fu">r</span>(BIC1_df6) =  3275.271719530712</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>           <span class="fu">r</span>(AIC1_df6) =  3240.987784928811</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>           <span class="fu">r</span>(BIC2_df5) =  3273.020999377406</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>           <span class="fu">r</span>(AIC2_df5) =  3243.634769718634</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>           <span class="fu">r</span>(BIC1_df5) =  3273.049041974547</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>           <span class="fu">r</span>(AIC1_df5) =  3243.662812315775</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>           <span class="fu">r</span>(BIC2_df4) =  3267.19499496639</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>           <span class="fu">r</span>(AIC2_df4) =  3242.706470250746</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>           <span class="fu">r</span>(BIC1_df4) =  3266.905797538291</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>           <span class="fu">r</span>(AIC1_df4) =  3242.417272822648</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>I can see that all the AIC and BIC values have been returned.</p>
+</section>
+<section id="running-the-simulations" class="level3">
+<h3 class="anchored" data-anchor-id="running-the-simulations">Running the simulations</h3>
+<p>Now I am ready to simulate 1000 data sets for each scenario using the <code>simulate</code> command. I can loop over the 4 scenarios making use of the local macros already declared for each scenario.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">set</span> <span class="dv">seed</span> 78126378</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">forvalues</span> i = 1/4 {</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">simulate</span> , reps(1000) <span class="kw">saving</span>(sim_scenaro<span class="ot">`i'</span>, <span class="kw">replace</span> <span class="kw">double</span>): enzosim, <span class="ot">`scenario`i'</span>'</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>I pass the relevent local macro for the options for each scenario. The results are saved using the <code>saving</code> option. Each of the created data sets will contain 1000 observations, one for each simulated data set. I then go and make a cup of coffee while I wait for the results…</p>
+</section>
+<section id="summarising-the-simulations" class="level3">
+<h3 class="anchored" data-anchor-id="summarising-the-simulations">Summarising the simulations</h3>
+<p>Once the simulations have run I can start looking at the results. I will first plot the data comparing the AIC between the default knot placement with Harrell’s knot placement for each of the 4, 5 ad 6 df models.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>. <span class="kw">forvalues</span> <span class="fu">s</span> =1/4 {</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  2.   <span class="kw">quietly</span> {</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  3.     <span class="kw">use</span> sim_scenaro<span class="ot">`s'</span>, <span class="kw">replace</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  4.     <span class="kw">forvalues</span> df = 4/6 {</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  5.           <span class="kw">gen</span> AICdiff_df<span class="ot">`df'</span> = AIC2_df<span class="ot">`df'</span> - AIC1_df<span class="ot">`df'</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  6.           <span class="kw">hist</span> AICdiff_df<span class="ot">`df'</span>, <span class="bn">name</span>(AIC<span class="ot">`df'</span>, <span class="kw">replace</span>) <span class="kw">ylabel</span>(<span class="kw">none</span>) <span class="co">///</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>&gt;                 <span class="bn">ytitle</span>(<span class="st">""</span>) <span class="bn">xline</span>(0) <span class="co">///</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>&gt;                 <span class="bn">xtitle</span>(<span class="st">"Difference in AIC"</span>) <span class="co">///</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>&gt;                 <span class="bn">title</span>(<span class="st">"`df' df"</span>, <span class="bn">ring</span>(0) pos(1) <span class="kw">size</span>(*0.8))</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  7. </span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>.     }</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  8.   }</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>  9.   <span class="kw">graph</span> <span class="bn">combine</span> AIC4 AIC5 AIC6, <span class="bn">cols</span>(3) nocopies <span class="bn">name</span>(scenario<span class="ot">`s'</span>, <span class="kw">replace</span>) <span class="co">///</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>&gt;     <span class="bn">ycommon</span> <span class="bn">xcommon</span> <span class="bn">title</span>(<span class="st">"Scenario `s'"</span>, <span class="kw">size</span>(*0.8))</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a> 10. }</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>. <span class="kw">graph</span> <span class="bn">combine</span> scenario1 scenario2 scenario3 scenario4, nocopies <span class="bn">cols</span>(1) <span class="bn">imargin</span>(0 0 0 0)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This code calculates the difference in the AIC between Harrell’s knot locations and <code>stpm2</code>’s default knot locations. A positive value indicates a lower AIC for the default knot locations. Note there is no point calculating the difference in the BIC as well as this is identical to the difference in the AIC as the number of parameters is the same in the models we are comparing. The resulting plot can be seen below.</p>
+<p><img src="../..\statasvg/knot_position_sensitivity_AIC.svg" class="img-fluid"></p>
+<p>This plot shows that for all scenarios there tends to be a lower AIC for the default knot locations. This is particularly so for scenarios 2 and 3. The change in the AIC is much larger for these two scenarios.</p>
+<p>I will next calculate the percentage of time the AIC is lower for the default knot locations.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>. <span class="kw">forvalues</span> <span class="fu">s</span> =1/4 {</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  2.   <span class="kw">quietly</span> <span class="kw">use</span> sim_scenaro<span class="ot">`s'</span>, <span class="kw">replace</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  3.   <span class="kw">display</span> <span class="dt">_newline</span> <span class="st">"Scenario `s'"</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  4.   <span class="kw">display</span> <span class="st">"------------"</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  5.   <span class="kw">forvalues</span> df = 4/6 {</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  6.     <span class="kw">quietly</span> <span class="fu">count</span> <span class="kw">if</span> AIC2_df<span class="ot">`df'</span> &gt; AIC1_df<span class="ot">`df'</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  7.     <span class="kw">di</span> <span class="st">"Default knot locations had lower AIC for `df' df:"</span> %4.1f 100*<span class="ot">`r(N)'</span>/_N <span class="st">"%"</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  8.   }</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  9. }</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>Scenario 1</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>------------</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>Default knot locations had <span class="fu">lower</span> AIC <span class="kw">for</span> 4 df:72.8%</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>Default knot locations had <span class="fu">lower</span> AIC <span class="kw">for</span> 5 df:73.4%</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>Default knot locations had <span class="fu">lower</span> AIC <span class="kw">for</span> 6 df:74.2%</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>Scenario 2</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>------------</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>Default knot locations had <span class="fu">lower</span> AIC <span class="kw">for</span> 4 df:99.0%</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>Default knot locations had <span class="fu">lower</span> AIC <span class="kw">for</span> 5 df:97.5%</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>Default knot locations had <span class="fu">lower</span> AIC <span class="kw">for</span> 6 df:85.4%</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>Scenario 3</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>------------</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>Default knot locations had <span class="fu">lower</span> AIC <span class="kw">for</span> 4 df:98.9%</span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>Default knot locations had <span class="fu">lower</span> AIC <span class="kw">for</span> 5 df:98.8%</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>Default knot locations had <span class="fu">lower</span> AIC <span class="kw">for</span> 6 df:90.7%</span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>Scenario 4</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>------------</span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>Default knot locations had <span class="fu">lower</span> AIC <span class="kw">for</span> 4 df:68.3%</span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>Default knot locations had <span class="fu">lower</span> AIC <span class="kw">for</span> 5 df:57.5%</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>Default knot locations had <span class="fu">lower</span> AIC <span class="kw">for</span> 6 df:53.1%</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Again we can see the dominance of the default knot locations, particularly for scenarios 2 and 3.</p>
+<p>Another question is to see which of the models fitted to each simulated data set gives the lowest AIC and whether this differs between the default knot locations and Harrell’s knot locations. I create some code to find the df with the lowest AIC and BIC.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>. <span class="kw">forvalues</span> <span class="fu">s</span> =1/4 {</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  2.   <span class="kw">quietly</span> <span class="kw">use</span> sim_scenaro<span class="ot">`s'</span>, <span class="kw">replace</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  3.   <span class="kw">egen</span> <span class="kw">double</span> minAIC1 = <span class="fu">rowmin</span>(AIC1_df?)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  4.   <span class="kw">egen</span> <span class="kw">double</span> minAIC2 = <span class="fu">rowmin</span>(AIC2_df?)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  5.   <span class="kw">gen</span> AICmin1 = 4*(minAIC1==AIC1_df4) + 5*(minAIC1==AIC1_df5)+6*(minAIC1==AIC1_df6)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  6.   <span class="kw">gen</span> AICmin2 = 4*(minAIC2==AIC2_df4) + 5*(minAIC2==AIC2_df5)+6*(minAIC2==AIC2_df6)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  7.   <span class="kw">egen</span> <span class="kw">double</span> minBIC1 = <span class="fu">rowmin</span>(BIC1_df?)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  8.   <span class="kw">egen</span> <span class="kw">double</span> minBIC2 = <span class="fu">rowmin</span>(BIC2_df?)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  9.   <span class="kw">gen</span> BICmin1 = 4*(minBIC1==BIC1_df4) + 5*(minBIC1==BIC1_df5)+6*(minBIC1==BIC1_df6)</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a> 10.   <span class="kw">gen</span> BICmin2 = 4*(minBIC2==BIC2_df4) + 5*(minBIC2==BIC2_df5)+6*(minBIC2==BIC2_df6)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a> 11.   <span class="kw">di</span> <span class="dt">_newline</span> <span class="st">"Scenario `s'"</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a> 12.   <span class="kw">di</span> <span class="st">"AIC"</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a> 13.   <span class="kw">tab</span> AICmin1 AICmin2</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a> 14.   <span class="kw">di</span> <span class="st">"BIC"</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a> 15.   <span class="kw">tab</span> BICmin1 BICmin2</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a> 16. }</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>Scenario 1</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>AIC</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>           |             AICmin2</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>   AICmin1 |         4          5          6 |     Total</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>-----------+---------------------------------+----------</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>         4 |       694         26          8 |       728 </span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>         5 |        23        106         25 |       154 </span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>         6 |        28          0         90 |       118 </span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>-----------+---------------------------------+----------</span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>     Total |       745        132        123 |     1,000 </span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>BIC</span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>           |        BICmin2</span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>   BICmin1 |         4          5 |     Total</span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>-----------+----------------------+----------</span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>         4 |       975          6 |       981 </span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a>         5 |         7         10 |        17 </span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>         6 |         2          0 |         2 </span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a>-----------+----------------------+----------</span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a>     Total |       984         16 |     1,000 </span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a>Scenario 2</span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a>AIC</span>
+<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a>           |             AICmin2</span>
+<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a>   AICmin1 |         4          5          6 |     Total</span>
+<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a>-----------+---------------------------------+----------</span>
+<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a>         4 |        59         20        379 |       458 </span>
+<span id="cb13-49"><a href="#cb13-49" aria-hidden="true" tabindex="-1"></a>         5 |         1         19        240 |       260 </span>
+<span id="cb13-50"><a href="#cb13-50" aria-hidden="true" tabindex="-1"></a>         6 |         2          0        280 |       282 </span>
+<span id="cb13-51"><a href="#cb13-51" aria-hidden="true" tabindex="-1"></a>-----------+---------------------------------+----------</span>
+<span id="cb13-52"><a href="#cb13-52" aria-hidden="true" tabindex="-1"></a>     Total |        62         39        899 |     1,000 </span>
+<span id="cb13-53"><a href="#cb13-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-54"><a href="#cb13-54" aria-hidden="true" tabindex="-1"></a>BIC</span>
+<span id="cb13-55"><a href="#cb13-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-56"><a href="#cb13-56" aria-hidden="true" tabindex="-1"></a>           |             BICmin2</span>
+<span id="cb13-57"><a href="#cb13-57" aria-hidden="true" tabindex="-1"></a>   BICmin1 |         4          5          6 |     Total</span>
+<span id="cb13-58"><a href="#cb13-58" aria-hidden="true" tabindex="-1"></a>-----------+---------------------------------+----------</span>
+<span id="cb13-59"><a href="#cb13-59" aria-hidden="true" tabindex="-1"></a>         4 |       602         53        282 |       937 </span>
+<span id="cb13-60"><a href="#cb13-60" aria-hidden="true" tabindex="-1"></a>         5 |         1          5         40 |        46 </span>
+<span id="cb13-61"><a href="#cb13-61" aria-hidden="true" tabindex="-1"></a>         6 |         0          0         17 |        17 </span>
+<span id="cb13-62"><a href="#cb13-62" aria-hidden="true" tabindex="-1"></a>-----------+---------------------------------+----------</span>
+<span id="cb13-63"><a href="#cb13-63" aria-hidden="true" tabindex="-1"></a>     Total |       603         58        339 |     1,000 </span>
+<span id="cb13-64"><a href="#cb13-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-65"><a href="#cb13-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-66"><a href="#cb13-66" aria-hidden="true" tabindex="-1"></a>Scenario 3</span>
+<span id="cb13-67"><a href="#cb13-67" aria-hidden="true" tabindex="-1"></a>AIC</span>
+<span id="cb13-68"><a href="#cb13-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-69"><a href="#cb13-69" aria-hidden="true" tabindex="-1"></a>           |             AICmin2</span>
+<span id="cb13-70"><a href="#cb13-70" aria-hidden="true" tabindex="-1"></a>   AICmin1 |         4          5          6 |     Total</span>
+<span id="cb13-71"><a href="#cb13-71" aria-hidden="true" tabindex="-1"></a>-----------+---------------------------------+----------</span>
+<span id="cb13-72"><a href="#cb13-72" aria-hidden="true" tabindex="-1"></a>         4 |         8         10         52 |        70 </span>
+<span id="cb13-73"><a href="#cb13-73" aria-hidden="true" tabindex="-1"></a>         5 |         0         12        162 |       174 </span>
+<span id="cb13-74"><a href="#cb13-74" aria-hidden="true" tabindex="-1"></a>         6 |         2          0        754 |       756 </span>
+<span id="cb13-75"><a href="#cb13-75" aria-hidden="true" tabindex="-1"></a>-----------+---------------------------------+----------</span>
+<span id="cb13-76"><a href="#cb13-76" aria-hidden="true" tabindex="-1"></a>     Total |        10         22        968 |     1,000 </span>
+<span id="cb13-77"><a href="#cb13-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-78"><a href="#cb13-78" aria-hidden="true" tabindex="-1"></a>BIC</span>
+<span id="cb13-79"><a href="#cb13-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-80"><a href="#cb13-80" aria-hidden="true" tabindex="-1"></a>           |             BICmin2</span>
+<span id="cb13-81"><a href="#cb13-81" aria-hidden="true" tabindex="-1"></a>   BICmin1 |         4          5          6 |     Total</span>
+<span id="cb13-82"><a href="#cb13-82" aria-hidden="true" tabindex="-1"></a>-----------+---------------------------------+----------</span>
+<span id="cb13-83"><a href="#cb13-83" aria-hidden="true" tabindex="-1"></a>         4 |       357         22        318 |       697 </span>
+<span id="cb13-84"><a href="#cb13-84" aria-hidden="true" tabindex="-1"></a>         5 |         4          8        119 |       131 </span>
+<span id="cb13-85"><a href="#cb13-85" aria-hidden="true" tabindex="-1"></a>         6 |         0          0        172 |       172 </span>
+<span id="cb13-86"><a href="#cb13-86" aria-hidden="true" tabindex="-1"></a>-----------+---------------------------------+----------</span>
+<span id="cb13-87"><a href="#cb13-87" aria-hidden="true" tabindex="-1"></a>     Total |       361         30        609 |     1,000 </span>
+<span id="cb13-88"><a href="#cb13-88" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-89"><a href="#cb13-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-90"><a href="#cb13-90" aria-hidden="true" tabindex="-1"></a>Scenario 4</span>
+<span id="cb13-91"><a href="#cb13-91" aria-hidden="true" tabindex="-1"></a>AIC</span>
+<span id="cb13-92"><a href="#cb13-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-93"><a href="#cb13-93" aria-hidden="true" tabindex="-1"></a>           |             AICmin2</span>
+<span id="cb13-94"><a href="#cb13-94" aria-hidden="true" tabindex="-1"></a>   AICmin1 |         4          5          6 |     Total</span>
+<span id="cb13-95"><a href="#cb13-95" aria-hidden="true" tabindex="-1"></a>-----------+---------------------------------+----------</span>
+<span id="cb13-96"><a href="#cb13-96" aria-hidden="true" tabindex="-1"></a>         4 |       528         83         14 |       625 </span>
+<span id="cb13-97"><a href="#cb13-97" aria-hidden="true" tabindex="-1"></a>         5 |        31        131         66 |       228 </span>
+<span id="cb13-98"><a href="#cb13-98" aria-hidden="true" tabindex="-1"></a>         6 |        20          4        123 |       147 </span>
+<span id="cb13-99"><a href="#cb13-99" aria-hidden="true" tabindex="-1"></a>-----------+---------------------------------+----------</span>
+<span id="cb13-100"><a href="#cb13-100" aria-hidden="true" tabindex="-1"></a>     Total |       579        218        203 |     1,000 </span>
+<span id="cb13-101"><a href="#cb13-101" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-102"><a href="#cb13-102" aria-hidden="true" tabindex="-1"></a>BIC</span>
+<span id="cb13-103"><a href="#cb13-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-104"><a href="#cb13-104" aria-hidden="true" tabindex="-1"></a>           |             BICmin2</span>
+<span id="cb13-105"><a href="#cb13-105" aria-hidden="true" tabindex="-1"></a>   BICmin1 |         4          5          6 |     Total</span>
+<span id="cb13-106"><a href="#cb13-106" aria-hidden="true" tabindex="-1"></a>-----------+---------------------------------+----------</span>
+<span id="cb13-107"><a href="#cb13-107" aria-hidden="true" tabindex="-1"></a>         4 |       935         24          5 |       964 </span>
+<span id="cb13-108"><a href="#cb13-108" aria-hidden="true" tabindex="-1"></a>         5 |         9         19          3 |        31 </span>
+<span id="cb13-109"><a href="#cb13-109" aria-hidden="true" tabindex="-1"></a>         6 |         1          0          4 |         5 </span>
+<span id="cb13-110"><a href="#cb13-110" aria-hidden="true" tabindex="-1"></a>-----------+---------------------------------+----------</span>
+<span id="cb13-111"><a href="#cb13-111" aria-hidden="true" tabindex="-1"></a>     Total |       945         43         12 |     1,000 </span>
+<span id="cb13-112"><a href="#cb13-112" aria-hidden="true" tabindex="-1"></a></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>What I find interesting is that there is a tendency for AIC to select fewer knots for the default knot locations. As above, this is especially so for scenarios 2 and 3. This is not the case for the more simple scenario 1. Here the truth is a Weibull distribution and so all models are overfitting when compared with the truth.</p>
+<p>I don’t think the differences we see here are that great and of course we are only looking at a few scenarios. However, it is reassuring to me that our default knot locations seem sensible. A more detailed analysis would compare hazard and survival functions with the true function. When we use splines, I don’t really think that they represent the true model, but they should give a very good approximation to it. This is of crucial importance as with real data, we never know the true model.</p>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<p>Andersson, T.M.-L., Dickman, P.W., Eloranta, S., Lambert, P.C. Estimating and modelling cure in population-based cancer studies within the framework of flexible parametric survival models. <em>BMC Med Res Methodol</em> 2011;<strong>11</strong>:96</p>
+<p>Crowther, M.J., Lambert, P.C. Simulating complex survival data. <em>The Stata Journal</em> 2012;<strong>12</strong>:674-687.</p>
+<p>Harrell, F.E. <em>Regression modeling strategies with application to linear models, logistic regression and survival analysis</em>. Springer, 2001</p>
+<p>Rutherford, M.J., Crowther, M.J., Lambert, P.C. The use of restricted cubic splines to approximate complex hazard functions in the analysis of time-to-event data: a simulation study. <em>Journal of Statistical Computation and Simulation</em> 2015;<strong>85</strong>:777-793</p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+    const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+    const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+    let newTheme = '';
+    if(darkModeDefault) {
+      newTheme = isAlternate ? baseTheme : alternateTheme;
+    } else {
+      newTheme = isAlternate ? alternateTheme : baseTheme;
+    }
+    const changeGiscusTheme = () => {
+      // From: https://github.com/giscus/giscus/issues/336
+      const sendMessage = (message) => {
+        const iframe = document.querySelector('iframe.giscus-frame');
+        if (!iframe) return;
+        iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+      }
+      sendMessage({
+        setConfig: {
+          theme: newTheme
+        }
+      });
+    }
+    const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+    if (isGiscussLoaded) {
+      changeGiscusTheme();
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  const darkModeDefault = false;
+  let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+    toggleGiscusIfUsed(toAlternate, darkModeDefault);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

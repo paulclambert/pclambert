@@ -1,3 +1,0 @@
-cd "${DRIVE}/github/pclambert/scripts/dofiles/gensplines/"
-dyntext gensplines_vs_makesplines.txt, saving(../../../software/gensplines/derivatives_and_integrals_of_spline_functions.qmd) replace
-

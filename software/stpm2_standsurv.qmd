@@ -1,0 +1,7 @@
+---
+title: "`stpm2_standsurv`"
+---
+
+This command is no longer updated and has been replaced by [standsurv](standsurv.qmd).
+
+When transferring my website to quarto, I did not update the pages as there are better, and more up-to-date versions, in the [standsurv page](standsurv.qmd) page.

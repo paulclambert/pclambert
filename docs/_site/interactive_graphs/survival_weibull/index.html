@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<style>
+.chart {
+
+}
+
+.main text {
+    font: 15px sans-serif;	
+}
+
+.axis line, .axis path {
+	shape-rendering: crispEdges;
+	stroke: black;
+    fill: none;
+	stroke-width: 5; 
+}
+
+path { 
+    stroke: black;
+    stroke-width: 3;
+    fill: none;
+}
+
+circle {
+    fill: steelblue;
+}
+
+body,td,th {
+	font-family: Tahoma, Geneva, sans-serif;
+	font-size: 12pt;
+}
+
+#wrapper {
+    display:table;
+    width:700px;
+}
+#row {
+    display:table-row;
+}
+#parameters {
+	display:table-cell;
+	/* [disabled]width:600px; */
+}
+#survival {
+    display:table-cell;
+    width:600px;
+}
+#hazard {
+    display:table-cell;
+    width:600px;
+}
+#pdf {
+    display:table-cell;
+    width:600px;
+}
+
+
+</style>
+
+<script src="d3/d3.min.js"></script>
+
+
+
+<body>
+
+
+
+<div class="row"> 
+  <div id="parameters"> 
+</div>
+    <div id="pdf">   </div>
+</div>
+
+<div class="row">
+    <div id="survival"> </div>
+
+    <div id="hazard">  </div>
+</div>
+
+
+<script src = "survival_weibull.js"></script>
+<ul>
+  <li>Please send any comments/suggestions to <a href="http://www.pclambert.net">Paul Lambert</a> (<a href="mailto:pclt@kreftregisteret.no" target="_top">Send Mail</a> ). </li>
+</ul>
+</body>
+</html>

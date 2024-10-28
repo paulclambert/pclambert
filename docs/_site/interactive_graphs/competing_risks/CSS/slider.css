@@ -1,0 +1,40 @@
+@charset "utf-8";
+/* CSS Document */
+
+.SliderDiv {
+	padding-top:5px;
+	padding-right:5px;
+}
+
+.SliderRect  {
+	stroke:blue;
+	fill:blue;
+	opacity:0.2;
+}
+
+.SliderCircle  {
+	fill:#9CF;
+	opacity:0.8;
+}
+
+
+.SliderAxis .tick {
+    font-family: sans-serif;
+    font-size: 1em;
+    fill: black;
+	stroke:none;
+}
+
+.SliderAxis .tick line {
+    fill: none;
+    stroke: black;
+    fill: none;
+}
+
+
+
+.SliderAxis path {
+    stroke: none	;
+	fill:none;
+}
+

@@ -128,13 +128,13 @@ These are just 1 - the standardized survival functions. There are more untreated
 (1 missing value generated)
 .   list timevar F_hormon1 F_all AF_tmp if inlist(timevar,1,5,10), noobs
 
-  +--------------------------------------------+
-  | timevar   F_hormon1       F_all     AF_tmp |
-  |--------------------------------------------|
-  |       1   .01685169   .02035349    .172049 |
-  |       5   .22362896   .26167585    .145397 |
-  |      10   .39250923   .44808119   .1240221 |
-  +--------------------------------------------+
+  +---------------------------------------------+
+  | timevar   F_hormon1       F_all      AF_tmp |
+  |---------------------------------------------|
+  |       1   .01685169   .02035349   .17204904 |
+  |       5   .22362896   .26167585   .14539701 |
+  |      10   .39250923   .44808119   .12402208 |
+  +---------------------------------------------+
 . }
 
 ```
@@ -146,7 +146,7 @@ The user function needs to be written in Mata. The function should receive one a
 
 ```stata
 . mata
-------------------------------------------------- mata (type end to exit) --------------------------------------------------------
+------------------------------------------------- mata (type end to exit) -----------------------------------------------------------------------
 : function calcAF(at) {
 >     // at2 is F(t|unexposed,Z)
 >     // at1 is F(t,Z)
@@ -154,7 +154,7 @@ The user function needs to be written in Mata. The function should receive one a
 > }
 
 : end
-----------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------
 
 ```
 
@@ -198,7 +198,7 @@ $$
 
 This give the proportion of preventable events **at** time $t$ rather than **by** time $t$.
 
-See the page of [The hazard function of the standardized survival curve.](/docs/software/standsurv/standardized_survival_hazard.qmd) for a description of standardized hazard functions. 
+See the page of [The hazard function of the standardized survival curve.](standardized_survival_hazard.qmd) for a description of standardized hazard functions. 
 
 As I just have to replace the failure probability with the hazard function, I can just use the same Mata function. This means that I just have the change the option `failure` to `hazard` in `standsurv`.
 

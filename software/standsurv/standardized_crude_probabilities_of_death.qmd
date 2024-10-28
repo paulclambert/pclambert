@@ -164,11 +164,11 @@ xb                           |
                        5.dep |   11.33406   610.7999     0.02   0.985    -1185.812     1208.48
                        stage |
                           2  |   11.77162   610.8012     0.02   0.985    -1185.377     1208.92
-                          3  |   13.63744   610.8012     0.02   0.982    -1183.511    1210.786
-                          4  |   14.87865   610.8012     0.02   0.981     -1182.27    1212.027
+                          3  |   13.63744   610.8011     0.02   0.982    -1183.511    1210.786
+                          4  |   14.87865   610.8011     0.02   0.981     -1182.27    1212.027
                    stage#dep |
-                        2 5  |  -11.34975      610.8    -0.02   0.985    -1208.496    1185.796
-                        3 5  |  -11.19332   610.7999    -0.02   0.985    -1208.339    1185.953
+                        2 5  |  -11.34975   610.7999    -0.02   0.985    -1208.496    1185.796
+                        3 5  |  -11.19332   610.7999    -0.02   0.985    -1208.339    1185.952
                         4 5  |  -11.26091   610.7999    -0.02   0.985    -1208.407    1185.885
              _ns_f1_agediag1 |   .8547894   1.699503     0.50   0.615    -2.476176    4.185755
              _ns_f1_agediag2 |  -1.255521   .6266172    -2.00   0.045    -2.483668   -.0273739
@@ -207,7 +207,7 @@ c._ns_f1_agediag2#c._ns_tvc3 |  -.0054526   1.219612    -0.00   0.996    -2.3958
 c._ns_f1_agediag3#c._ns_tvc1 |   9.465698   9.075787     1.04   0.297    -8.322518    27.25391
 c._ns_f1_agediag3#c._ns_tvc2 |  -10.82306   5.100466    -2.12   0.034    -20.81979   -.8263326
 c._ns_f1_agediag3#c._ns_tvc3 |  -1.067077   .9595113    -1.11   0.266    -2.947684    .8135306
-                       _cons |  -14.02936   610.8006    -0.02   0.982    -1211.177    1183.118
+                       _cons |  -14.02936   610.8006    -0.02   0.982    -1211.176    1183.118
 ----------------------------------------------------------------------------------------------
 Extended functions
  (1) @ns(agediag, df(3))
@@ -304,7 +304,7 @@ The `contrast()` option can be used to investigate differences between subgroups
 
 We cannot fairly compare these groups using their observed covariate values since this would mean we would be averaging over different covariate patterns within each deprivation group. For example, in the most deprived group there is a greater proportion of individuals diagnosed with Stage 4 tumours so we wouldn't know whether the differences in the marginal crude probabilities of death were due to the effect of deprivation or other factors such as stage. 
 
-To account for this we can first make predictions for all individuals by supposing that they are all in the most deprived group (i.e. setting `dep5=1` for everyone regardless of their true deprivation group but keeping the observed values of all other covariates in the dataset). We can then make a second set of predictions where all individuals are assumed to be in the least deprived group (`dep5=0`). This is called standardization and further examples can be found in the [standardized relative survival tutorial](software/standsurv/standardized_relative_survival.qmd). 
+To account for this we can first make predictions for all individuals by supposing that they are all in the most deprived group (i.e. setting `dep5=1` for everyone regardless of their true deprivation group but keeping the observed values of all other covariates in the dataset). We can then make a second set of predictions where all individuals are assumed to be in the least deprived group (`dep5=0`). This is called standardization and further examples can be found in the [standardized relative survival tutorial](standardized_relative_survival.qmd). 
 
 This approach allows us to investigate the differences in the marginal crude probabilities of death for this hypothetical population. Mathematically, it can be written as the following where $Z$ is the binary covariate `dep5` ($Z=1$ is the most deprived group and $Z=0$ is the least deprived group). 
 
@@ -397,8 +397,7 @@ the `predict` command and specify the values of the covariates we want to `predi
 >                 agediag(85)           ///  Age at diagnosis in the dataset
 >                 datediag(2011-1-1)    ///  Date of diagnosis in the dataset
 >                 pmage(age)            ///  Age variable in the popmort file
->                 pmyear(year)          ///  Year variable in the popmort file                  
->      
+>                 pmyear(year)          ///  Year variable in the popmort file                       
 >                 pmother(dep sex)      ///  Other variables included in the popmort file
 >                 pmrate(rate)          ///  Rate variable in the popmort file
 >                 pmmaxage(100)         ///  Maximum age in the popmort file
@@ -496,8 +495,7 @@ A panel plot can be produced using a loop over the 4 selected ages.
   4.   }
 . }
 
-. grc1leg age60 age70 age80 age90, title("Male, Stage 2, Deprivation Group 1, Diagnosed in 2011"
-> )
+. grc1leg age60 age70 age80 age90, title("Male, Stage 2, Deprivation Group 1, Diagnosed in 2011")
 
 ```
 
@@ -522,8 +520,7 @@ use 4 `at` options as an alternative to predictions for selected ages above.
 >              agediag(75)                         ///  
 >              datediag(2011-1-1)                 ///  
 >              pmage(age)                          ///  Age variable in the popmort file
->              pmyear(year)                        ///  Year variable in the popmort file       
->              
+>              pmyear(year)                        ///  Year variable in the popmort file                    
 >              pmother(dep sex)                    ///  Other variables in the popmort file
 >              pmrate(rate)                        ///  Rate variable in the popmort file
 >              pmmaxage(100)                       ///  Maximum age in the popmort file
@@ -562,8 +559,7 @@ Predictions are stored in frame - CP_stage
   4.   }
 . }
 
-. grc1leg stage1 stage2 stage3 stage4, title("Female, Age 75, Deprivation Group 5, Diagnosed in 
-> 2011") 
+. grc1leg stage1 stage2 stage3 stage4, title("Female, Age 75, Deprivation Group 5, Diagnosed in 2011") 
 
 ```
 

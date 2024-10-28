@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.555">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Direct modelling of marginal relative survival models</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark.min.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Paul Lambert</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../publications.html"> 
+<span class="menu-text">Publications</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../software.html"> 
+<span class="menu-text">Software</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../talks.html"> 
+<span class="menu-text">Talks</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../courses.html"> 
+<span class="menu-text">Courses</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../interactive_graphs.html"> 
+<span class="menu-text">Interactive graphs</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+          <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#background" id="toc-background" class="nav-link active" data-scroll-target="#background">Background</a></li>
+  <li><a href="#example" id="toc-example" class="nav-link" data-scroll-target="#example">Example</a>
+  <ul class="collapse">
+  <li><a href="#why-is-there-disagreement-when-a-model-with-no-covariates-is-fitted." id="toc-why-is-there-disagreement-when-a-model-with-no-covariates-is-fitted." class="nav-link" data-scroll-target="#why-is-there-disagreement-when-a-model-with-no-covariates-is-fitted.">Why is there disagreement when a model with no covariates is fitted.</a></li>
+  <li><a href="#regression-standardization" id="toc-regression-standardization" class="nav-link" data-scroll-target="#regression-standardization">Regression standardization</a></li>
+  </ul></li>
+  <li><a href="#using-mrsprep-to-prepare-data-for-fitting-a-marginal-modelling" id="toc-using-mrsprep-to-prepare-data-for-fitting-a-marginal-modelling" class="nav-link" data-scroll-target="#using-mrsprep-to-prepare-data-for-fitting-a-marginal-modelling">Using <code>mrsprep</code> to prepare data for fitting a marginal modelling</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content column-page-left" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Direct modelling of marginal relative survival models</h1>
+</div>
+
+
+
+<div class="quarto-title-meta column-page-left">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="background" class="level2">
+<h2 class="anchored" data-anchor-id="background">Background</h2>
+<p>When using relative survival we may be intested in both estimating relative survival <em>conditional</em> on specific covariate patterns, for example, for a male aged 70 diagnosed in 2018 with localized cancer, or <em>marginal</em> relative survival where we may interested in an average effect in a population or when making comparisons where we average over the same covariate (confounder) patterns. My <a href="../../software/standsurv.html"><code>standsurv</code></a> command can be used to estimate marginal relative survival after fitting a model conditional on covariates.</p>
+<p>The estimand of interest, is marginal relative survival. Consider a set of covariates, <span class="math inline">\(\mathbf{X}_i\)</span>, for the <span class="math inline">\(i^{th}\)</span> individual that may affect the rate of death from the cancer under study and the rate of death from other causes. The all cause rate of death, <span class="math inline">\(h(t|\mathbf{X}_i)\)</span>, can be partitioned into two components,</p>
+<p><span class="math display">\[
+h(t|\mathbf{X}_i) = h^*(t|\mathbf{X}_i) + \lambda(t|\mathbf{X}_i)
+\]</span></p>
+<p>where <span class="math inline">\(h^*(t|\mathbf{X}_i)\)</span> is the expected mortaliity rate and <span class="math inline">\(\lambda(t|\mathbf{X}_i)\)</span> is the excess mortality rate for the <span class="math inline">\(i^{th}\)</span> individual. The relative survival for covariate pattern, <span class="math inline">\(\mathbf{X}_i\)</span> is,</p>
+<p><span class="math display">\[
+R(t|\mathbf{X}_i) = \int_0^t {\lambda(u|\mathbf{X}_i) du}
+\]</span></p>
+<p>The marginal relative survival involves taking the expectation of <span class="math inline">\(R(t|\mathbf{X})\)</span> over covariate pattern, <span class="math inline">\(\mathbf{X}\)</span>,</p>
+<p><span class="math display">\[
+R^m(t|\mathbf{X}) = E_{\mathbf{X}}\left[R(t|\mathbf{X})\right]
+\tag{Equation 1}
+\]</span></p>
+<p>Note that in the above for simplicity, I assume the same covariates act on the expected and excess mortality rates, but this is not a requirement</p>
+</section>
+<section id="example" class="level2">
+<h2 class="anchored" data-anchor-id="example">Example</h2>
+<p>I use the Melanoma data, restricting to those diagnosed in the later calendar perdiod, 1985-1994. I restrict follow-up to 10 years after diagnosis using the <code>exit()</code> option.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>. <span class="kw">use</span> https:<span class="co">//pclambert.net/data/melanoma.dta if year8594 == 1 </span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>(Skin melanoma, diagnosed 1975-94, follow-up to 1995)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>. <span class="kw">stset</span> surv_mm, failure(status=1,2) id(id) <span class="kw">exit</span>(time 120.5) <span class="kw">scale</span>(12)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>Survival-time <span class="kw">data</span> settings</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>           ID <span class="kw">variable</span>: id</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>         Failure event: status==1 2</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>Observed time interval: (surv_mm[<span class="dt">_n</span>-1], surv_mm]</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>     Exit <span class="kw">on</span> <span class="kw">or</span> before: time 120.5</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>     Time <span class="kw">for</span> analysis: time/12</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>--------------------------------------------------------------------------</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>      4,744  <span class="kw">total</span> observations</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>          0  exclusions</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>--------------------------------------------------------------------------</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>      4,744  observations remaining, representing</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>      4,744  subjects</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>      1,401  failures <span class="kw">in</span> single-failure-per-subject <span class="kw">data</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a> 22,003.417  <span class="kw">total</span> analysis time <span class="fu">at</span> risk and under observation</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>                                                At risk from t =         0</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>                                     Earliest observed entry t =         0</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>                                          Last observed <span class="kw">exit</span> t =  10.04167</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>I will first estimate the non-parametric estimate of marginal relative survival using <a href="../..\software/stpp"><code>stpp</code></a>, so we have something to compare our model based estimates to.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>. stpp R_pp <span class="kw">using</span> https:<span class="co">//pclambert.net/data/popmort.dta, /// </span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>&gt;                 agediag(age) datediag(dx) pmother(sex)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>. frame put R_pp* _t, into(PP)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>I have saved the Pohar Perme estimates in a frame, so I can plot them after I restructure the data using <code>mrsprep</code>.</p>
+<p>I will now fit some relative survival models, but first I need to merge in the expected mortality rates at the event/censoring times.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>. <span class="co">// conditional model (no covariates)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>. <span class="kw">gen</span> _age = <span class="fu">floor</span>(<span class="fu">min</span>(age + _t,99))</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>. <span class="kw">gen</span> _year = <span class="fu">floor</span>(<span class="fu">year</span>(dx + _t*365.24))</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>. <span class="kw">merge</span> <span class="fu">m</span>:1 _age _year sex <span class="kw">using</span> https:<span class="co">//pclambert.net/data/popmort.dta, ///</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>&gt;           <span class="kw">keep</span>(<span class="fu">match</span> master)        </span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    Result                      Number <span class="kw">of</span> <span class="kw">obs</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    -----------------------------------------</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    Not matched                             0</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    Matched                             4,744  (<span class="dt">_merge</span>==3)</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    -----------------------------------------</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Now I will fit a flexible parametric relative survival model with no covariate using <code>stpm3</code>. I will then predict the estimated relative survival.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>. stpm3, <span class="kw">scale</span>(lncumhazard) df(5) bhazard(rate)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>Iteration 0:  Log likelihood = -4317.6147  </span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>Iteration 1:  Log likelihood = -4279.9521  </span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>Iteration 2:  Log likelihood = -4279.5867  </span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>Iteration 3:  Log likelihood = -4279.5864  </span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>                                                        Number <span class="kw">of</span> <span class="kw">obs</span> =  4,744</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>                                                        Wald <span class="fu">chi2</span>(5)  = 585.83</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>Log likelihood = -4279.5864                             Prob &gt; <span class="fu">chi2</span>   = 0.0000</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>------------------------------------------------------------------------------</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>             | Coefficient  Std. err.      z    P&gt;|z|     [95% conf. interval]</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>-------------+----------------------------------------------------------------</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>time         |</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        _ns1 |  -17.87731   1.426021   -12.54   0.000    -20.67226   -15.08236</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        _ns2 |   4.574298   .7477189     6.12   0.000     3.108796      6.0398</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>        _ns3 |  -1.225422   .0787509   -15.56   0.000    -1.379771   -1.071073</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>        _ns4 |  -.7203963   .0589846   -12.21   0.000    -.8360041   -.6047885</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>        _ns5 |  -.3020431    .075848    -3.98   0.000    -.4507024   -.1533838</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>       <span class="dt">_cons</span> |  -1.398172    .054032   -25.88   0.000    -1.504073   -1.292271</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>------------------------------------------------------------------------------</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>. <span class="kw">predict</span> s_cond, surv timevar(0 10, step(0.1)) frame(surv, <span class="kw">replace</span>) <span class="kw">ci</span>        </span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>Predictions are stored <span class="kw">in</span> frame - surv</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>I can now compare the model based and the non-parametric estimates.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>. <span class="kw">twoway</span> (rarea R_pp_lci R_pp_uci _t, <span class="kw">sort</span> <span class="kw">connect</span>(stairstep) <span class="kw">color</span>(%30))     <span class="co">///</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>&gt;        (<span class="kw">line</span> R_pp _t, <span class="kw">sort</span> <span class="kw">connect</span>(stairstep) pstyle(p1line)),              <span class="co">///</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>&gt;          <span class="kw">ylabel</span>(0.6(0.1)1, <span class="kw">format</span>(%3.1f))                                   <span class="co">///</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>&gt;          <span class="bn">ytitle</span>(<span class="st">"Marginal relative survival"</span>)                               <span class="co">///</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>&gt;          <span class="bn">xtitle</span>(<span class="st">"Years from diagnosis"</span>)                                     <span class="co">///</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>&gt;          <span class="bn">name</span>(int_stand, <span class="kw">replace</span>)   </span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>.          </span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>. frame surv: <span class="bn">addplot</span>: (<span class="kw">line</span> s_cond* tt, pstyle(p2line..)                 <span class="co">///</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>&gt;                                        lpattern(solid <span class="kw">dash</span> <span class="kw">dash</span>)        <span class="co">///</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>&gt;                      , <span class="bn">legend</span>(<span class="kw">order</span>(2 <span class="st">"Pohar Perme"</span>                     <span class="co">///</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>&gt;                                     3 <span class="st">"stpm3 model without covariates"</span>) <span class="co">///</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>&gt;                                     <span class="bn">ring</span>(0) <span class="bn">cols</span>(1) pos(7)) norescaling)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><img src="../..\statasvg/mrsprep_compare_pp_conditional_model.svg" class="img-fluid"></p>
+<p>It can be seen that there is disagrement between the non-parametric estimate and the model based estimate. This is not good and differs in what we would expect to see in a standard survival model. For example, if I fit an all-cause <code>stpm3</code> survival model without covariates I get the following graph comparing the model based estmates with a Kaplan Meier estimate.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><img src="../..\statasvg/mrsprep_allcause.svg" class="img-fluid"></p>
+<p>There is now near perfect agreement. I explain in the next section why there is disagreement between the model based and non-parametric estimate.</p>
+<section id="why-is-there-disagreement-when-a-model-with-no-covariates-is-fitted." class="level3">
+<h3 class="anchored" data-anchor-id="why-is-there-disagreement-when-a-model-with-no-covariates-is-fitted.">Why is there disagreement when a model with no covariates is fitted.</h3>
+<p>Consider the relative survival model fitted when not including any covariates.</p>
+<p><span class="math display">\[
+h(t|\mathbf{X}_i) = h^*(t|\mathbf{X}_i) + \lambda(t)
+\]</span></p>
+<p>In this model the excess mortality is assumed to be exactly the same for each individual. In this model the all cause mortality rate varies between individuals only through variation in expected (other cause) mortality rates and the excess (cancer) mortality rate is assumed to be the same for all individuals. This is different from the definition in Equation 1 where relative survival is allowed to vary between individuals. Assuming that the excess mortality is the same over age, sex etc is a very strong assumption and almost certainly not true.</p>
+</section>
+<section id="regression-standardization" class="level3">
+<h3 class="anchored" data-anchor-id="regression-standardization">Regression standardization</h3>
+<p>Regression standardization can be used in the relative survival framework. This means that we should include all covariates that affect expected mortality rates in the model. In the case of the Melanoma data this is age, sex and calendar year</p>
+<p>I will fit a model that uses restricted cubic splines to model the effect of age at diagnosis and also relax the proportional hazards assumption for the effect of age by allowing an interaction with time. The model will include sex and calendar years as these both impact the expected mortality rates. I will allow the effect of sex to be time-dependent (non-proportional), and model the effect of year of diagnosis using restricted cubic splines. A key point here is that various modelling choices need to be made, for example, I have chosen not to include interactions between any of the covariates. Different modelling choices will result in different estimates.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>. <span class="kw">gen</span> female = sex==2</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>. stpm3 @ns(age,df(3)) i.female @ns(yydx,df(3)), <span class="kw">scale</span>(lncumhazard) df(5) bhazard(rate) <span class="co">///</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>&gt;                           tvc(@ns(age,df(3)) i.female) dftvc(3)   </span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>Iteration 0:  Log likelihood = -4282.7708  </span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>Iteration 1:  Log likelihood = -4232.0164  </span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>Iteration 2:  Log likelihood = -4217.1952  </span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>Iteration 3:  Log likelihood = -4216.7915  </span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>Iteration 4:  Log likelihood = -4216.7715  </span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>Iteration 5:  Log likelihood =  -4216.771  </span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>Iteration 6:  Log likelihood =  -4216.771  </span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>                                                        Number <span class="kw">of</span> <span class="kw">obs</span> =  4,744</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>                                                        Wald <span class="fu">chi2</span>(7)  =  42.75</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>Log likelihood = -4216.771                              Prob &gt; <span class="fu">chi2</span>   = 0.0000</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>------------------------------------------------------------------------------------------</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>                         | Coefficient  Std. err.      z    P&gt;|z|     [95% conf. interval]</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>-------------------------+----------------------------------------------------------------</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a><span class="kw">xb</span>                       |</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>             _ns_f1_age1 |  -11.22114   3.385041    -3.31   0.001     -17.8557   -4.586584</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>             _ns_f1_age2 |   1.989596   1.260412     1.58   0.114    -.4807653    4.459957</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>             _ns_f1_age3 |   -3.86527   1.260658    -3.07   0.002    -6.336114   -1.394427</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>                1.female |  -.4872245   .1119448    -4.35   0.000    -.7066323   -.2678167</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>            _ns_f1_yydx1 |  -.0434216   .5642721    -0.08   0.939    -1.149375    1.062531</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>            _ns_f1_yydx2 |  -.4650447   .2809398    -1.66   0.098    -1.015677    .0855871</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>            _ns_f1_yydx3 |  -.1871899   .3394343    -0.55   0.581    -.8524689    .4780891</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>-------------------------+----------------------------------------------------------------</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>time                     |</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>                    _ns1 |  -36.82314    26.3184    -1.40   0.162    -88.40626    14.75998</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>                    _ns2 |   9.331382   11.01803     0.85   0.397    -12.26356    30.92633</span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>                    _ns3 |  -2.918356   .8051024    -3.62   0.000    -4.496327   -1.340384</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>                    _ns4 |  -1.910931   .7813821    -2.45   0.014    -3.442412   -.3794507</span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>                    _ns5 |  -1.106962   .8472997    -1.31   0.191    -2.767639    .5537151</span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>                         |</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>c._ns_f1_age1#c._ns_tvc1 |  -1.731685   118.9872    -0.01   0.988    -234.9422    231.4789</span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>                         |</span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>c._ns_f1_age1#c._ns_tvc2 |   16.01398   60.12386     0.27   0.790    -101.8266    133.8546</span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>                         |</span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>c._ns_f1_age1#c._ns_tvc3 |  -.7339993   6.025834    -0.12   0.903    -12.54442    11.07642</span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>                         |</span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>c._ns_f1_age2#c._ns_tvc1 |    28.7778   39.36414     0.73   0.465     -48.3745    105.9301</span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>                         |</span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a>c._ns_f1_age2#c._ns_tvc2 |  -17.24092   20.88894    -0.83   0.409    -58.18249    23.70065</span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a>                         |</span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a>c._ns_f1_age2#c._ns_tvc3 |   1.386903   2.317659     0.60   0.550    -3.155626    5.929431</span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a>                         |</span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a>c._ns_f1_age3#c._ns_tvc1 |   24.54162   43.35966     0.57   0.571    -60.44175     109.525</span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a>                         |</span>
+<span id="cb8-51"><a href="#cb8-51" aria-hidden="true" tabindex="-1"></a>c._ns_f1_age3#c._ns_tvc2 |  -5.038554   21.17538    -0.24   0.812    -46.54154    36.46443</span>
+<span id="cb8-52"><a href="#cb8-52" aria-hidden="true" tabindex="-1"></a>                         |</span>
+<span id="cb8-53"><a href="#cb8-53" aria-hidden="true" tabindex="-1"></a>c._ns_f1_age3#c._ns_tvc3 |   2.869028   2.100064     1.37   0.172    -1.247021    6.985077</span>
+<span id="cb8-54"><a href="#cb8-54" aria-hidden="true" tabindex="-1"></a>                         |</span>
+<span id="cb8-55"><a href="#cb8-55" aria-hidden="true" tabindex="-1"></a>       female#c._ns_tvc1 |</span>
+<span id="cb8-56"><a href="#cb8-56" aria-hidden="true" tabindex="-1"></a>                      1  |   4.273373   2.755442     1.55   0.121    -1.127194    9.673939</span>
+<span id="cb8-57"><a href="#cb8-57" aria-hidden="true" tabindex="-1"></a>                         |</span>
+<span id="cb8-58"><a href="#cb8-58" aria-hidden="true" tabindex="-1"></a>       female#c._ns_tvc2 |</span>
+<span id="cb8-59"><a href="#cb8-59" aria-hidden="true" tabindex="-1"></a>                      1  |  -2.243662   1.420855    -1.58   0.114    -5.028487    .5411632</span>
+<span id="cb8-60"><a href="#cb8-60" aria-hidden="true" tabindex="-1"></a>                         |</span>
+<span id="cb8-61"><a href="#cb8-61" aria-hidden="true" tabindex="-1"></a>       female#c._ns_tvc3 |</span>
+<span id="cb8-62"><a href="#cb8-62" aria-hidden="true" tabindex="-1"></a>                      1  |   .0362194   .1836685     0.20   0.844    -.3237642     .396203</span>
+<span id="cb8-63"><a href="#cb8-63" aria-hidden="true" tabindex="-1"></a>                         |</span>
+<span id="cb8-64"><a href="#cb8-64" aria-hidden="true" tabindex="-1"></a>                   <span class="dt">_cons</span> |   1.499636   .7380288     2.03   0.042     .0531259    2.946146</span>
+<span id="cb8-65"><a href="#cb8-65" aria-hidden="true" tabindex="-1"></a>------------------------------------------------------------------------------------------</span>
+<span id="cb8-66"><a href="#cb8-66" aria-hidden="true" tabindex="-1"></a>Extended functions</span>
+<span id="cb8-67"><a href="#cb8-67" aria-hidden="true" tabindex="-1"></a> (1) @ns(age, df(3))</span>
+<span id="cb8-68"><a href="#cb8-68" aria-hidden="true" tabindex="-1"></a> (2) @ns(yydx, df(3))</span>
+<span id="cb8-69"><a href="#cb8-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-70"><a href="#cb8-70" aria-hidden="true" tabindex="-1"></a>. <span class="kw">range</span> tt 0 10 101</span>
+<span id="cb8-71"><a href="#cb8-71" aria-hidden="true" tabindex="-1"></a>(4,643 <span class="fu">missing</span> <span class="kw">values</span> generated)</span>
+<span id="cb8-72"><a href="#cb8-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-73"><a href="#cb8-73" aria-hidden="true" tabindex="-1"></a>. standsurv mrs_cond, surv timevar(tt) <span class="kw">ci</span> frame(margrs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>After fitting the model I have used <code>standsurv</code> to obtain the estimate of marginal relative survival using regression standardization. This predicts a relative survival function for each individual conditional on their observed covariate pattern and takes the average of these curves. In this case there are 4,744 individuals in the study and so the estimated marginal relative survival is an average of 4,744 different survival curves.</p>
+<p>I can now compare the model based estimate, based on regression standardization, and the non-parametric Pohar Perme estimate.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>. <span class="kw">twoway</span> (rarea R_pp_lci R_pp_uci _t, <span class="kw">sort</span> <span class="kw">connect</span>(stairstep) <span class="kw">color</span>(%30))                 <span class="co">///</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>&gt;        (<span class="kw">line</span> R_pp _t, <span class="kw">sort</span> <span class="kw">connect</span>(stairstep) pstyle(p1line)),                          <span class="co">///</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>&gt;          <span class="kw">ylabel</span>(0.6(0.1)1, <span class="kw">format</span>(%3.1f))                                               <span class="co">///</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>&gt;          <span class="bn">ytitle</span>(<span class="st">"Marginal relative survival"</span>)                                           <span class="co">///</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>&gt;          <span class="bn">xtitle</span>(<span class="st">"Years from diagnosis"</span>)                                                 <span class="co">///</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>&gt;          <span class="bn">name</span>(int_stand_standsurv, <span class="kw">replace</span>)      </span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>. frame margrs: <span class="bn">addplot</span>: (<span class="kw">line</span> mrs_cond* tt, pstyle(p2line..)                             <span class="co">///</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>&gt;                                                 lpattern(solid <span class="kw">dash</span> <span class="kw">dash</span>)               <span class="co">///</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>&gt;                         <span class="bn">legend</span>(<span class="kw">order</span>(2 <span class="st">"Pohar Perme"</span>                                    <span class="co">///</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>&gt;                                      3 <span class="st">"Regression standardization after stpm3 model"</span>)  <span class="co">///</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>&gt;                                <span class="bn">ring</span>(0) <span class="bn">cols</span>(1) pos(7)) norescaling)  </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><img src="../..\statasvg/int_stand_standsurv.svg" class="img-fluid"></p>
+<p>There is now good agreement between the estimate based on regression standardizion and the non-parametric estimate. I will now move on to describing how to model marginal relative survival directly, so we can make fewer modelling decisions if we are only interested in the estimation of marginal relative survival.</p>
+</section>
+</section>
+<section id="using-mrsprep-to-prepare-data-for-fitting-a-marginal-modelling" class="level2">
+<h2 class="anchored" data-anchor-id="using-mrsprep-to-prepare-data-for-fitting-a-marginal-modelling">Using <code>mrsprep</code> to prepare data for fitting a marginal modelling</h2>
+<p>In order to directly model marginal relative survival I will run <code>mrsprep</code>. This does two things, (1). It calculates time-dependent weights which are the inverse of the expected survival. These are needed as the estimand of interest is in the net world, where it is not possible to die from causes other than the cancer under study. However, we have data in the real world and as follow-up time increases we have fewer at risk and fewer deaths than we would see in the net world. The weights are based on the same idea as the weights used in the Pohar Perme non-parametric estimate. (2). At each event time it calculates the weighted mean mortality (hazard) rate for those still at risk. The weights are based on the inverse of expected survival among those at risk. The weighted mean is needed as the marginal relative survival is of interest. See the paper for more details.</p>
+<p>The code for <code>mrsprep</code> is shown below.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>. mrsprep <span class="kw">using</span> https:<span class="co">//pclambert.net/data/popmort.dta   ///</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>&gt;               , pmother(sex) agediag(age) datediag(dx) <span class="co">///</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>&gt;                 breaks(0(0.2)10)                       </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><code>mrsprep</code> needs the filename of where the expected mortality rates are stored. It requires the name of the variable for age at diagnosis and the name of the variable for date of diagnosis. It also needs the name of variables other than age and calendar year that the expected mortality rates are stratified by, in this case this is just <code>sex.</code> The final option is <code>breaks(0(0.2)10)</code>. This splits the time scale into intervals, each of width 0.2 years. The weights are calculated at the mid-point of each interval. This is an approximation, greater precision can be obtained with narrower intervals, but the expanded dataset becomes larger. See the paper for a sensitivity analysis for different interval widths.</p>
+<p>Below is a listing for the first two individuals in the dataset.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>. <span class="ot">list</span> id age sex tstart tstop wt meanhazard_wt event <span class="kw">if</span> <span class="fu">inlist</span>(id,51,574), <span class="co">///</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>&gt;      <span class="kw">noobs</span> sepby(id) <span class="fu">abbrev</span>(13)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  +--------------------------------------------------------------------------+</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  |  id   age   sex   tstart       tstop          wt   meanhazard_wt   event |</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  |--------------------------------------------------------------------------|</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  |  51    86     1        0          .2    1.017644             999       0 |</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  |  51    86     1       .2          .4   1.0556412             999       0 |</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  |  51    86     1       .4          .6   1.0968963             999       0 |</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  |  51    86     1       .6          .8   1.1378526             999       0 |</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  |  51    86     1       .8           1   1.1783593             999       0 |</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  |  51    86     1        1         1.2   1.2222716             999       0 |</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>  |  51    86     1      1.2       1.375   1.2674326       .02960256       1 |</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>  |--------------------------------------------------------------------------|</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>  | 574    69     2        0          .2   1.0039818             999       0 |</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>  | 574    69     2       .2          .4   1.0119931             999       0 |</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>  | 574    69     2       .4          .6   1.0206144             999       0 |</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>  | 574    69     2       .6          .8   1.0298603             999       0 |</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>  | 574    69     2       .8           1   1.0391899             999       0 |</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>  | 574    69     2        1         1.2   1.0486292             999       0 |</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      1.2         1.4   1.0581798             999       0 |</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      1.4         1.6   1.0673769             999       0 |</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      1.6         1.8   1.0762101             999       0 |</span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      1.8           2    1.085564             999       0 |</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>  | 574    69     2        2         2.2   1.0958287             999       0 |</span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      2.2         2.4   1.1065721             999       0 |</span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      2.4         2.6   1.1174208             999       0 |</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      2.6         2.8   1.1283759             999       0 |</span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      2.8           3   1.1394383             999       0 |</span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>  | 574    69     2        3         3.2   1.1510196             999       0 |</span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      3.2         3.4   1.1631333             999       0 |</span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      3.4         3.6   1.1753744             999       0 |</span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      3.6         3.8   1.1877444             999       0 |</span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      3.8           4   1.2002446             999       0 |</span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>  | 574    69     2        4         4.2   1.2135969             999       0 |</span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      4.2         4.4   1.2278268             999       0 |</span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      4.4         4.6   1.2422236             999       0 |</span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      4.6         4.8   1.2567893             999       0 |</span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      4.8           5   1.2715257             999       0 |</span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>  | 574    69     2        5         5.2   1.2863285             999       0 |</span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      5.2         5.4   1.3011962             999       0 |</span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      5.4         5.6   1.3162357             999       0 |</span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      5.6         5.8    1.331449             999       0 |</span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      5.8           6   1.3468382             999       0 |</span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a>  | 574    69     2        6         6.2   1.3633453             999       0 |</span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      6.2         6.4    1.381007             999       0 |</span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      6.4         6.6   1.3988974             999       0 |</span>
+<span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      6.6         6.8   1.4170196             999       0 |</span>
+<span id="cb11-49"><a href="#cb11-49" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      6.8           7   1.4353766             999       0 |</span>
+<span id="cb11-50"><a href="#cb11-50" aria-hidden="true" tabindex="-1"></a>  | 574    69     2        7         7.2   1.4547646             999       0 |</span>
+<span id="cb11-51"><a href="#cb11-51" aria-hidden="true" tabindex="-1"></a>  | 574    69     2      7.2   7.2916667   1.4696508       .03708329       1 |</span>
+<span id="cb11-52"><a href="#cb11-52" aria-hidden="true" tabindex="-1"></a>  +--------------------------------------------------------------------------+</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Individual 51 is 86 years old at diagnosis and male. They have 7 rows of data with each row corresponding to a different time interval. The start of the interval is given by <code>tstart</code> and the end of the interval by <code>tstop</code>. Each time interval is 0.2 years, execept the last interval in which they die (<code>event==1</code>) at 1.375 years. For each interval there is an associated weight (<code>wt</code>), which is the inverse of the expected survival at the midpoint of the interval. As the expected survival decreases over time, the weights increase over time. The <code>meanhazard_wt</code> gives the weighted mean expected mortality rate at each individuals event time. Note that for any censored time it is set to <code>999</code>. When fitting relative survival models using <code>stpm3</code> or other commands the expected mortality rate at the event time is needed, but is not required for any censored times. However, having a missing value would exclude these rows from the analysis and so we feed it a value that is actually not used when we fit the model. Individual 574 is younger than Individual 1 and so the weights are lower at the same time points, e.g.&nbsp;1.039 vs 1.222 at 1 year.</p>
+<p>Having restructured the data we can now use <code>stset</code> where we need to give the end of each interval (<code>tstop</code>), the start of the interval (<code>tstart</code>). The weights are passed using <code>[iweights=wt]</code>.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>. <span class="kw">stset</span> tstop [<span class="kw">iweight</span>=wt], enter(tstart) failure(event==1)                                          </span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>Survival-time <span class="kw">data</span> settings</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>         Failure event: event==1</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>Observed time interval: (0, tstop]</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>     Enter <span class="kw">on</span> <span class="kw">or</span> after: time tstart</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>     Exit <span class="kw">on</span> <span class="kw">or</span> before: failure</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>                Weight: [<span class="kw">iweight</span>=wt]</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>--------------------------------------------------------------------------</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    112,229  <span class="kw">total</span> observations</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>          0  exclusions</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>--------------------------------------------------------------------------</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    112,229  observations remaining, representing</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>      1,401  failures <span class="kw">in</span> single-record/single-failure <span class="kw">data</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a> 21,994.417  <span class="kw">total</span> analysis time <span class="fu">at</span> risk and under observation</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>                                                At risk from t =         0</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>                                     Earliest observed entry t =         0</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>                                          Last observed <span class="kw">exit</span> t =        10</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The marginal model van now be fitted using <code>stpm3</code>. As there are time-dependent weights cluster robust standard errors are used using <code>vce(cluster id)</code>.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>. stpm3, <span class="kw">scale</span>(lncumhazard) df(5) bhazard(meanhazard_wt) <span class="kw">vce</span>(<span class="kw">cluster</span> id)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>Iteration 0:  Log pseudolikelihood = -5644.1536  </span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>Iteration 1:  Log pseudolikelihood = -5557.6921  </span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>Iteration 2:  Log pseudolikelihood = -5557.3554  </span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>Iteration 3:  Log pseudolikelihood = -5557.3542  </span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>Iteration 4:  Log pseudolikelihood = -5557.3542  </span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>                                                       Number <span class="kw">of</span> <span class="kw">obs</span> = 112,229</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>                                                       Wald <span class="fu">chi2</span>(5)  =  589.51</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>Log pseudolikelihood = -5557.3542                      Prob &gt; <span class="fu">chi2</span>   =  0.0000</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>                                 (Std. err. adjusted <span class="kw">for</span> 4,744 clusters <span class="kw">in</span> id)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>------------------------------------------------------------------------------</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>             |               Robust</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>             | Coefficient  <span class="fu">std</span>. err.      z    P&gt;|z|     [95% conf. interval]</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>-------------+----------------------------------------------------------------</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>time         |</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>        _ns1 |  -18.20708   1.089207   -16.72   0.000    -20.34189   -16.07227</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>        _ns2 |   4.682916   .5470787     8.56   0.000     3.610662    5.755171</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>        _ns3 |  -1.065117   .1005134   -10.60   0.000     -1.26212   -.8681146</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>        _ns4 |  -.5983905   .0831871    -7.19   0.000    -.7614342   -.4353468</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>        _ns5 |   -.135204    .136843    -0.99   0.323    -.4034113    .1330033</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>       <span class="dt">_cons</span> |  -1.217818   .0846971   -14.38   0.000    -1.383821   -1.051815</span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>------------------------------------------------------------------------------</span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>. <span class="kw">predict</span> rs_mrsprep, surv timevar(0 10, step(0.1)) <span class="kw">ci</span> frame(margrs,<span class="kw">replace</span>)</span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>Predictions are stored <span class="kw">in</span> frame - margrs</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>After fitting the model, the marginal relative survival has been predicted. This can now be compared to the Pohar Perme non-parametric estimate.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>. frame PP {</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>.   <span class="kw">twoway</span> (rarea R_pp_lci R_pp_uci _t, <span class="kw">sort</span> <span class="kw">connect</span>(stairstep) <span class="kw">color</span>(%30))   <span class="co">///</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>&gt;          (<span class="kw">line</span> R_pp _t, <span class="kw">sort</span> <span class="kw">connect</span>(stairstep) pstyle(p1line))             <span class="co">///</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>&gt;          , <span class="bn">legend</span>(<span class="kw">order</span>(2 <span class="st">"Pohar Perme"</span> 3 <span class="st">"Marginal stpm2 model"</span>)           <span class="co">///</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>&gt;                   <span class="bn">ring</span>(0) <span class="bn">cols</span>(1) pos(7))                                   <span class="co">///</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>&gt;            <span class="kw">ylabel</span>(0.6(0.1)1, <span class="kw">format</span>(%3.1f))                                 <span class="co">///</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>&gt;            <span class="bn">ytitle</span>(<span class="st">"Marginal relative survival"</span>)                             <span class="co">///</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>&gt;            <span class="bn">xtitle</span>(<span class="st">"Years from diagnosis"</span>)                                   <span class="co">///</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>&gt;            <span class="bn">name</span>(int_stand_standsurv, <span class="kw">replace</span>)   </span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>. }</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>. frame margrs: <span class="bn">addplot</span>: (<span class="kw">line</span> rs_mrsprep* tt, pstyle(p2line..)           <span class="co">///</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>&gt;                                              lpattern(solid <span class="kw">dash</span> <span class="kw">dash</span>)  <span class="co">///</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>&gt;                                              norescaling                <span class="co">///</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>&gt;                         <span class="bn">legend</span>(<span class="kw">order</span>(2 <span class="st">"Pohar Perme"</span>                    <span class="co">///</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>&gt;                                      3 <span class="st">"Marginal stpm3 model"</span>)          <span class="co">///</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>&gt;                                <span class="bn">ring</span>(0) <span class="bn">cols</span>(1) pos(7)))           </span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>.            </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><img src="../..\statasvg/int_stand_standsurv.svg" class="img-fluid"></p>
+<p>There is now good agreement between the model based and the non parametric Pohar Perme estimate. Here the marginal estimate obtained from regression standardization and the marginal model are very similar.</p>
+<p>The estimate here is an internally standardized estimate, over the observed covariate distribution and thus would not be comparable to another study with a different age/sex distribution or if separate analysis were performed for males and females. See the example of <a href="../../software/mrsprep/mrsprep_external_age_standardization.html">external age standardization</a> and <a href="../../software/mrsprep/mrsprep_modelling_covariates.html">modelling covarites</a> for further extensions.</p>
+<p>Note that <code>mrsprep</code> makes uses of frames.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>. frame</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  (current frame is mrs_data)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>. frames <span class="ot">dir</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>* PP        4744 x 4; Skin melanoma, diagnosed 1975-94, follow-up to 1995</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>* <span class="kw">default</span>   4744 x 50; Skin melanoma, diagnosed 1975-94, follow-up to 1995</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>* margrs    101 x 4</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>* mrs_data  112229 x 29</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>* surv      101 x 4; Skin melanoma, diagnosed 1975-94, follow-up to 1995</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>Note: Frames marked with * contain unsaved <span class="kw">data</span>.</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>It is possible to switch to the orginal data using <code>frame change default</code>.</p>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<p>Lambert PC, Syriopoulou E, Rutherford MJ. <a href="https://doi.org/10.1186/s12874-021-01266-1">Direct modelling of age standardized marginal relative survival through incorporation of time-dependent weights.</a> <em>BMC Medical Research Methodology</em> 2021;<strong>21</strong>:84</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+    const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+    const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+    let newTheme = '';
+    if(darkModeDefault) {
+      newTheme = isAlternate ? baseTheme : alternateTheme;
+    } else {
+      newTheme = isAlternate ? alternateTheme : baseTheme;
+    }
+    const changeGiscusTheme = () => {
+      // From: https://github.com/giscus/giscus/issues/336
+      const sendMessage = (message) => {
+        const iframe = document.querySelector('iframe.giscus-frame');
+        if (!iframe) return;
+        iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+      }
+      sendMessage({
+        setConfig: {
+          theme: newTheme
+        }
+      });
+    }
+    const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+    if (isGiscussLoaded) {
+      changeGiscusTheme();
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  const darkModeDefault = false;
+  let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+    toggleGiscusIfUsed(toAlternate, darkModeDefault);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

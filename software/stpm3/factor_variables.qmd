@@ -1,5 +1,6 @@
 ---
 title: "Factor Variables"
+highlight-style: monochrome
 ---
 
 

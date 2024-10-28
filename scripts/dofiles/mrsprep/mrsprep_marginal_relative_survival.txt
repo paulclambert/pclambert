@@ -1,0 +1,339 @@
+---
+title: "Direct modelling of marginal relative survival models"
+---
+
+
+```stata
+<<dd_do: quietly>>
+clear frames 
+set scheme fpsaus_c
+<</dd_do>>
+```
+
+## Background
+
+When using relative survival we may be intested in both estimating relative survival *conditional* on specific covariate patterns, for example,
+for a male aged 70 diagnosed in 2018 with localized cancer, or *marginal* relative survival where we may interested in an average effect in a population or when making comparisons
+where we average over the same covariate (confounder) patterns. My  [`standsurv`](/software/standsurv.qmd) command   can be used to estimate marginal relative survival after fitting a model conditional on covariates.
+
+The estimand of interest, is marginal relative survival. Consider a set of covariates, $\mathbf{X}_i$, for the $i^{th}$ individual that may affect the rate of death from the cancer under study and the rate of death from other causes.
+The all cause rate of death, $h(t|\mathbf{X}_i)$, can be partitioned into two components,
+
+$$
+h(t|\mathbf{X}_i) = h^*(t|\mathbf{X}_i) + \lambda(t|\mathbf{X}_i)
+$$
+
+where $h^*(t|\mathbf{X}_i)$ is the expected mortaliity rate and $\lambda(t|\mathbf{X}_i)$ is the excess mortality rate for the $i^{th}$ individual. The relative survival for covariate pattern, $\mathbf{X}_i$ is,
+
+$$
+R(t|\mathbf{X}_i) = \int_0^t {\lambda(u|\mathbf{X}_i) du}
+$$
+
+The marginal relative survival involves taking the expectation of $R(t|\mathbf{X})$ over covariate pattern, $\mathbf{X}$,
+
+$$
+R^m(t|\mathbf{X}) = E_{\mathbf{X}}\left[R(t|\mathbf{X})\right]
+\tag{Equation 1}
+$$
+
+
+Note that in the above for simplicity, I assume the same covariates act on the expected and excess mortality rates, but this is not a requirement
+
+## Example
+
+I use the Melanoma data, restricting to those diagnosed in the later calendar perdiod, 1985-1994. 
+I restrict follow-up to 10 years after diagnosis using the `exit()` option. 
+
+```stata
+<<dd_do>>
+use https://pclambert.net/data/melanoma.dta if year8594 == 1 
+stset surv_mm, failure(status=1,2) id(id) exit(time 120.5) scale(12)
+<</dd_do>>
+```
+
+I will first estimate the non-parametric estimate of marginal relative survival using [`stpp`](/software/stpp), so we have something to compare our model based estimates to.
+
+```stata
+<<dd_do >>
+stpp R_pp using https://pclambert.net/data/popmort.dta, /// 
+                agediag(age) datediag(dx) pmother(sex)
+frame put R_pp* _t, into(PP)
+<</dd_do>>
+```
+
+I have saved the Pohar Perme estimates in a frame, so I can plot them after I restructure the data using `mrsprep`.
+
+I will now fit some relative survival models, but first I need to merge in the expected mortality rates at the event/censoring times.
+
+        
+```stata
+<<dd_do >>
+// conditional model (no covariates)
+gen _age = floor(min(age + _t,99))
+gen _year = floor(year(dx + _t*365.24))
+merge m:1 _age _year sex using https://pclambert.net/data/popmort.dta, ///
+          keep(match master)        
+<</dd_do>>
+```
+        
+Now I will fit a flexible parametric relative survival model with no covariate using `stpm3`. I will then predict the estimated relative survival.
+
+```stata
+<<dd_do >>
+stpm3, scale(lncumhazard) df(5) bhazard(rate)
+predict s_cond, surv timevar(0 10, step(0.1)) frame(surv, replace) ci        
+<</dd_do>>
+```
+
+
+I can now compare the model based and the non-parametric estimates. 
+
+```stata
+<<dd_do >>
+twoway (rarea R_pp_lci R_pp_uci _t, sort connect(stairstep) color(%30))     ///
+       (line R_pp _t, sort connect(stairstep) pstyle(p1line)),              ///
+         ylabel(0.6(0.1)1, format(%3.1f))                                   ///
+         ytitle("Marginal relative survival")                               ///
+         xtitle("Years from diagnosis")                                     ///
+         name(int_stand, replace)   
+         
+frame surv: addplot: (line s_cond* tt, pstyle(p2line..)                 ///
+                                       lpattern(solid dash dash)        ///
+                     , legend(order(2 "Pohar Perme"                     ///
+                                    3 "stpm3 model without covariates") ///
+                                    ring(0) cols(1) pos(7)) norescaling)
+<</dd_do>>
+```
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/mrsprep_compare_pp_conditional_model.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/mrsprep_compare_pp_conditional_model.svg)
+
+
+It can be seen that there is disagrement between the non-parametric estimate and the model based estimate. This is not good and differs in what we would expect to see in a standard survival model. 
+For example, if I fit an all-cause `stpm3` survival model without covariates I get the following graph comparing the model based estmates with a Kaplan Meier estimate.
+
+```stata
+<<dd_do: quietly >>
+preserve
+sts generate s_km = s s_km_lci=lb(s) s_km_uci=ub(s) 
+stpm3, scale(lncumhazard) df(5)
+predict s_allcause, surv timevar(0 10, step(0.1)) merge ci
+     
+twoway (rarea s_km_lci s_km_uci _t, sort connect(stairstep) color(%30))  ///
+       (line s_km _t, sort connect(stairstep) pstyle(p1line))            ///
+       (line s_allcause* tt, pstyle(p2line..) lpattern(solid dash dash)) ///
+       , legend(order(2 "Kaplan-Meier"                                   ///
+                      3 "All cause stpm3 model without covariates")      ///
+                      ring(0) cols(1) pos(7))                            ///
+         ylabel(0.4(0.1)1, format(%3.1f))                                ///
+         ytitle("Marginal relative survival")                            ///
+         xtitle("Years from diagnosis")                                  ///
+         name(allcause, replace)      
+graph export ${DRIVE}/github/pclambert/statasvg/mrsprep_allcause.svg, replace width(700px)
+restore
+<</dd_do>>
+```
+
+![](/statasvg/mrsprep_allcause.svg)
+
+There is now near perfect agreement. I explain in the next section why there is disagreement between the model based and non-parametric estimate.
+
+### Why is there disagreement when a model with no covariates is fitted.
+
+Consider the relative survival model fitted when not including any covariates.
+
+$$
+h(t|\mathbf{X}_i) = h^*(t|\mathbf{X}_i) + \lambda(t)
+$$
+
+In this model the excess mortality is assumed to be exactly the same for each individual. 
+In this model the all cause mortality rate varies between individuals only through variation in expected (other cause) mortality rates and the
+excess (cancer) mortality rate is assumed to be the same for all individuals. This is different from the definition in Equation 1 where 
+relative survival is allowed to vary between individuals. Assuming that the excess mortality is the same over age, sex etc is a very strong assumption and
+almost certainly not true.
+
+### Regression standardization
+
+Regression standardization can be used in the relative survival framework. This means that we should include all covariates that affect expected
+mortality rates in the model. In the case of the Melanoma data this is age, sex and calendar year
+
+I will fit a model that uses restricted cubic splines to model the effect of age at diagnosis and also relax the proportional hazards assumption
+for the effect of age by allowing an interaction with time. The model will include sex and calendar years as these both impact the expected mortality rates.
+I will allow the effect of sex to be time-dependent (non-proportional), and model the effect of year of diagnosis using restricted cubic splines.
+A key point here is that various modelling choices need to be made, for example, I have chosen not to include interactions between any of the covariates.
+Different modelling choices will result in different estimates.
+
+
+```stata
+<<dd_do >>
+gen female = sex==2
+stpm3 @ns(age,df(3)) i.female @ns(yydx,df(3)), scale(lncumhazard) df(5) bhazard(rate) ///
+                          tvc(@ns(age,df(3)) i.female) dftvc(3)   
+range tt 0 10 101
+standsurv mrs_cond, surv timevar(tt) ci frame(margrs)
+<</dd_do>>
+```
+
+After fitting the model I have used `standsurv` to obtain the estimate of marginal relative survival using regression standardization. This predicts a relative survival
+function for each individual conditional on their observed covariate pattern and takes the average of these curves. In this case there are 4,744
+individuals in the study and so the estimated marginal relative survival is an average of 4,744 different survival curves.
+
+I can now compare the model based estimate, based on regression standardization, and the non-parametric Pohar Perme estimate. 
+
+```stata
+<<dd_do >>
+twoway (rarea R_pp_lci R_pp_uci _t, sort connect(stairstep) color(%30))                 ///
+       (line R_pp _t, sort connect(stairstep) pstyle(p1line)),                          ///
+         ylabel(0.6(0.1)1, format(%3.1f))                                               ///
+         ytitle("Marginal relative survival")                                           ///
+         xtitle("Years from diagnosis")                                                 ///
+         name(int_stand_standsurv, replace)      
+frame margrs: addplot: (line mrs_cond* tt, pstyle(p2line..)                             ///
+                                                lpattern(solid dash dash)               ///
+                        legend(order(2 "Pohar Perme"                                    ///
+                                     3 "Regression standardization after stpm3 model")  ///
+                               ring(0) cols(1) pos(7)) norescaling)  
+<</dd_do>>
+```
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/int_stand_standsurv.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/int_stand_standsurv.svg)
+
+
+There is now good agreement between the estimate based on regression standardizion and the non-parametric estimate.
+I will now move on to describing how to model marginal relative survival directly, so we can make fewer modelling decisions
+if we are only interested in the estimation of marginal relative survival.
+
+## Using `mrsprep` to prepare data for fitting a marginal modelling
+
+In order to directly model marginal relative survival I will run `mrsprep`. This does two things, 
+(1). It calculates time-dependent weights which are the inverse of the expected survival. 
+These are needed as the estimand of interest is in the net world, where it is not possible
+to die from causes other than the cancer under study. However, we have data in the real world and as
+follow-up time increases we have fewer at risk and fewer deaths than we would see in the net world.
+The weights are based on the same idea as the weights used in the Pohar Perme non-parametric estimate.
+(2). At each event time it calculates the weighted mean mortality (hazard) rate for those still at risk. The weights are based on the 
+inverse of expected survival among those at risk. The weighted mean is needed as the marginal relative survival is of interest. 
+See the paper for more details.
+
+
+The code for `mrsprep` is shown below.
+```stata
+<<dd_do >>
+mrsprep using https://pclambert.net/data/popmort.dta   ///
+              , pmother(sex) agediag(age) datediag(dx) ///
+                breaks(0(0.2)10)                       
+<</dd_do>>
+```
+
+`mrsprep` needs the filename of where the expected mortality rates are stored.
+It requires the name of the variable for age at diagnosis and the name
+of the variable for date of diagnosis. It also needs the name of variables 
+other than age and calendar year that the expected mortality rates are stratified by, in this
+case this is just `sex.` The final option is `breaks(0(0.2)10)`. This splits the 
+time scale into intervals, each of width 0.2 years. The weights are calculated at the mid-point of 
+each interval. This is an approximation, greater precision can be obtained with
+narrower intervals, but the expanded dataset becomes larger. See the paper for
+a sensitivity analysis for different interval widths.
+
+Below is a listing for the first two individuals in the dataset.
+
+```stata
+<<dd_do >>
+list id age sex tstart tstop wt meanhazard_wt event if inlist(id,51,574), ///
+     noobs sepby(id) abbrev(13)
+<</dd_do>>
+```
+
+
+Individual 51 is 86 years old at diagnosis and male. They have 7 rows of data with each row corresponding
+to a different time interval. The start of the interval is given by `tstart` and the end of the interval by `tstop`.
+Each time interval is 0.2 years, execept the last interval in which they die (`event==1`) at 1.375 years.
+For each interval there is an associated weight (`wt`), which is the inverse of the expected survival at the midpoint of the interval.
+As the expected survival decreases over time, the weights increase over time. The `meanhazard_wt` gives the weighted mean 
+expected mortality rate at each individuals event time. Note that for any censored time it is set to `999`. When fitting
+relative survival models using `stpm3` or other commands the expected mortality rate at the event time is needed, but is not required 
+for any censored times. However, having a missing value would exclude these rows from the analysis and so we feed it
+a value that is actually not used when we fit the model. Individual 574 is younger than Individual 1 and so the weights are lower
+at the same time points, e.g. 1.039 vs 1.222 at 1 year.
+
+Having restructured the data we can now use `stset` where we need to give the end of each interval (`tstop`), 
+the start of the interval (`tstart`). The weights are passed using `[iweights=wt]`. 
+
+```stata
+<<dd_do >>
+stset tstop [iweight=wt], enter(tstart) failure(event==1)					   
+<</dd_do>>
+```
+The marginal model van now be fitted using `stpm3`. 
+As there are time-dependent weights cluster robust standard errors are used using `vce(cluster id)`.
+
+```stata
+<<dd_do >>
+stpm3, scale(lncumhazard) df(5) bhazard(meanhazard_wt) vce(cluster id)
+predict rs_mrsprep, surv timevar(0 10, step(0.1)) ci frame(margrs,replace)
+<</dd_do>>
+```
+
+After fitting the model, the marginal relative survival has been predicted. 
+This can now be compared to the Pohar Perme non-parametric estimate.
+
+
+```stata
+<<dd_do >>
+frame PP {
+  twoway (rarea R_pp_lci R_pp_uci _t, sort connect(stairstep) color(%30))   ///
+         (line R_pp _t, sort connect(stairstep) pstyle(p1line))             ///
+         , legend(order(2 "Pohar Perme" 3 "Marginal stpm2 model")           ///
+                  ring(0) cols(1) pos(7))                                   ///
+           ylabel(0.6(0.1)1, format(%3.1f))                                 ///
+           ytitle("Marginal relative survival")                             ///
+           xtitle("Years from diagnosis")                                   ///
+           name(int_stand_standsurv, replace)   
+}
+frame margrs: addplot: (line rs_mrsprep* tt, pstyle(p2line..)           ///
+                                             lpattern(solid dash dash)  ///
+                                             norescaling                ///
+                        legend(order(2 "Pohar Perme"                    ///
+                                     3 "Marginal stpm3 model")          ///
+                               ring(0) cols(1) pos(7)))           
+           
+<</dd_do>>
+```
+<<dd_do: quietly>>
+graph export ${DRIVE}/github/pclambert/statasvg/int_stand_standsurv.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/int_stand_standsurv.svg)
+
+There is now good agreement between the model based and the non parametric Pohar Perme estimate. 
+Here the marginal estimate obtained from regression standardization and the marginal model are very similar.
+
+The estimate here is an internally standardized estimate, over the observed covariate distribution and thus
+would not be comparable to another study with a different age/sex distribution or if separate analysis
+were performed for males and females. See the example of [external age standardization](mrsprep_external_age_standardization.qmd) and 
+[modelling covarites](mrsprep_modelling_covariates.qmd) for further extensions.
+
+
+Note that `mrsprep` makes uses of frames.
+```stata
+<<dd_do >>
+frame
+frames dir
+<</dd_do>>
+```
+
+It is possible to switch to the orginal data using `frame change default`. 
+
+
+
+
+## References
+
+Lambert PC, Syriopoulou E,  Rutherford MJ. [Direct modelling of age standardized marginal relative survival through incorporation of time-dependent weights.](https://doi.org/10.1186/s12874-021-01266-1)
+*BMC Medical Research Methodology* 2021;**21**:84 
+

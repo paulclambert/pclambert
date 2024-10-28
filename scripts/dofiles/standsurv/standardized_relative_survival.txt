@@ -1,0 +1,333 @@
+---
+title: "Standardized relative survival"
+---
+
+<<dd_do: quietly>>
+clear frames
+set scheme fpsaus_c
+<</dd_do>>
+
+
+
+> You will need to install `standsurv`, `stpm3` and `gensplines` to run the example. [Details here](https://pclambert.net/software/standsurv/)
+
+
+## Background
+
+Here I will describe how to obtain estimates of standardized relative survival after fitting a relative survival model.
+The relative survival framework is used extensively in population-based cancer studies for the analysis of  cancer registry data.
+Rather than use cause of death information, the relative survival framework uses expected mortality rates in order 
+to estimate the mortality in excess of that expected in the general population. 
+
+In a relative survival model the underlying all cause mortality rate, $h(t|Z=z_i)$, for the $i^{th}$ individual with covariate pattern, $Z=z_i$, is partitioned into 
+the expected mortality rate if they did not have cancer, $h^*(t|Z_1 = z_{1i})$, and their excess mortality rate due to the cancer, $\lambda(t|Z_2=z_{2i})$.
+
+$$
+h(t|Z=z_i) = h^*(t|Z_1 = z_{1i}) + \lambda(t|Z_2=z_{2i})
+$$
+
+with $Z$ denoting the set of all covariates. $Z_1$ and $Z_2$ denote the covariates for expected and excess mortalities respectively. In the example below $Z_1$ and $Z_2$ will be the same.
+
+The survival analogue of excess mortality is relative survival. The relative survival of individual $i$, $R(t|Z_2=z_{2i}⁠)$, is defined as their all-cause survival, $S(t|Z=z_i)⁠$, divided by their expected survival, $S^*(t|Z1=z_{1i})$⁠. The all-cause survival is thus,  
+
+$$
+S(t|Z=z_i) = S^*(t|Z_1 = z_{1i})R(t|Z_2=z_{2i})
+$$
+
+There are a number of different relative survival models. I will use an adaption of Royston-Parmar (flexible parametric survival) models to the relative survival framework (Nelson *et al.* 2007). These models are conditional models, i.e. the can predict relative survival/excess mortality conditional on specific covariate patterns. I will use these models to obtain marginal (standardized) estimates using `standsurv`, but first I need to fit the conditional model.
+
+
+## Example (simulated colon cancer data)
+
+I will use simulated data. The data is simulated in a way to be similar to colon cancer data in England. There are just three covariates, age at diagnosis (`agediag`), sex (`female`) and deprivation group (`dep`). There are five derpivation groups derived from national quintiles of the income domain of the area of patients’ residence at diagnosis (in real data, but simulated here).
+
+
+I first load and `stset` the data.
+
+```stata
+<<dd_do>>
+use https://www.pclambert.net/data/colonsim, clear	
+stset t, failure(dead=1,2) id(id) exit(time 5)
+<</dd_do>>
+```
+
+There are 20,000 individuals and follow-up has been restricted to 5 years.
+
+
+For simplicity in this example I will only keep the least and most deprived groups.
+
+```stata
+<<dd_do>>
+keep if inlist(dep,1,5)
+<</dd_do>>
+```
+
+In a relative survival model the expected mortality rates at the event times are required. Expected mortality rates are stored in a "popmort file". Attained age and attained calendar year can be calculated through making use of `_t`, and then the expected rates can be merged in. 
+
+```stata
+<<dd_do>>
+// attained age
+gen age = min(floor(agediag + _t),99)
+// attained calendar year
+gen year = floor(yeardiag + _t)
+merge m:1 age year dep sex using https://www.pclambert.net/data/popmort_uk_2017, ///
+      keep(match master) keepusing(rate)
+drop age year      
+<</dd_do>>
+```
+
+I have drop attained age (`age`) and attained year (`year`) variables as we do
+not need them now we have the rates and it avoids potential confusion with the `agediag`
+variable.
+
+<<dd_do:quietly>>
+gen dx = mdy(1,1,yeardiag)
+stpp R_pp using "https://www.pclambert.net/data/popmort_uk_2017", ///
+                agediag(agediag) datediag(dx)                     ///
+                pmother(sex dep) pmage(age) pmyear(year) list(1 3 5) verbose
+<</dd_do>>
+
+
+
+
+Rather than create age groups, age will be modelled continuously using natural spline with 4 knots (3 natural splines variables). I create  a dummy variable, `female` (so I don't have to remember how `sex` is coded). 
+
+
+```stata
+<<dd_do>>
+gen female = sex == 2 
+<</dd_do>>
+```
+
+The model can now be fitted. I include the main effect and the twoway interactions. In addition time-dependent effect of deprivation, sex and age are incorporated though use of the `tvc()` and `dftvc` options. Time-dependent effects are an interaction with time.
+
+```stata
+<<dd_do>>
+stpm3 i.dep i.female i.dep#i.female @ns(agediag,df(3))                        ///
+      (i.dep i.female)#@ns(agediag,df(3)), scale(lncumhazard) df(5)           ///
+                                       tvc(i.dep i.female @ns(agediag,df(3))) ///
+                                       dftvc(3)                               ///
+                                       bhazard(rate)
+<</dd_do>>
+```
+
+This is a complex model and I would not attempt to interpret individual parameters. However, the model can predict relative survival for any covariate pattern at any time point. For example, the code below predicts relative survival for 50, 65 and 80 year old females in each deprivation group
+
+
+
+```stata
+<<dd_do>>
+foreach age in 50 65 80 {
+  predict S`age'_dep1 S`age'_dep5, survival timevar(0 5, step(0.1)) ci ///
+                                   frame(surv_age, mergecreate)        ///
+                                   at1(agediag `age' dep 1 female 1)       ///
+                                   at2(agediag `age' dep 5 female 1)                
+}
+<</dd_do>>
+```
+
+I could have performed all 6 predictions in call to `predict`, but have chosen to
+loop over ages. Note the use of `frame(surv_age, mergecreate)`. The `mergecreate` 
+option will create the frame if it does not exist, otherwise it will merge in predictions
+to the existing frame. It is useful when writing predictions in loops.
+
+<<dd_do: quietly>>
+frame surv_age {
+  twoway (line S??_dep1 tt, )                                              ///
+         (line S??_dep5 tt, pstyle(p1line p2line p3line) lpattern(dash..)) ///
+         , legend(order(1 "Least Deprived Age 50"                          ///
+                        2 "Least Deprived Age 65"                          ///
+                        3 "Least Deprived Age 80"                          ///
+                        4 "Most Deprived Age 65"                           ///
+                        5 "Most Deprived Age 65"                           ///
+                        6 "Most Deprived Age 80")                          ///
+                  ring(0) cols(1) pos(7))                                  ///
+         ylabel(0(0.2)1,angle(h) format(%3.1f))                            ///
+         xtitle("Years from diagnosis")                                    ///
+         ytitle("Relative Survival")                                       ///
+         title("Relative Survival")
+}
+<</dd_do>>
+
+<<dd_do: quietly>>
+graph export $DRIVE/github/pclambert//statasvg/standsurv_relative_survival_byage.svg, replace width(700px)
+<</dd_do>>
+
+The predictions can then be plotted.
+
+![](/statasvg/standsurv_relative_survival_byage.svg)
+
+Relative survival is lower as age increases and lower among those who live in more deprived areas. These are conditional predictions, i.e. prediction conditional on specific covariate patterns. By using `standsurv` we can obtain marginal predictions in order to obtain an overall summary of relative survival and perform contrasts between different population groups.
+
+### Using `standsurv`
+
+`standsurv` enables various marginal estimates to be obtained. For a review of marginal measures in survival analysis see our recent [*International Journal of Epidemiology*](https://academic.oup.com/ije/article/49/2/619/5709483) paper (Syrioupoulou *et al*. 2020).
+
+If an overall population summary of relative survival is required then marginal (standardized) measures can be obtained. For example marginal relative survival is simply the expectation over covariates $Z_2$,
+
+$$
+R_M(t) = E\left[R(t|Z_2) \right]
+$$
+
+
+In a modelling framework an estimate can be calculated by obtaining predictions for each of the $N$ individuals in the study at the observed values of their covariates, and then taking an average of these predictions.
+
+$$
+\widehat{R}_{M}(t) =  \frac{1}{N} \sum_{i=1}^{N} {\widehat{R}(t|Z_2=z\_{2i})}
+$$
+
+`standsurv` will do these calculations
+
+```stata
+<<dd_do>>
+range tt 0 5 101
+standsurv, surv timevar(tt) ci frame(mrs) ///
+           atvar(mrs) at1(.) 
+<</dd_do>>
+```
+
+Note the `at(.)` option requests `standsurv` uses the observed covariate distribution to average over. Here `standsurv` has predicted a survival function for each of the 7,333 individuals in our study and then taken the average of these functions. The results can then be plotted.
+
+
+<<dd_do: quietly>>
+frame mrs {
+  twoway (rarea mrs_lci mrs_uci tt, color(%30))                          ///
+         (line mrs tt, pstyle(p1line))                                   ///
+         , legend(off)                                                   ///
+         ylabel(0.4(0.1)1,angle(h) format(%3.1f))                        ///
+         xtitle("Years from diagnosis")                                  ///
+         ytitle("Marginal Relative Survival")                            ///
+         title("Marginal Relative Survival")
+
+}
+addplot: (line R_pp _t, sort lcolor(black) lwidth(vthin) lpattern(dash)) 
+<</dd_do>>
+
+<<dd_do: quietly>>
+graph export $DRIVE/github/pclambert/statasvg/standsurv_relative_survival_marginal.svg, replace width(700px)
+<</dd_do>>
+
+
+![](/statasvg/standsurv_relative_survival_marginal.svg)
+
+
+I have overlayed the non-parametric Pohar Perme estimator of marginal relative survival (using [stpp](/software/stpp/)) that shows the model is doing a pretty good job, at least in terms of estimating the average well.
+
+I have referred to this is marginal relative survival. Under assumptions this can be interpreted as marginal *net* survival. Net survival is survival in the hypothetical situation where it is not possible to die from  other causes. For details of these interpretations and of the assumptons, see (Lambert *et al.* 2015, Pavlic, K. & Pohar Perme 2018).
+
+This measure is a summary for our population, but there is often interest in comparing different population subgroups. In these comparisons it is important to account for the fact that the age (and other covariate)  distribution may be different between the groups being compared. This is where `standsurv` is useful through allowing one to "force" the same covariate distribution on both groups.
+
+
+Note that in the relative survival framework it is common to standardise to an external age distribution. This is shown in a [separate tutorial]() and here I will use the covariate distribution observed in the study. 
+
+The key issue is that by applying a simple comparison of marginal relative survival betwen population groups, the differences could be due to differences in the covariate distribution between the groups. For example. if one group was older an average then this could explain any observed difference in marginal relative survival.
+
+With two or more population groups it is useful to perform contrasts. Here we will compare the absolute difference in marginal relative survival between the two deprivation groups.
+
+
+To illustrate the methods I will compare the least and the most deprived individuals. First I will average over the combined covariate distribution of the two groups. The estimand of interest here is as follows,
+
+$$
+E\left[R(t|X=1,Z_2\right)] - E\left[R(t|X=0,Z_2\right)]
+$$
+
+Here $X$ denotes a binary exposure (deprivation group in our case) with $X=1$ denoting the most deprived and $X=0$ denoting the least deprived. Thus, the left hand term is the marginal relative survival among the exposed and the right hand term is the marginal relative survival among the unexposed.
+
+
+This can be estimated using using two standardized survival functions, one where all individuals are forced to be exposed and one where there are forced to be unexposed.
+
+$$
+\frac{1}{N}\sum_{i=1}^N{\widehat{R}(t|X=1,Z_2=z_{2i})} - \frac{1}{N}\sum_{i=1}^N{\widehat{R}(t|X=0,Z_2=z_{2i})}
+$$
+
+
+The code required for `standsurv` to estimate this is a follows,
+
+```stata
+<<dd_do>>
+standsurv, surv frame(mrs, merge) ci                  ///
+           atvar(ms_dep1a ms_dep5a)                   ///
+           at1(dep 1) at2(dep 5)                      ///
+           contrast(difference) contrastvar(ms_diffa)
+           
+<</dd_do>>
+```
+Note that even though there are interactions in the model, standsurv will incorporate these.
+In `stpm2` this was not the case. By using `at1(dep5 1)` we force everyone to be in the least deprived group 
+and using `at2(dep 5)` forces everyone to be in the most deprived group.
+
+<<dd_do: quietly>>
+frame mrs {
+  twoway (rarea ms_dep1a_lci ms_dep1a_uci tt, color(%30))                ///
+         (line ms_dep1a tt, pstyle(p1line))                              ///
+         (rarea ms_dep5a_lci ms_dep5a_uci tt, pstyle(p2line) color(%30)) ///
+         (line ms_dep5a tt, pstyle(p2line))                              ///       
+         , legend(off)                                                   ///
+         ylabel(0.4(0.1)1,angle(h) format(%3.1f))                        ///
+         xtitle("Years from diagnosis")                                  ///
+         ytitle("Marginal Relative Survival")
+}
+<</dd_do>>
+
+<<dd_do: quietly>>
+graph export $DRIVE/github/pclambert/statasvg/standsurv_relative_survival_marginal_dep_all.svg, replace width(700px)
+<</dd_do>>
+
+
+The resulting predictions can then be plotted.
+
+![](/statasvg/standsurv_relative_survival_marginal_dep_all.svg)
+
+An important point here is that we have not averaged over the covariate pattern within each deprivation group as the distribution of age and sex will be different and thus could potentially explain any differences we see. We have averaged over same covariate distribution (of age and sex). The estimate in each group is hypothetical in that it is the estimated relative survival if each of the deprivation groups had the age/sex distribution of the group as a whole. It is done to give a "fair" comparison.
+
+When performing standardization, it is possible to standardise to the covariate distribution of one of the groups, so at least one of the groups does not have a hypothetical covariate distribution. In the code below I use an `if` statement to restrict the standardisation to the covariate distribution among the deprived group.
+
+```stata
+<<dd_do>>
+standsurv if dep==5, surv ci frame(mrs, merge) ///
+                     atvar(ms_dep1b ms_dep5b)  ///
+                     at1(dep 1) at2(dep 5)   
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+frame mrs {
+  twoway (rarea ms_dep1b_lci ms_dep1b_uci tt, color(%30))                ///
+         (line ms_dep1b tt, pstyle(p1line))                              ///
+         (rarea ms_dep5b_lci ms_dep5b_uci tt, pstyle(p2line) color(%30)) ///
+         (line ms_dep5b tt, pstyle(p2line))                              ///       
+         , legend(off)                                                   ///
+         ylabel(0.4(0.1)1,angle(h) format(%3.1f))                        ///
+         xtitle("Years from diagnosis")                                  ///
+         ytitle("Marginal Relative Survival")
+}
+<</dd_do>>
+
+<<dd_do: quietly>>
+graph export $DRIVE/github/pclambert/statasvg/standsurv_relative_survival_marginal_dep_dep5.svg, replace width(700px)
+<</dd_do>>
+
+The resulting predictions can then be plotted.
+
+![](/statasvg/standsurv_relative_survival_marginal_dep_dep5.svg)
+
+
+You probably can't see much of a difference between the different graphs in this case as the age/sex distribution is very similar between the two groups.
+
+```stata
+<<dd_do>>
+tab sex dep, row
+tabstat agediag, by(dep)	       
+<</dd_do>>
+```
+An important point here is that the above analysis is fine for internal comparisons for this study, but could not be directly compared to other studies where the age/sex distribution could be different. See the tutorial on [external standardzation in relative survival]() for how this can be done.
+
+## References
+
+Lambert, P. C.; Dickman, P. W. & Rutherford, M. J. Comparison of approaches to estimating age-standardized net survival. *BMC Med Res Methodol* 2015;**15**:64
+
+Nelson, C. P.; Lambert, P. C.; Squire, I. B. & Jones, D. R. Flexible parametric models for relative survival, with application in coronary heart disease. *Statistics in Medicine* 2007;**26**:5486-5498
+
+Pavlic, K. & Pohar Perme, M. Using pseudo-observations for estimation in relative survival. *Biostatistics* 2018;**20**:384-399
+
+Syriopoulou, E.; Rutherford, M. J. & Lambert, P. C. Marginal measures and causal effects using the relative survival framework. *International Journal of Epidemiology* 2020;**49**:619–628  

@@ -1,3 +1,19 @@
 ---
 title: "gensplines"
 ---
+
+The `genplines` command calculates various types of spline basis functions. 
+This includes splines based on truncated powers, restricted cubic splines, B-splines, M-splines, I-splines and, natural splines.
+Note that natural splines and restricted splines are two different ways to impose linearity constraints beyond the boundary knots and will result in the same fitted values in a regression model (with the same knots).
+
+For the most part the methods are the same as those implemented in the `spline2` package in R.
+
+## Examples
+ - [Various types of spline basis functions]
+ - [Derivatives and integrals of spline functions](/software/gensplines/derivatives_and_integrals_of_spline_functions.qmd)
+ - [`gensplines` compared to `makespline`](/software/gensplines/gensplines_vs_makesplines.qmd)
+
+
+## Reference
+
+Wang, Jiangdian, and Sujit K. Ghosh. Shape Restricted Nonparametric Regression with Bernstein Polynomials. *Computational Statistics & Data Analysis* 2012;**56**:2729–41.

@@ -1,0 +1,488 @@
+---
+author:"Sarah Booth"
+title:"Temporal Recalibration"
+---
+
+<<dd_do: quietly>>
+clear frames
+set scheme fpsaus_c
+<</dd_do>>
+
+> [Download Stata Do file here](Temporal_recalibration.do) 
+
+#### By Sarah Booth (sarah.booth@le.ac.uk)
+
+<<dd_do: quietly>>
+use https://www.pclambert.net/data/simulated_improvements, clear
+
+forvalues i = 2009/2019 {
+
+ stset exit if yydx==`i' & val==0, origin(dx) fail(status==1) ///
+ scale(365.25) exit(time min(dx+10*365.25,mdy(12,31,2019)))
+ sts gen km_`i'=s
+ gen t_`i'=_t
+ 
+	replace km_`i' = 1 in 64913
+	replace t_`i' = 0 in 64913
+}
+
+stset exit, origin(dx) fail(status==1) scale(365.25) ///
+exit(time min(dx+10*365.25,mdy(12,31,2019)))
+
+sts gen km_all=s
+gen t_all=_t
+
+* Period analysis - 2 year window
+stset exit, origin(dx) fail(status==1) scale(365.25) ///
+entry(time mdy(1,1,2018)) exit(time min(dx+10*365.25,mdy(12,31,2019)))	
+
+sts gen km_pa=s
+gen t_pa=_t	
+
+replace km_all = 1 in 64913
+replace t_all = 0 in 64913
+replace km_pa = 1 in 64913
+replace t_pa = 0 in 64913
+
+colorpalette ptol rainbow, n(11) nograph
+line km_2009 t_2009, sort c(J) col("`r(p1)'") || ///
+line km_2010 t_2010, sort c(J) col("`r(p2)'") || ///
+line km_2011 t_2011, sort c(J) col("`r(p3)'") || ///
+line km_2012 t_2012, sort c(J) col("`r(p4)'") || ///
+line km_2013 t_2013, sort c(J) col("`r(p5)'") || ///
+line km_2014 t_2014, sort c(J) col("`r(p6)'") || ///
+line km_2015 t_2015, sort c(J) col("`r(p7)'") || ///
+line km_2016 t_2016, sort c(J) col("`r(p8)'") || ///
+line km_2017 t_2017, sort c(J) col("`r(p9)'") || ///
+line km_2018 t_2018, sort c(J) col("`r(p10)'") || ///
+line km_2019 t_2019, sort c(J) col("`r(p11)'") || ///
+line km_all t_all, sort c(J) col("pink*1.2") lpattern(-) || ///
+line km_pa t_pa, sort c(J) col("black*0.5") lpattern(-) ///
+legend(order(1 "2009" 2 "2010" 3 "2011" 4 "2012" 5 "2013" 6 "2014" ///
+7 "2015" 8 "2016" 9 "2017" 10 "2018" 11 "2019" ///
+12 "Standard Analysis" 13 "Period Analysis") pos(1) cols(2) ring(0) symxsize(5)) ///
+ytitle("Survival Proportion") xtitle("Years since Diagnosis") ///
+ylabel(,format(%3.1f)) ysc(r(0.56 1))
+//graph export "Z:/Tutorials/temporal_recalibration//statasvg/KM.svg", width(700px) replace 
+graph export ${DRIVE}/github/pclambert/statasvg/KM.svg, replace width(700px)
+
+colorpalette ptol rainbow, n(11) nograph
+line km_2009 t_2009, sort c(J) col("`r(p1)'") || ///
+line km_2010 t_2010, sort c(J) col("`r(p2)'") || ///
+line km_2011 t_2011, sort c(J) col("`r(p3)'") || ///
+line km_2012 t_2012, sort c(J) col("`r(p4)'") || ///
+line km_2013 t_2013, sort c(J) col("`r(p5)'") || ///
+line km_2014 t_2014, sort c(J) col("`r(p6)'") || ///
+line km_2015 t_2015, sort c(J) col("`r(p7)'") || ///
+line km_2016 t_2016, sort c(J) col("`r(p8)'") || ///
+line km_2017 t_2017, sort c(J) col("`r(p9)'") || ///
+line km_2018 t_2018, sort c(J) col("`r(p10)'") || ///
+line km_2019 t_2019, sort c(J) col("`r(p11)'") ///
+legend(order(1 "2009" 2 "2010" 3 "2011" 4 "2012" 5 "2013" 6 "2014" ///
+7 "2015" 8 "2016" 9 "2017" 10 "2018" 11 "2019") pos(1) cols(2) ring(0) symxsize(5)) ///
+ytitle("Survival Proportion") xtitle("Years since Diagnosis") ///
+ylabel(,format(%3.1f)) ysc(r(0.56 1)) name(KM,replace)
+
+global june2010 = 2010+5.5/12
+range tplot 0 10 1001
+local beta0 = -0.05
+local beta1 = 0.028
+
+foreach k in 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 {
+	gen hrplot`k'=.
+		forvalues z=2/1001 {
+		local j = `k'+5.5/12-$june2010
+		local t = tplot[`z']
+		local hr`k' = exp(`j'*(`beta0'+`beta1'*log(`t')))
+		replace hrplot`k'=`hr`k'' in `z'
+	}
+}
+
+colorpalette ptol rainbow, n(10)
+line hrplot2010 tplot, sort col("`r(p1)'") || ///
+line hrplot2011 tplot if tplot<=9, sort col("`r(p2)'") || ///
+line hrplot2012 tplot if tplot<=8, sort col("`r(p3)'") || ///
+line hrplot2013 tplot if tplot<=7, sort col("`r(p4)'") || ///
+line hrplot2014 tplot if tplot<=6, sort col("`r(p5)'") || ///
+line hrplot2015 tplot if tplot<=5, sort col("`r(p6)'") || ///
+line hrplot2016 tplot if tplot<=4, sort col("`r(p7)'") || ///
+line hrplot2017 tplot if tplot<=3, sort col("`r(p8)'") || ///
+line hrplot2018 tplot if tplot<=2, sort col("`r(p9)'") || ///
+line hrplot2019 tplot if tplot<=1, sort col("`r(p10)'") || ///
+line hrplot2011 tplot if tplot>9, sort col("`r(p2)'") lpattern(-) || ///
+line hrplot2012 tplot if tplot>8, sort col("`r(p3)'") lpattern(-) || ///
+line hrplot2013 tplot if tplot>7, sort col("`r(p4)'") lpattern(-) || ///
+line hrplot2014 tplot if tplot>6, sort col("`r(p5)'") lpattern(-) || ///
+line hrplot2015 tplot if tplot>5, sort col("`r(p6)'") lpattern(-) || ///
+line hrplot2016 tplot if tplot>4, sort col("`r(p7)'") lpattern(-) || ///
+line hrplot2017 tplot if tplot>3, sort col("`r(p8)'") lpattern(-) || ///
+line hrplot2018 tplot if tplot>2, sort col("`r(p9)'") lpattern(-) || ///
+line hrplot2019 tplot if tplot>1, sort col("`r(p10)'") lpattern(-) ///
+ylabel(,format(%3.1f)) ytitle("Hazard Ratio") xtitle("Years since Diagnosis") ///
+legend(order(1 "2010" 2 "2011" 3 "2012" 4 "2013" 5 "2014" 6 "2015" 7 "2016" ///
+8 "2017" 9 "2018" 10 "2019") ring(0) pos(12) row(2) symxsize(3)) name(hr,replace)
+
+grc1leg hr KM
+//graph export "Z:/Tutorials/temporal_recalibration//statasvg/summary.svg", width(700px) replace 
+graph export ${DRIVE}/github/pclambert/statasvg/summary.svg, replace width(700px)
+
+clear all
+<</dd_do>>
+
+## Background
+
+### Trends in survival over calendar time
+
+Clinical risk prediction models should produce well-calibrated (accurate) predictions for patients who have been recently diagnosed with a particular health condition. However, often there are improvements in survival over time due to new treatments and healthcare policies. For example, survival following a diagnosis of cancer has improved over the past 20 years in many countries.
+
+As we do not have long-term follow-up data for recently diagnosed patients, we have to rely on including patients who were diagnosed many years ago in order to develop prognostic models that can produce long-term survival predictions. However, if survival has improved over time, including these patients means that the predictions will be out-of-date and will under-estimate the survival of new patients. 
+
+This idea is illustrated in the graph below that shows the Kaplan-Meier curves increasing over calendar time. The Kaplan-Meier for the entire cohort (pink dashed line) is effectively an average of these curves and therefore does not provide an accurate estimate of the survival of the recently diagnosed patients.
+
+![](/statasvg/KM.svg)
+
+### Period analysis
+
+One approach for producing more up-to-date estimates of survival is to use period analysis. This ensures that only the most recent data is used to estimate the hazard rates using delayed entry. The period window (red box) defines the follow-up time and events that are included. Whilst people diagnosed 10 years ago can still contribute towards the analysis (Patient A), they only contribute towards the estimates of the long-term hazard rates. This allows the short-term hazards to be estimated from only the most recently diagnosed patients (Patient F) meaning that these estimates are as up-to-date as possible. Using this approach produces a Kaplan-Meier curve that agrees much more closely with the survival estimates of the recently diagnosed patients (grey dashed line).
+
+The sample size and number of events are reduced as those who die before the period window are excluded (Patients B and D). Therefore, a disadvantage of using this method as the basis for developing a prognostic model is that this may limit the number of predictors that can be included in the model else it may lead to issues of overfitting.
+
+![](/statasvg/period_analysis.png)
+
+### Temporal Recalibration
+
+Temporal recalibration aims to combine the advantage of having up-to-date estimates from period analysis with retaining the full dataset to estimate the predictor effects. It is a two-step process where the standard model is first developed as usual to obtain the predictor effects (linear predictor). The second step is to recalibrate the model by re-estimating the baseline in the subset defined by the period window whilst constraining the predictor effects to remain the same. This can be achieved by including the linear predictor as an offset term (if a PH model is fitted) or by adding constraints for the coefficients of each of the predictor parameters. The second approach will work even in the case of non-proportional hazards (note: if time-dependent effects are included in flexible parametric survival models, the same knot locations from the original model should also be used). Once this recalibration is performed, the predictions can be obtained as usual. 
+
+## Example 
+
+In this example, I'll show how to perform temporal recalibration when developing a prognostic model. I'll also illustrate how this method can be beneficial when survival is improving over time by testing how well this model performs in producing predictions for recently diagnosed patients in comparison to using the standard method.
+
+### Data
+
+The simulated data in this example is loosely based on survival following a diagnosis of cancer. The lower short-term and higher long-term hazards for more recent patients could occur if a new treatment delays deaths from occurring in the short-term. This leads to an overall improvement in survival over time as shown by the Kaplan-Meier curves.
+
+![](/statasvg/summary.svg)
+
+This simulated dataset contains the following variables: ID number (`id`), year of diagnosis (`yydx`, 2009-2019), date of diagnosis (`dx`), date of death/censoring (`exit`), survival status (`status`, 0 = Alive, 1 = Dead), age at diagnosis (`age`, 44-93), sex (`sex`, 0 = Male, 1 = Female) and stage of tumour at diagnosis (`stage`, 1-3).
+
+The derivation dataset (`val`=0) includes patients diagnosed between 2009 and 2019. In order to test how well temporal recalibration performs for making predictions for recently diagnosed patients, the validation dataset (`val`=1) includes patients diagnosed in 2019.
+
+### Model development
+ 
+I'll fit a simple prognostic model that contains age, sex and stage of tumour as predictors so I'll first need to create the dummy variables relating to sex and stage. 
+
+In this example, I simulated the effect of age to be linear for simplicity so I'll just model it as a linear term. However, in practice, age is often a non-linear effect and should instead be modelled using a method that can capture this trend such as restricted cubic splines or fractional polynomials. To make the baseline interpretable, I'll centre the age variable on 70 (the mean age). 
+
+```stata
+use https://www.pclambert.net/data/simulated_improvements, clear
+tab stage, gen(stage)
+gen female = sex == 1 
+gen age_centre = age-70
+```
+<<dd_do: quietly>>
+use https://www.pclambert.net/data/simulated_improvements, clear
+tab stage, gen(stage)
+gen female = sex == 1 
+gen age_centre = age-70
+<</dd_do>>
+
+I'll fit the following 3 models:
+
+1. M1: The standard approach (not accounting for improvements in survival)
+
+2. M2: Temporal recalibration of model M1 using a 5 year period window (2015-2019)
+
+3. M3: Temporal recalibration of model M1 using a 2 year period window (2018-2019)
+
+Here I'll use `stpm2` to fit flexible parametric survival models. 
+These models use restricted cubic splines to model the log cumulative
+baseline hazard. This is my preferred approach for prognostic modelling since having a fully parametric baseline makes it easy to produce smooth predicted survival curves both in and out-of-sample. However, temporal recalibration can also be applied to Cox PH models using `stcox` which I'll show later.
+
+#### Standard method (no adjustments for survival improvements)
+ 
+Firstly I'll use `stset` to create the survival times of patients in the development dataset (`val`=0), censoring any individuals who are alive at the end of 2019 or after 10 years of follow-up.
+
+```stata
+<<dd_do>>
+stset exit if val==0, origin(dx) fail(status==1) scale(365.25) ///
+exit(time min(dx+10*365.25,mdy(12,31,2019)))
+<</dd_do>>
+```
+The model can then be fitted. I'll also store the model in memory and estimate the linear predictor for use when performing temporal recalibration. Using the `xb` option includes the parameters relating to the restricted cubic spline function in the baseline so the `xbnobaseline` option should be used to calculate the linear predictor.
+
+```stata
+<<dd_do>>
+stpm2 age_centre female stage2 stage3, df(3) scale(hazard) noorthog
+estimates store standard
+predict lp, xbnobaseline
+<</dd_do>>
+```
+
+#### Temporal recalibration
+
+To temporally recalibrate the model, `stset` is required to define the period analysis subsample. Firstly I'll perform temporal recalibration using a 5 year window and then with a 2 year window to illustrate how the size of the window affects the sample size, number of events and the calibration of the resulting predictions.
+
+To ensure that the predictor effects remain the same in the temporally recalibrated models, I'll create a constraint to include the linear predictor as an offset term.
+
+```stata
+<<dd_do>>
+stset exit if val==0, origin(dx) fail(status==1) scale(365.25) ///
+entry(time mdy(1,1,2015)) exit(time min(dx+10*365.25,mdy(12,31,2019)))
+constraint 1 _b[lp] = 1
+stpm2 lp, scale(hazard) noorthog constraints(1) df(3) 
+estimates store recal5 
+<</dd_do>>
+```
+Using a period window of 5 years reduced the sample size from 55,050 in the standard analysis to 47,962 and the number of events from 15,750 to 8,662. As you can see, using a narrower window of 2 years, reduced these further to 42,872 and 3,572 respectively.
+
+```stata
+<<dd_do>>
+stset exit if val==0, origin(dx) fail(status==1) scale(365.25) ///
+entry(time mdy(1,1,2018)) exit(time min(dx+10*365.25,mdy(12,31,2019)))
+stpm2 lp, scale(hazard) noorthog constraints(1) df(3) 
+estimates store recal2
+<</dd_do>>
+```
+
+### Obtaining predictions
+
+Once the models are fitted, the predictions for the external validation dataset can be produced as usual using the `predict` (or `standsurv`) command.
+
+#### 10-year survival
+
+The 10-year survival predictions for each of the patients in the validation dataset can be calculated using the `timevar()` option. 
+
+```stata
+gen t10 = 10
+
+// Standard method
+estimates restore standard
+predict standard_10 if val==1, surv timevar(t10)
+
+// Temporal recalibration
+foreach model in "recal5" "recal2" {
+	estimates restore `model'
+	predict `model'_10 if val==1, surv timevar(t10)
+}
+```
+<<dd_do: quietly>>
+gen t10 = 10
+// Standard method
+estimates restore standard
+predict standard_10 if val==1, surv timevar(t10)
+// Temporal recalibration
+foreach model in "recal5" "recal2" {
+	estimates restore `model'
+	predict `model'_10 if val==1, surv timevar(t10)
+}
+<</dd_do>>
+
+Performing temporal recalibration updates the baseline survival of the model which increases the 10-year survival prediction for each of the individuals. Using a narrower period window further restricts the data used to estimate the short-term hazard rates which can result in more up-to-date survival estimates.
+
+```stata
+<<dd_do>>
+summ standard_10 recal5_10 recal2_10
+<</dd_do>>
+```
+
+<<dd_do: quietly>>
+twoway (histogram standard_10, start(0) width(0.008) ///
+       col("3 144 214%50") freq) /// 
+	   (histogram recal2_10, start(0) width(0.008) ///
+	   col("120 172 68%50") freq xtitle("10-Year Survival") ///
+	   legend(order(1 "Standard" 2 "Temporal Recalibration: 2 Year Window") ///
+	   symxsize(3) ring(0) pos(11)) xlabel(,format(%3.1f))) 
+graph export "${DRIVE}/github/pclambert/statasvg/temporal_recalibration_hist.svg", replace width(700px)
+<</dd_do>>
+
+![](/statasvg/temporal_recalibration_hist.svg)
+
+
+
+
+#### Predictions for individual patients
+
+We can also produce survival curves for patients by specifying their covariate patterns. I'll create predictions for the following individuals:
+
+* A man aged 70 at diagnosis with a stage 1 tumour (baseline of the model)
+
+* A woman aged 82 at diagnosis with a stage 2 tumour
+
+* A woman aged 53 at diagnosis with a stage 3 tumour
+
+* A man aged 85 at diagnosis with a stage 3 tumour
+
+To make the predictions from the standard model, I can use the
+`at()` and `zeros` options to specify the covariate pattern (remembering that 
+age was centred on age 70).
+
+```stata
+<<dd_do>>
+range timevar10 0 10 101
+estimates restore standard
+predict p1_standard, zeros surv timevar(timevar10)
+predict p2_standard, at(age_centre 12 female 1 stage2 1) ///
+                     zeros surv timevar(timevar10)
+predict p3_standard, at(age_centre -17 female 1 stage3 1) ///
+                     zeros surv timevar(timevar10)
+predict p4_standard, at(age_centre 15 stage3 1) ///
+                     zeros surv timevar(timevar10)
+<</dd_do>>
+```
+
+As the temporally recalibrated models were fitted by including the linear predictor as an offset term, I first need to calculate the value of the linear predictor for these covariate patterns before making the survival predictions from the model. 
+
+```stata
+estimates restore standard
+local p2 = _b[age_centre]*12 + _b[female] + _b[stage2] 
+local p3 = _b[age_centre]*(-17) + _b[female] + _b[stage3] 
+local p4 = _b[age_centre]*(15) + _b[stage3] 
+
+foreach model in "recal5" "recal2" {
+	estimates restore `model'
+	predict p1_`model', zeros surv timevar(timevar10)
+	predict p2_`model', at(lp `p2') zeros surv timevar(timevar10)
+	predict p3_`model', at(lp `p3') zeros surv timevar(timevar10)
+	predict p4_`model', at(lp `p4') zeros surv timevar(timevar10)
+}
+```
+
+<<dd_do: quietly>>
+estimates restore standard
+local p2 = _b[age_centre]*12 + _b[female] + _b[stage2] 
+local p3 = _b[age_centre]*(-17) + _b[female] + _b[stage3] 
+local p4 = _b[age_centre]*(15) + _b[stage3] 
+
+foreach model in "recal5" "recal2" {
+	estimates restore `model'
+	predict p1_`model', zeros surv timevar(timevar10)
+	predict p2_`model', at(lp `p2') zeros surv timevar(timevar10)
+	predict p3_`model', at(lp `p3') zeros surv timevar(timevar10)
+	predict p4_`model', at(lp `p4') zeros surv timevar(timevar10)
+}
+<</dd_do>>
+
+Here it can be seen that accounting for improvements in survival as part of model development led to higher survival predictions, where particular improvements can be seen in the survival predictions for the high risk patients. Using a narrower period window of 2 years led to the highest survival estimates. However, this choice is a bias-variance trade-off since the sample size and number of events used to estimate the baseline hazard is further reduced.
+
+<<dd_do: quietly>>
+line p1_standard timevar10, sort || ///
+line p1_recal5 timevar10, sort || ///
+line p1_recal2 timevar10, sort xtitle("Years since Diagnosis") ///
+ytitle("Survival Proportion") name(p1,replace) ///
+legend(order(1 "Standard" 2 "Temporal Recalibration: 5 Year Window" ///
+3 "Temporal Recalibration: 2 Year Window") size(small)) ///
+subtitle("70, Male, Stage 1") ysc(r(0 1)) ylabel(0(0.2)1) ylabel(,format(%3.1f))
+
+line p2_standard timevar10, sort || ///
+line p2_recal5 timevar10, sort || ///
+line p2_recal2 timevar10, sort xtitle("Years since Diagnosis") ///
+ytitle("Survival Proportion") name(p2,replace) ///
+legend(order(1 "Standard" 2 "Temporal Recalibration: 5 Year Window" ///
+3 "Temporal Recalibration: 2 Year Window") size(small)) ///
+subtitle("82, Female, Stage 2") ysc(r(0 1)) ylabel(0(0.2)1) ylabel(,format(%3.1f))
+
+line p3_standard timevar10, sort || ///
+line p3_recal5 timevar10, sort || ///
+line p3_recal2 timevar10, sort xtitle("Years since Diagnosis") ///
+ytitle("Survival Proportion") name(p3,replace) ///
+legend(order(1 "Standard" 2 "Temporal Recalibration: 5 Year Window" ///
+3 "Temporal Recalibration: 2 Year Window") size(small)) ///
+subtitle("53, Female, Stage 3") ysc(r(0 1)) ylabel(0(0.2)1) ylabel(,format(%3.1f))
+
+line p4_standard timevar10, sort || ///
+line p4_recal5 timevar10, sort || ///
+line p4_recal2 timevar10, sort xtitle("Years since Diagnosis") ///
+ytitle("Survival Proportion") name(p4,replace) ///
+legend(order(1 "Standard" 2 "Temporal Recalibration: 5 Year Window" ///
+3 "Temporal Recalibration: 2 Year Window") size(small)) ///
+subtitle("85, Male, Stage 3") ysc(r(0 1)) ylabel(0(0.2)1) ylabel(,format(%3.1f))
+
+grc1leg p1 p2 p3 p4
+//graph export "Z:/Tutorials/temporal_recalibration//statasvg/covs.svg", width(700px) replace 
+graph export ${DRIVE}/github/pclambert/statasvg/temporal_recalibration_covs.svg, replace width(700px)
+<</dd_do>>
+
+![](/statasvg/temporal_recalibration_covs.svg)
+
+#### Marginal survival predictions
+
+One approach to assess the calibration-in-the-large is to compare the marginal predicted survival to the marginal observed survival. The marginal survival is calculated by estimating the survival curves for each of the individuals in the validation dataset and then taking the average. This can be calculated using `meansurv` with the `predict` command or alternatively using `standsurv`.
+
+$$ \bar{S}(t) = \frac{1}{N} \sum_{i=1}^{N} {\widehat{S}(t|x_i)} $$
+
+The marginal observed survival can be quantified by calculating the Kaplan-Meier in the validation dataset. If the model is well-calibrated, these two measures should agree closely. The validation dataset contains patients who were diagnosed in 2019 and as this is simulated data we can estimate their 10-year observed survival by using follow-up data until 2030.
+
+```stata
+// Standard method
+estimates restore standard
+predict marg_standard if val==1, timevar(timevar10) meansurv
+
+// Temporal recalibration
+foreach model in "recal5" "recal2" {
+	estimates restore `model'
+	predict marg_`model' if val==1, timevar(timevar10) meansurv
+}
+
+// Observed survival
+stset exit if val==1, origin(dx) fail(status==1) scale(365.25) ///
+exit(time dx+10*365.25)
+sts gen marg_obs = s
+```
+<<dd_do: quietly>>
+// Standard method
+estimates restore standard
+predict marg_standard if val==1, timevar(timevar10) meansurv
+// Temporal recalibration
+foreach model in "recal5" "recal2" {
+	estimates restore `model'
+	predict marg_`model' if val==1, timevar(timevar10) meansurv
+}
+// Observed survival
+stset exit if val==1, origin(dx) fail(status==1) scale(365.25) ///
+exit(time dx+10*365.25)
+sts gen marg_obs = s
+gen time = _t
+
+// Comparison
+line marg_standard timevar10, sort || ///
+line marg_recal5 timevar10, sort || ///
+line marg_recal2 timevar10, sort || ///
+line marg_obs time, sort c(J) xtitle("Years since Diagnosis") ///
+ytitle("Survival Proportion") ysc(r(0.57 1)) ///
+legend(order(1 "Standard" 2 "Temporal Recalibration: 5 Year Window" ///
+3 "Temporal Recalibration: 2 Year Window" 4 "Observed: KM") ring(0) pos(1)) ylabel(,format(%3.1f))
+
+graph export "${DRIVE}/github/pclambert/statasvg/temporal_recalibration_marg_cal.svg", replace width(700px)
+<</dd_do>>
+
+Here it can be seen that not accounting for trends in survival over time led to under-estimating the marginal survival across the full 10-year period. However, using temporal recalibration for model development improved the calibration of the survival predictions. Decreasing the size of the period window has the potential to produce more up-to-date estimates and here it can be seen that using a 2 year window produced the best agreement with the observed survival.
+
+![](/statasvg/temporal_recalibration_marg_cal.svg)
+
+### Cox PH models
+
+In the above example, I've shown how to perform temporal recalibration using flexible parametric survival models. However, temporal recalibration can also be applied when fitting PH Cox models. The only difference is that `offset()` is used instead of `constraints()`.
+
+```stata
+stset exit if val==0, origin(dx) fail(status==1) scale(365.25) ///
+exit(time min(dx+10*365.25,mdy(12,31,2019)))
+
+stcox age_centre female stage2 stage3
+predict lp_cox, xb
+
+stset exit if val==0, origin(dx) fail(status==1) scale(365.25) ///
+entry(time mdy(1,1,2015)) exit(time min(dx+10*365.25,mdy(12,31,2019)))
+
+stcox, estimate offset(lp_cox)
+```
+
+## References
+
+Arnold, M. et al. Progress in cancer survival, mortality, and incidence in
+seven high-income countries 1995-2014 (ICBP SURVMARK-2): a population-based
+study. *The Lancet Oncology* 2019; **20**(11): 1493-1505
+
+Brenner, H. & Gefeller, O. An alternative approach to monitoring cancer patient survival. *Cancer* 1996; **78**(9): 2004-2010
+
+Booth, S.; Riley, R. D.; Ensor, J.; Lambert P. C. & Rutherford, M. J. Temporal recalibration for improving prognostic model development and risk predictions in settings where survival is improving over time. *International Journal of Epidemiology* 2020; **49**(4): 1316–1325
+

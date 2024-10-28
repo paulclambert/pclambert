@@ -1,0 +1,261 @@
+---
+title: "Modelling covariates in marginal relative survival models"
+---
+
+```stata
+```
+
+## Background
+
+I have described how to fit a [marginal relative survival moded](mrsprep_marginal_relative_survival.qmd) to give an 
+internally (age) standardized estimate and how this can be extended to give an [externally age standardized](mrsprep_external_age_standardization.qmd) estimate.
+This example shows how to incorporate covariates into the marginal model whilst, still age standardizing. 
+
+
+## Example
+
+I again use the Melanoma data, restricting to those diagnosed in the later calendar perdiod, 1985-1994, but will compare relative survival between males and females.
+I restrict follow-up to 10 years after diagnosis using the `exit()` option. 
+
+```stata
+. use https://pclambert.net/data/melanoma.dta if year8594 == 1 
+(Skin melanoma, diagnosed 1975-94, follow-up to 1995)
+
+. stset surv_mm, failure(status=1,2) id(id) exit(time 120.5) scale(12)
+
+Survival-time data settings
+
+           ID variable: id
+         Failure event: status==1 2
+Observed time interval: (surv_mm[_n-1], surv_mm]
+     Exit on or before: time 120.5
+     Time for analysis: time/12
+
+--------------------------------------------------------------------------
+      4,744  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+      4,744  observations remaining, representing
+      4,744  subjects
+      1,401  failures in single-failure-per-subject data
+ 22,003.417  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =  10.04167
+
+. gen female = sex==2
+
+```
+
+I will first estimate the non-parametric estimate of marginal relative survival using [`stpp`](/software/stpp). 
+I will use the `by(female)` option to estimate separately for males and females. As the age distribution between males and females
+could potentially be different I need to age standardize. I will use the ICSS weights (Corazziari *et al.*). 
+
+```stata
+. // change age groups to those defined in ICSS
+. drop agegrp
+
+. egen agegrp=cut(age), at(0  45 55 65 75 200) icodes
+
+. replace agegrp = agegrp + 1
+(4,744 real changes made)
+
+. label variable agegrp "Age group"
+
+. label define agegrplab 1 "0-44" 2 "45-54" 3 "55-64" 4 "65-74" 5 "75+", replace
+
+. label values agegrp agegrplab
+
+. 
+. recode agegrp (1=0.28) (2=0.17) (3=0.21) (4=0.20) (5=0.14), gen(ICSSwt)
+(4,744 differences between agegrp and ICSSwt)
+
+```
+
+The relative weights (explained in the [example on external age standardization](/software/mrsprep/mrsprep_external_age_standardization)) have to been
+calculated separately for males and females. This can be done as follows.
+
+```stata
+. //Proportion within each age group by sex to calculate weights
+. bysort female: egen totalsex = total(sex)
+
+. bysort agegrp female: gen a_age_sex = _N/totalsex
+
+. gen double wt_age_sex = ICSSwt/a_age_sex
+
+```
+
+The non-parametric Pohar estimator can be obtained using [`stpp`](/software/stpp). 
+
+```stata
+. stpp R_pp using https://pclambert.net/data/popmort.dta, /// 
+>                 agediag(age) datediag(dx) pmother(sex)  ///
+>                 by(female)                              ///
+>                 indweights(wt_age_sex)
+
+. frame put R_pp* female _t, into(PP)
+
+```
+
+I have saved the Pohar Perme estimates in a frame, so I can plot them in after using `mrsprep`.
+
+
+## Using `mrsprep` to enable modelling of covariates
+
+As the individual level weights have been calculated all that has to be added to `mrsprep` is the `by(female)` option.
+This will calculate the mean expected mortality rate needed to fit the model separately for males and females. The individual weights
+are incorporated into both the weighted mean expected mortality rate and the time-dependent weights.
+
+```stata
+. mrsprep using https://pclambert.net/data/popmort.dta   ///
+>               , pmother(sex) agediag(age) datediag(dx) ///
+>                 breaks(0(0.2)10)                       ///
+>                 indweights(wt_age_sex)                 ///
+>                 by(female)
+
+```
+
+
+Modelling proceeds as before, but now we can model the effect of sex.
+A proportional excess hazards marginal model can be fitted as follows,
+
+
+```stata
+. stset tstop [iweight=wt], enter(tstart) failure(event==1)                                          
+
+Survival-time data settings
+
+         Failure event: event==1
+Observed time interval: (0, tstop]
+     Enter on or after: time tstart
+     Exit on or before: failure
+                Weight: [iweight=wt]
+
+--------------------------------------------------------------------------
+    112,229  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+    112,229  observations remaining, representing
+      1,401  failures in single-record/single-failure data
+ 21,994.417  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =        10
+
+. stpm3 female, scale(lncumhazard) df(5) bhazard(meanhazard_wt) vce(cluster id) eform
+
+Iteration 0:  Log pseudolikelihood = -7837.7029  
+Iteration 1:  Log pseudolikelihood = -7733.1564  
+Iteration 2:  Log pseudolikelihood = -7733.0105  
+Iteration 3:  Log pseudolikelihood = -7733.0103  
+
+                                                       Number of obs = 112,229
+                                                       Wald chi2(1)  =   15.70
+Log pseudolikelihood = -7733.0103                      Prob > chi2   =  0.0001
+
+                                 (Std. err. adjusted for 4,744 clusters in id)
+------------------------------------------------------------------------------
+             |               Robust
+             |     exp(b)   std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+xb           |
+      female |   .7012648   .0628019    -3.96   0.000     .5883728    .8358176
+-------------+----------------------------------------------------------------
+time         |
+        _ns1 |  -17.60777   1.009002   -17.45   0.000    -19.58537   -15.63016
+        _ns2 |   4.485199   .5017806     8.94   0.000     3.501727    5.468671
+        _ns3 |  -1.051828   .0948416   -11.09   0.000    -1.237714   -.8659419
+        _ns4 |   -.610668   .0794981    -7.68   0.000    -.7664814   -.4548545
+        _ns5 |  -.1254523   .1242051    -1.01   0.312    -.3688897    .1179852
+       _cons |  -1.086839   .0893483   -12.16   0.000    -1.261959   -.9117199
+------------------------------------------------------------------------------
+Note: Estimates are transformed only in the first equation.
+
+```
+
+This gives a marginal excess hazard (mortality rate) ratio of  0.70.
+Note we would expect this be different from a standard (conditional) relative survival model adjusting for age due
+to the non collapsability of (excess) hazard ratios.
+
+The proportionality assumption can be relaxed by incorporating an interaction
+between sex and the effect of time from diagnosis.
+
+```stata
+. stpm3 female, scale(lncumhazard) df(5) bhazard(meanhazard_wt) vce(cluster id) ///
+>        tvc(female) dftvc(3)
+
+Iteration 0:  Log pseudolikelihood = -7840.0016  
+Iteration 1:  Log pseudolikelihood = -7729.7635  
+Iteration 2:  Log pseudolikelihood = -7729.2387  
+Iteration 3:  Log pseudolikelihood = -7729.2339  
+Iteration 4:  Log pseudolikelihood = -7729.2339  
+
+                                                       Number of obs = 112,229
+                                                       Wald chi2(1)  =    5.16
+Log pseudolikelihood = -7729.2339                      Prob > chi2   =  0.0231
+
+                                        (Std. err. adjusted for 4,744 clusters in id)
+-------------------------------------------------------------------------------------
+                    |               Robust
+                    | Coefficient  std. err.      z    P>|z|     [95% conf. interval]
+--------------------+----------------------------------------------------------------
+xb                  |
+             female |  -.3247996   .1430029    -2.27   0.023    -.6050802    -.044519
+--------------------+----------------------------------------------------------------
+time                |
+               _ns1 |  -20.13637   2.235546    -9.01   0.000    -24.51796   -15.75478
+               _ns2 |   5.991217   1.097732     5.46   0.000     3.839702    8.142732
+               _ns3 |  -.9444574   .1238416    -7.63   0.000    -1.187183   -.7017323
+               _ns4 |  -.5818713   .1157506    -5.03   0.000    -.8087382   -.3550043
+               _ns5 |  -.1408935   .1529997    -0.92   0.357    -.4407674    .1589803
+                    |
+c.female#c._ns_tvc1 |   3.507369   2.594049     1.35   0.176    -1.576874    8.591612
+                    |
+c.female#c._ns_tvc2 |  -2.433839   1.310774    -1.86   0.063     -5.00291    .1352315
+                    |
+c.female#c._ns_tvc3 |   .0382472   .2393267     0.16   0.873    -.4308247     .507319
+                    |
+              _cons |  -1.107289   .1106139   -10.01   0.000    -1.324088   -.8904897
+-------------------------------------------------------------------------------------
+
+. predict s_mrs_male s_mrs_female, surv timevar(0 10, step(0.1)) ci frame(mrs) ///
+>                                  at1(female 0) at2(female 1)
+Predictions are stored in frame - mrs
+
+```
+I have predicted marginal relative survival separately for males and females.
+These can be shown in the plot below.
+
+
+```stata
+. frame PP {
+.   twoway (rarea R_pp_lci R_pp_uci _t if !female, sort connect(stairstep) color(%30))      ///
+>          (rarea R_pp_lci R_pp_uci _t if female,  sort connect(stairstep) color(%30))      ///
+>          (line R_pp _t if !female, sort lpattern(dot) connect(stairstep) pstyle(p1line))  ///
+>          (line R_pp _t if female,  sort lpattern(dot) connect(stairstep) pstyle(p2line)), ///
+>          ylabel(0.6(0.1)1, format(%3.1f))                                                      ///
+>          ytitle("Marginal relative survival")                                                  ///
+>          xtitle("Years from diagnosis")                                                        ///
+>          name(sex_compare, replace)      
+. }         
+
+. frame mrs: addplot: (line s_mrs_male* tt,   sort pstyle(p1line..) lpattern(solid dash dash)) 
+
+. frame mrs: addplot: (line s_mrs_female* tt, sort pstyle(p2line..) lpattern(solid dash dash) ///
+>                      legend(order(5 "Males" 8 "Females")                                     ///
+>                             ring(0) cols(1) pos(7)))                 
+
+```
+
+![](/statasvg/mrsprep_sex_compare.svg)
+
+Thus we have obtained externally age standardized estimates of marginal relative survival without the
+need to stratify or model the effect of age.
+
+## References
+
+Lambert PC, Syriopoulou E,  Rutherford MJ. [Direct modelling of age standardized marginal relative survival through incorporation of time-dependent weights.](https://doi.org/10.1186/s12874-021-01266-1)
+*BMC Medical Research Methodology* 2021;**21**:84 
+
+Corazziari I, Quinn M, Capocaccia R. Standard cancer patient population for age standardising survival ratios. 
+*European Journalo of Cancer* 2004;**40**:2307-2316 

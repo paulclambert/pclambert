@@ -1,0 +1,84 @@
+---
+title: "`stcrprep` - using `stcox' rather than `stcrreg`"
+---
+
+In the tutorial on using `stcrep` fo rnon-parametric etsimation of the cause-specific
+incidence function (CIF), weights were calculayed separately in each risk group.
+Although, we could do the same when modelling, to mimic the behaviour of `stcrreg`, 
+we need the censoring distribution to not vary by covariates. I load the original data and 
+run `stcrprep` without the `byg()` option. 
+
+```stata
+<<dd_do: quietly>>
+use http://www.pclambert.net/data/ebmt1_stata.dta, clear
+stset time, failure(status==1) scale(365.25) id(patid)
+stcrreg i.score, compete(status==2) nolog noshow
+estimates store stcrreg
+<</dd_do>>
+```
+
+
+
+
+```stata
+<<dd_do>>
+use http://www.pclambert.net/data/ebmt1_stata.dta, clear
+stset time, failure(status==1,2) scale(365.25) id(patid)
+stcrprep, events(status) keep(score) trans(1 2)
+<</dd_do>>
+```
+
+
+We need to calculate the event indicator and using `stset` on th expanded data,
+and then can use `stcox' to fit a proportional subhazards model for relapse.
+
+```stata
+<<dd_do>>
+generate event = status == failcode 
+stset tstop [iw=weight_c], failure(event) enter(tstart) noshow
+stcox i.score if failcode == 1, nolog
+estimates store stcox
+<</dd_do>>
+```
+
+
+The output gives the subhazard ratios for the medium- and high-risk groups. 
+I have previously fitted a stcrreg model and compare the parameter
+estimates below.
+
+```stata
+<<dd_do>>
+estimates table stcrreg stcox, eq(1:1) se
+<</dd_do>>
+```
+
+
+The parameter estimates are the same as those produced by stcrreg 
+to four decimal places. The standard errors are slightly different because I
+did not use a clustered sandwich estimator: 
+Geskus (2011) showed that the sandwich estimator was asymptotically unbiased,
+but less efficient than using the standard errors derived with the observed information matrix. 
+
+Below I use `stset` again, but now use `pweigts` rather than `iweights`.
+To allow for cluster robust standard errors, I use `vce(cluster patid)`
+when using `stcox`. 
+
+```stata
+<<dd_do>>
+stset tstop [pw=weight_c], failure(event) enter(tstart) noshow
+stcox i.score if failcode == 1, nolog vce(cluster patid)
+estimates store stcox_robust 
+estimates table stcrreg stcox_robust, modelwidth(13) eq(1:1) se 
+<</dd_do>>
+```
+ 
+Using `pweights` rather than `iweights`, along with the `vce(cluster patid)`
+option for the `stcox` command, leads to the standard errors being the same 
+as `stcrreg` to four decimal places.
+
+
+## References
+
+Geskus, R. B. Cause-specific cumulative incidence estimation and the Fine and Gray model under both left truncation and right censoring. *Biometrics* 2011; **67**:39–49.
+
+          

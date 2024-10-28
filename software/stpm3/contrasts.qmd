@@ -1,5 +1,6 @@
 ---
 title: "Contrasts"
+highlight-style: monochrome
 ---
 
 

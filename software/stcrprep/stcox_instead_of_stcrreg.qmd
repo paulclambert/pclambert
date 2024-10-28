@@ -1,0 +1,197 @@
+---
+title: "`stcrprep` - using `stcox' rather than `stcrreg`"
+---
+
+In the tutorial on using `stcrep` fo rnon-parametric etsimation of the cause-specific
+incidence function (CIF), weights were calculayed separately in each risk group.
+Although, we could do the same when modelling, to mimic the behaviour of `stcrreg`, 
+we need the censoring distribution to not vary by covariates. I load the original data and 
+run `stcrprep` without the `byg()` option. 
+
+```stata
+```
+
+
+
+
+```stata
+. use http://www.pclambert.net/data/ebmt1_stata.dta, clear
+(Written by R.              )
+
+. stset time, failure(status==1,2) scale(365.25) id(patid)
+
+Survival-time data settings
+
+           ID variable: patid
+         Failure event: status==1 2
+Observed time interval: (time[_n-1], time]
+     Exit on or before: failure
+     Time for analysis: time/365.25
+
+--------------------------------------------------------------------------
+      1,977  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+      1,977  observations remaining, representing
+      1,977  subjects
+      1,141  failures in single-failure-per-subject data
+  3,796.057  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =  8.454483
+
+. stcrprep, events(status) keep(score) trans(1 2)
+
+```
+
+
+We need to calculate the event indicator and using `stset` on th expanded data,
+and then can use `stcox' to fit a proportional subhazards model for relapse.
+
+```stata
+. generate event = status == failcode 
+
+. stset tstop [iw=weight_c], failure(event) enter(tstart) noshow
+
+Survival-time data settings
+
+         Failure event: event!=0 & event<.
+Observed time interval: (0, tstop]
+     Enter on or after: time tstart
+     Exit on or before: failure
+                Weight: [iweight=weight_c]
+
+--------------------------------------------------------------------------
+    127,730  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+    127,730  observations remaining, representing
+      1,141  failures in single-record/single-failure data
+ 14,418.735  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =  8.454483
+
+. stcox i.score if failcode == 1, nolog
+
+Cox regression with Breslow method for ties
+
+No. of subjects =     72,880                            Number of obs = 72,880
+No. of failures =        456
+Time at risk    = 6,026.2743
+                                                        LR chi2(2)    =   9.63
+Log likelihood = -3333.3112                             Prob > chi2   = 0.0081
+
+------------------------------------------------------------------------------
+          _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+       score |
+Medium risk  |   1.271235   .1593392     1.91   0.056     .9943389    1.625238
+  High risk  |   1.769899   .3219273     3.14   0.002     1.239148     2.52798
+------------------------------------------------------------------------------
+
+. estimates store stcox
+
+```
+
+
+The output gives the subhazard ratios for the medium- and high-risk groups. 
+I have previously fitted a stcrreg model and compare the parameter
+estimates below.
+
+```stata
+. estimates table stcrreg stcox, eq(1:1) se
+
+----------------------------------------
+    Variable |  stcrreg       stcox     
+-------------+--------------------------
+       score |
+Medium risk  |  .23997769    .23998867  
+             |   .1222701    .12534204  
+  High risk  |  .57089666    .57092254  
+             |  .18298324    .18189019  
+----------------------------------------
+                            Legend: b/se
+
+```
+
+
+The parameter estimates are the same as those produced by stcrreg 
+to four decimal places. The standard errors are slightly different because I
+did not use a clustered sandwich estimator: 
+Geskus (2011) showed that the sandwich estimator was asymptotically unbiased,
+but less efficient than using the standard errors derived with the observed information matrix. 
+
+Below I use `stset` again, but now use `pweigts` rather than `iweights`.
+To allow for cluster robust standard errors, I use `vce(cluster patid)`
+when using `stcox`. 
+
+```stata
+. stset tstop [pw=weight_c], failure(event) enter(tstart) noshow
+
+Survival-time data settings
+
+         Failure event: event!=0 & event<.
+Observed time interval: (0, tstop]
+     Enter on or after: time tstart
+     Exit on or before: failure
+                Weight: [pweight=weight_c]
+
+--------------------------------------------------------------------------
+    127,730  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+    127,730  observations remaining, representing
+      1,141  failures in single-record/single-failure data
+ 14,418.735  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =  8.454483
+
+. stcox i.score if failcode == 1, nolog vce(cluster patid)
+(sum of wgt is 72,880.4685663047)
+
+Cox regression with Breslow method for ties
+
+No. of subjects =     72,880                            Number of obs = 94,284
+No. of failures =        456
+Time at risk    = 6,026.2743
+                                                        Wald chi2(2)  =   9.87
+Log pseudolikelihood = -3333.3112                       Prob > chi2   = 0.0072
+
+                              (Std. err. adjusted for 1,977 clusters in patid)
+------------------------------------------------------------------------------
+             |               Robust
+          _t | Haz. ratio   std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+       score |
+Medium risk  |   1.271235   .1554034     1.96   0.050     1.000391    1.615406
+  High risk  |   1.769899   .3238307     3.12   0.002     1.236539    2.533315
+------------------------------------------------------------------------------
+
+. estimates store stcox_robust 
+
+. estimates table stcrreg stcox_robust, modelwidth(13) eq(1:1) se 
+
+----------------------------------------------
+    Variable |    stcrreg      stcox_robust   
+-------------+--------------------------------
+       score |
+Medium risk  |     .23997769       .23998867  
+             |      .1222701         .122246  
+  High risk  |     .57089666       .57092254  
+             |     .18298324       .18296561  
+----------------------------------------------
+                                  Legend: b/se
+
+```
+ 
+Using `pweights` rather than `iweights`, along with the `vce(cluster patid)`
+option for the `stcox` command, leads to the standard errors being the same 
+as `stcrreg` to four decimal places.
+
+
+## References
+
+Geskus, R. B. Cause-specific cumulative incidence estimation and the Fine and Gray model under both left truncation and right censoring. *Biometrics* 2011; **67**:39–49.
+

@@ -1,0 +1,523 @@
+---
+title: "Direct modelling of marginal relative survival models"
+---
+
+
+```stata
+```
+
+## Background
+
+When using relative survival we may be intested in both estimating relative survival *conditional* on specific covariate patterns, for example,
+for a male aged 70 diagnosed in 2018 with localized cancer, or *marginal* relative survival where we may interested in an average effect in a population or when making comparisons
+where we average over the same covariate (confounder) patterns. My  [`standsurv`](/software/standsurv.qmd) command   can be used to estimate marginal relative survival after fitting a model conditional on covariates.
+
+The estimand of interest, is marginal relative survival. Consider a set of covariates, $\mathbf{X}_i$, for the $i^{th}$ individual that may affect the rate of death from the cancer under study and the rate of death from other causes.
+The all cause rate of death, $h(t|\mathbf{X}_i)$, can be partitioned into two components,
+
+$$
+h(t|\mathbf{X}_i) = h^*(t|\mathbf{X}_i) + \lambda(t|\mathbf{X}_i)
+$$
+
+where $h^*(t|\mathbf{X}_i)$ is the expected mortaliity rate and $\lambda(t|\mathbf{X}_i)$ is the excess mortality rate for the $i^{th}$ individual. The relative survival for covariate pattern, $\mathbf{X}_i$ is,
+
+$$
+R(t|\mathbf{X}_i) = \int_0^t {\lambda(u|\mathbf{X}_i) du}
+$$
+
+The marginal relative survival involves taking the expectation of $R(t|\mathbf{X})$ over covariate pattern, $\mathbf{X}$,
+
+$$
+R^m(t|\mathbf{X}) = E_{\mathbf{X}}\left[R(t|\mathbf{X})\right]
+\tag{Equation 1}
+$$
+
+
+Note that in the above for simplicity, I assume the same covariates act on the expected and excess mortality rates, but this is not a requirement
+
+## Example
+
+I use the Melanoma data, restricting to those diagnosed in the later calendar perdiod, 1985-1994. 
+I restrict follow-up to 10 years after diagnosis using the `exit()` option. 
+
+```stata
+. use https://pclambert.net/data/melanoma.dta if year8594 == 1 
+(Skin melanoma, diagnosed 1975-94, follow-up to 1995)
+
+. stset surv_mm, failure(status=1,2) id(id) exit(time 120.5) scale(12)
+
+Survival-time data settings
+
+           ID variable: id
+         Failure event: status==1 2
+Observed time interval: (surv_mm[_n-1], surv_mm]
+     Exit on or before: time 120.5
+     Time for analysis: time/12
+
+--------------------------------------------------------------------------
+      4,744  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+      4,744  observations remaining, representing
+      4,744  subjects
+      1,401  failures in single-failure-per-subject data
+ 22,003.417  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =  10.04167
+
+```
+
+I will first estimate the non-parametric estimate of marginal relative survival using [`stpp`](/software/stpp), so we have something to compare our model based estimates to.
+
+```stata
+. stpp R_pp using https://pclambert.net/data/popmort.dta, /// 
+>                 agediag(age) datediag(dx) pmother(sex)
+
+. frame put R_pp* _t, into(PP)
+
+```
+
+I have saved the Pohar Perme estimates in a frame, so I can plot them after I restructure the data using `mrsprep`.
+
+I will now fit some relative survival models, but first I need to merge in the expected mortality rates at the event/censoring times.
+
+        
+```stata
+. // conditional model (no covariates)
+. gen _age = floor(min(age + _t,99))
+
+. gen _year = floor(year(dx + _t*365.24))
+
+. merge m:1 _age _year sex using https://pclambert.net/data/popmort.dta, ///
+>           keep(match master)        
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             4,744  (_merge==3)
+    -----------------------------------------
+
+```
+        
+Now I will fit a flexible parametric relative survival model with no covariate using `stpm3`. I will then predict the estimated relative survival.
+
+```stata
+. stpm3, scale(lncumhazard) df(5) bhazard(rate)
+
+Iteration 0:  Log likelihood = -4317.6147  
+Iteration 1:  Log likelihood = -4279.9521  
+Iteration 2:  Log likelihood = -4279.5867  
+Iteration 3:  Log likelihood = -4279.5864  
+
+                                                        Number of obs =  4,744
+                                                        Wald chi2(5)  = 585.83
+Log likelihood = -4279.5864                             Prob > chi2   = 0.0000
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+time         |
+        _ns1 |  -17.87731   1.426021   -12.54   0.000    -20.67226   -15.08236
+        _ns2 |   4.574298   .7477189     6.12   0.000     3.108796      6.0398
+        _ns3 |  -1.225422   .0787509   -15.56   0.000    -1.379771   -1.071073
+        _ns4 |  -.7203963   .0589846   -12.21   0.000    -.8360041   -.6047885
+        _ns5 |  -.3020431    .075848    -3.98   0.000    -.4507024   -.1533838
+       _cons |  -1.398172    .054032   -25.88   0.000    -1.504073   -1.292271
+------------------------------------------------------------------------------
+
+. predict s_cond, surv timevar(0 10, step(0.1)) frame(surv, replace) ci        
+Predictions are stored in frame - surv
+
+```
+
+
+I can now compare the model based and the non-parametric estimates. 
+
+```stata
+. twoway (rarea R_pp_lci R_pp_uci _t, sort connect(stairstep) color(%30))     ///
+>        (line R_pp _t, sort connect(stairstep) pstyle(p1line)),              ///
+>          ylabel(0.6(0.1)1, format(%3.1f))                                   ///
+>          ytitle("Marginal relative survival")                               ///
+>          xtitle("Years from diagnosis")                                     ///
+>          name(int_stand, replace)   
+
+.          
+. frame surv: addplot: (line s_cond* tt, pstyle(p2line..)                 ///
+>                                        lpattern(solid dash dash)        ///
+>                      , legend(order(2 "Pohar Perme"                     ///
+>                                     3 "stpm3 model without covariates") ///
+>                                     ring(0) cols(1) pos(7)) norescaling)
+
+```
+
+![](/statasvg/mrsprep_compare_pp_conditional_model.svg)
+
+
+It can be seen that there is disagrement between the non-parametric estimate and the model based estimate. This is not good and differs in what we would expect to see in a standard survival model. 
+For example, if I fit an all-cause `stpm3` survival model without covariates I get the following graph comparing the model based estmates with a Kaplan Meier estimate.
+
+```stata
+```
+
+![](/statasvg/mrsprep_allcause.svg)
+
+There is now near perfect agreement. I explain in the next section why there is disagreement between the model based and non-parametric estimate.
+
+### Why is there disagreement when a model with no covariates is fitted.
+
+Consider the relative survival model fitted when not including any covariates.
+
+$$
+h(t|\mathbf{X}_i) = h^*(t|\mathbf{X}_i) + \lambda(t)
+$$
+
+In this model the excess mortality is assumed to be exactly the same for each individual. 
+In this model the all cause mortality rate varies between individuals only through variation in expected (other cause) mortality rates and the
+excess (cancer) mortality rate is assumed to be the same for all individuals. This is different from the definition in Equation 1 where 
+relative survival is allowed to vary between individuals. Assuming that the excess mortality is the same over age, sex etc is a very strong assumption and
+almost certainly not true.
+
+### Regression standardization
+
+Regression standardization can be used in the relative survival framework. This means that we should include all covariates that affect expected
+mortality rates in the model. In the case of the Melanoma data this is age, sex and calendar year
+
+I will fit a model that uses restricted cubic splines to model the effect of age at diagnosis and also relax the proportional hazards assumption
+for the effect of age by allowing an interaction with time. The model will include sex and calendar years as these both impact the expected mortality rates.
+I will allow the effect of sex to be time-dependent (non-proportional), and model the effect of year of diagnosis using restricted cubic splines.
+A key point here is that various modelling choices need to be made, for example, I have chosen not to include interactions between any of the covariates.
+Different modelling choices will result in different estimates.
+
+
+```stata
+. gen female = sex==2
+
+. stpm3 @ns(age,df(3)) i.female @ns(yydx,df(3)), scale(lncumhazard) df(5) bhazard(rate) ///
+>                           tvc(@ns(age,df(3)) i.female) dftvc(3)   
+
+Iteration 0:  Log likelihood = -4282.7708  
+Iteration 1:  Log likelihood = -4232.0164  
+Iteration 2:  Log likelihood = -4217.1952  
+Iteration 3:  Log likelihood = -4216.7915  
+Iteration 4:  Log likelihood = -4216.7715  
+Iteration 5:  Log likelihood =  -4216.771  
+Iteration 6:  Log likelihood =  -4216.771  
+
+                                                        Number of obs =  4,744
+                                                        Wald chi2(7)  =  42.75
+Log likelihood = -4216.771                              Prob > chi2   = 0.0000
+
+------------------------------------------------------------------------------------------
+                         | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------------------+----------------------------------------------------------------
+xb                       |
+             _ns_f1_age1 |  -11.22114   3.385041    -3.31   0.001     -17.8557   -4.586584
+             _ns_f1_age2 |   1.989596   1.260412     1.58   0.114    -.4807653    4.459957
+             _ns_f1_age3 |   -3.86527   1.260658    -3.07   0.002    -6.336114   -1.394427
+                1.female |  -.4872245   .1119448    -4.35   0.000    -.7066323   -.2678167
+            _ns_f1_yydx1 |  -.0434216   .5642721    -0.08   0.939    -1.149375    1.062531
+            _ns_f1_yydx2 |  -.4650447   .2809398    -1.66   0.098    -1.015677    .0855871
+            _ns_f1_yydx3 |  -.1871899   .3394343    -0.55   0.581    -.8524689    .4780891
+-------------------------+----------------------------------------------------------------
+time                     |
+                    _ns1 |  -36.82314    26.3184    -1.40   0.162    -88.40626    14.75998
+                    _ns2 |   9.331382   11.01803     0.85   0.397    -12.26356    30.92633
+                    _ns3 |  -2.918356   .8051024    -3.62   0.000    -4.496327   -1.340384
+                    _ns4 |  -1.910931   .7813821    -2.45   0.014    -3.442412   -.3794507
+                    _ns5 |  -1.106962   .8472997    -1.31   0.191    -2.767639    .5537151
+                         |
+c._ns_f1_age1#c._ns_tvc1 |  -1.731685   118.9872    -0.01   0.988    -234.9422    231.4789
+                         |
+c._ns_f1_age1#c._ns_tvc2 |   16.01398   60.12386     0.27   0.790    -101.8266    133.8546
+                         |
+c._ns_f1_age1#c._ns_tvc3 |  -.7339993   6.025834    -0.12   0.903    -12.54442    11.07642
+                         |
+c._ns_f1_age2#c._ns_tvc1 |    28.7778   39.36414     0.73   0.465     -48.3745    105.9301
+                         |
+c._ns_f1_age2#c._ns_tvc2 |  -17.24092   20.88894    -0.83   0.409    -58.18249    23.70065
+                         |
+c._ns_f1_age2#c._ns_tvc3 |   1.386903   2.317659     0.60   0.550    -3.155626    5.929431
+                         |
+c._ns_f1_age3#c._ns_tvc1 |   24.54162   43.35966     0.57   0.571    -60.44175     109.525
+                         |
+c._ns_f1_age3#c._ns_tvc2 |  -5.038554   21.17538    -0.24   0.812    -46.54154    36.46443
+                         |
+c._ns_f1_age3#c._ns_tvc3 |   2.869028   2.100064     1.37   0.172    -1.247021    6.985077
+                         |
+       female#c._ns_tvc1 |
+                      1  |   4.273373   2.755442     1.55   0.121    -1.127194    9.673939
+                         |
+       female#c._ns_tvc2 |
+                      1  |  -2.243662   1.420855    -1.58   0.114    -5.028487    .5411632
+                         |
+       female#c._ns_tvc3 |
+                      1  |   .0362194   .1836685     0.20   0.844    -.3237642     .396203
+                         |
+                   _cons |   1.499636   .7380288     2.03   0.042     .0531259    2.946146
+------------------------------------------------------------------------------------------
+Extended functions
+ (1) @ns(age, df(3))
+ (2) @ns(yydx, df(3))
+
+. range tt 0 10 101
+(4,643 missing values generated)
+
+. standsurv mrs_cond, surv timevar(tt) ci frame(margrs)
+
+```
+
+After fitting the model I have used `standsurv` to obtain the estimate of marginal relative survival using regression standardization. This predicts a relative survival
+function for each individual conditional on their observed covariate pattern and takes the average of these curves. In this case there are 4,744
+individuals in the study and so the estimated marginal relative survival is an average of 4,744 different survival curves.
+
+I can now compare the model based estimate, based on regression standardization, and the non-parametric Pohar Perme estimate. 
+
+```stata
+. twoway (rarea R_pp_lci R_pp_uci _t, sort connect(stairstep) color(%30))                 ///
+>        (line R_pp _t, sort connect(stairstep) pstyle(p1line)),                          ///
+>          ylabel(0.6(0.1)1, format(%3.1f))                                               ///
+>          ytitle("Marginal relative survival")                                           ///
+>          xtitle("Years from diagnosis")                                                 ///
+>          name(int_stand_standsurv, replace)      
+
+. frame margrs: addplot: (line mrs_cond* tt, pstyle(p2line..)                             ///
+>                                                 lpattern(solid dash dash)               ///
+>                         legend(order(2 "Pohar Perme"                                    ///
+>                                      3 "Regression standardization after stpm3 model")  ///
+>                                ring(0) cols(1) pos(7)) norescaling)  
+
+```
+
+![](/statasvg/int_stand_standsurv.svg)
+
+
+There is now good agreement between the estimate based on regression standardizion and the non-parametric estimate.
+I will now move on to describing how to model marginal relative survival directly, so we can make fewer modelling decisions
+if we are only interested in the estimation of marginal relative survival.
+
+## Using `mrsprep` to prepare data for fitting a marginal modelling
+
+In order to directly model marginal relative survival I will run `mrsprep`. This does two things, 
+(1). It calculates time-dependent weights which are the inverse of the expected survival. 
+These are needed as the estimand of interest is in the net world, where it is not possible
+to die from causes other than the cancer under study. However, we have data in the real world and as
+follow-up time increases we have fewer at risk and fewer deaths than we would see in the net world.
+The weights are based on the same idea as the weights used in the Pohar Perme non-parametric estimate.
+(2). At each event time it calculates the weighted mean mortality (hazard) rate for those still at risk. The weights are based on the 
+inverse of expected survival among those at risk. The weighted mean is needed as the marginal relative survival is of interest. 
+See the paper for more details.
+
+
+The code for `mrsprep` is shown below.
+```stata
+. mrsprep using https://pclambert.net/data/popmort.dta   ///
+>               , pmother(sex) agediag(age) datediag(dx) ///
+>                 breaks(0(0.2)10)                       
+
+```
+
+`mrsprep` needs the filename of where the expected mortality rates are stored.
+It requires the name of the variable for age at diagnosis and the name
+of the variable for date of diagnosis. It also needs the name of variables 
+other than age and calendar year that the expected mortality rates are stratified by, in this
+case this is just `sex.` The final option is `breaks(0(0.2)10)`. This splits the 
+time scale into intervals, each of width 0.2 years. The weights are calculated at the mid-point of 
+each interval. This is an approximation, greater precision can be obtained with
+narrower intervals, but the expanded dataset becomes larger. See the paper for
+a sensitivity analysis for different interval widths.
+
+Below is a listing for the first two individuals in the dataset.
+
+```stata
+. list id age sex tstart tstop wt meanhazard_wt event if inlist(id,51,574), ///
+>      noobs sepby(id) abbrev(13)
+
+  +--------------------------------------------------------------------------+
+  |  id   age   sex   tstart       tstop          wt   meanhazard_wt   event |
+  |--------------------------------------------------------------------------|
+  |  51    86     1        0          .2    1.017644             999       0 |
+  |  51    86     1       .2          .4   1.0556412             999       0 |
+  |  51    86     1       .4          .6   1.0968963             999       0 |
+  |  51    86     1       .6          .8   1.1378526             999       0 |
+  |  51    86     1       .8           1   1.1783593             999       0 |
+  |  51    86     1        1         1.2   1.2222716             999       0 |
+  |  51    86     1      1.2       1.375   1.2674326       .02960256       1 |
+  |--------------------------------------------------------------------------|
+  | 574    69     2        0          .2   1.0039818             999       0 |
+  | 574    69     2       .2          .4   1.0119931             999       0 |
+  | 574    69     2       .4          .6   1.0206144             999       0 |
+  | 574    69     2       .6          .8   1.0298603             999       0 |
+  | 574    69     2       .8           1   1.0391899             999       0 |
+  | 574    69     2        1         1.2   1.0486292             999       0 |
+  | 574    69     2      1.2         1.4   1.0581798             999       0 |
+  | 574    69     2      1.4         1.6   1.0673769             999       0 |
+  | 574    69     2      1.6         1.8   1.0762101             999       0 |
+  | 574    69     2      1.8           2    1.085564             999       0 |
+  | 574    69     2        2         2.2   1.0958287             999       0 |
+  | 574    69     2      2.2         2.4   1.1065721             999       0 |
+  | 574    69     2      2.4         2.6   1.1174208             999       0 |
+  | 574    69     2      2.6         2.8   1.1283759             999       0 |
+  | 574    69     2      2.8           3   1.1394383             999       0 |
+  | 574    69     2        3         3.2   1.1510196             999       0 |
+  | 574    69     2      3.2         3.4   1.1631333             999       0 |
+  | 574    69     2      3.4         3.6   1.1753744             999       0 |
+  | 574    69     2      3.6         3.8   1.1877444             999       0 |
+  | 574    69     2      3.8           4   1.2002446             999       0 |
+  | 574    69     2        4         4.2   1.2135969             999       0 |
+  | 574    69     2      4.2         4.4   1.2278268             999       0 |
+  | 574    69     2      4.4         4.6   1.2422236             999       0 |
+  | 574    69     2      4.6         4.8   1.2567893             999       0 |
+  | 574    69     2      4.8           5   1.2715257             999       0 |
+  | 574    69     2        5         5.2   1.2863285             999       0 |
+  | 574    69     2      5.2         5.4   1.3011962             999       0 |
+  | 574    69     2      5.4         5.6   1.3162357             999       0 |
+  | 574    69     2      5.6         5.8    1.331449             999       0 |
+  | 574    69     2      5.8           6   1.3468382             999       0 |
+  | 574    69     2        6         6.2   1.3633453             999       0 |
+  | 574    69     2      6.2         6.4    1.381007             999       0 |
+  | 574    69     2      6.4         6.6   1.3988974             999       0 |
+  | 574    69     2      6.6         6.8   1.4170196             999       0 |
+  | 574    69     2      6.8           7   1.4353766             999       0 |
+  | 574    69     2        7         7.2   1.4547646             999       0 |
+  | 574    69     2      7.2   7.2916667   1.4696508       .03708329       1 |
+  +--------------------------------------------------------------------------+
+
+```
+
+
+Individual 51 is 86 years old at diagnosis and male. They have 7 rows of data with each row corresponding
+to a different time interval. The start of the interval is given by `tstart` and the end of the interval by `tstop`.
+Each time interval is 0.2 years, execept the last interval in which they die (`event==1`) at 1.375 years.
+For each interval there is an associated weight (`wt`), which is the inverse of the expected survival at the midpoint of the interval.
+As the expected survival decreases over time, the weights increase over time. The `meanhazard_wt` gives the weighted mean 
+expected mortality rate at each individuals event time. Note that for any censored time it is set to `999`. When fitting
+relative survival models using `stpm3` or other commands the expected mortality rate at the event time is needed, but is not required 
+for any censored times. However, having a missing value would exclude these rows from the analysis and so we feed it
+a value that is actually not used when we fit the model. Individual 574 is younger than Individual 1 and so the weights are lower
+at the same time points, e.g. 1.039 vs 1.222 at 1 year.
+
+Having restructured the data we can now use `stset` where we need to give the end of each interval (`tstop`), 
+the start of the interval (`tstart`). The weights are passed using `[iweights=wt]`. 
+
+```stata
+. stset tstop [iweight=wt], enter(tstart) failure(event==1)                                          
+
+Survival-time data settings
+
+         Failure event: event==1
+Observed time interval: (0, tstop]
+     Enter on or after: time tstart
+     Exit on or before: failure
+                Weight: [iweight=wt]
+
+--------------------------------------------------------------------------
+    112,229  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+    112,229  observations remaining, representing
+      1,401  failures in single-record/single-failure data
+ 21,994.417  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =        10
+
+```
+The marginal model van now be fitted using `stpm3`. 
+As there are time-dependent weights cluster robust standard errors are used using `vce(cluster id)`.
+
+```stata
+. stpm3, scale(lncumhazard) df(5) bhazard(meanhazard_wt) vce(cluster id)
+
+Iteration 0:  Log pseudolikelihood = -5644.1536  
+Iteration 1:  Log pseudolikelihood = -5557.6921  
+Iteration 2:  Log pseudolikelihood = -5557.3554  
+Iteration 3:  Log pseudolikelihood = -5557.3542  
+Iteration 4:  Log pseudolikelihood = -5557.3542  
+
+                                                       Number of obs = 112,229
+                                                       Wald chi2(5)  =  589.51
+Log pseudolikelihood = -5557.3542                      Prob > chi2   =  0.0000
+
+                                 (Std. err. adjusted for 4,744 clusters in id)
+------------------------------------------------------------------------------
+             |               Robust
+             | Coefficient  std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+time         |
+        _ns1 |  -18.20708   1.089207   -16.72   0.000    -20.34189   -16.07227
+        _ns2 |   4.682916   .5470787     8.56   0.000     3.610662    5.755171
+        _ns3 |  -1.065117   .1005134   -10.60   0.000     -1.26212   -.8681146
+        _ns4 |  -.5983905   .0831871    -7.19   0.000    -.7614342   -.4353468
+        _ns5 |   -.135204    .136843    -0.99   0.323    -.4034113    .1330033
+       _cons |  -1.217818   .0846971   -14.38   0.000    -1.383821   -1.051815
+------------------------------------------------------------------------------
+
+. predict rs_mrsprep, surv timevar(0 10, step(0.1)) ci frame(margrs,replace)
+Predictions are stored in frame - margrs
+
+```
+
+After fitting the model, the marginal relative survival has been predicted. 
+This can now be compared to the Pohar Perme non-parametric estimate.
+
+
+```stata
+. frame PP {
+.   twoway (rarea R_pp_lci R_pp_uci _t, sort connect(stairstep) color(%30))   ///
+>          (line R_pp _t, sort connect(stairstep) pstyle(p1line))             ///
+>          , legend(order(2 "Pohar Perme" 3 "Marginal stpm2 model")           ///
+>                   ring(0) cols(1) pos(7))                                   ///
+>            ylabel(0.6(0.1)1, format(%3.1f))                                 ///
+>            ytitle("Marginal relative survival")                             ///
+>            xtitle("Years from diagnosis")                                   ///
+>            name(int_stand_standsurv, replace)   
+. }
+
+. frame margrs: addplot: (line rs_mrsprep* tt, pstyle(p2line..)           ///
+>                                              lpattern(solid dash dash)  ///
+>                                              norescaling                ///
+>                         legend(order(2 "Pohar Perme"                    ///
+>                                      3 "Marginal stpm3 model")          ///
+>                                ring(0) cols(1) pos(7)))           
+
+.            
+```
+
+![](/statasvg/int_stand_standsurv.svg)
+
+There is now good agreement between the model based and the non parametric Pohar Perme estimate. 
+Here the marginal estimate obtained from regression standardization and the marginal model are very similar.
+
+The estimate here is an internally standardized estimate, over the observed covariate distribution and thus
+would not be comparable to another study with a different age/sex distribution or if separate analysis
+were performed for males and females. See the example of [external age standardization](mrsprep_external_age_standardization.qmd) and 
+[modelling covarites](mrsprep_modelling_covariates.qmd) for further extensions.
+
+
+Note that `mrsprep` makes uses of frames.
+```stata
+. frame
+  (current frame is mrs_data)
+
+. frames dir
+* PP        4744 x 4; Skin melanoma, diagnosed 1975-94, follow-up to 1995
+* default   4744 x 50; Skin melanoma, diagnosed 1975-94, follow-up to 1995
+* margrs    101 x 4
+* mrs_data  112229 x 29
+* surv      101 x 4; Skin melanoma, diagnosed 1975-94, follow-up to 1995
+
+Note: Frames marked with * contain unsaved data.
+
+```
+
+It is possible to switch to the orginal data using `frame change default`. 
+
+
+
+
+## References
+
+Lambert PC, Syriopoulou E,  Rutherford MJ. [Direct modelling of age standardized marginal relative survival through incorporation of time-dependent weights.](https://doi.org/10.1186/s12874-021-01266-1)
+*BMC Medical Research Methodology* 2021;**21**:84 
+

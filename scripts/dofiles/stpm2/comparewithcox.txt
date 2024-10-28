@@ -1,0 +1,76 @@
++++
+date = "2017-08-06"
+title = "Proportional hazards models in stpm2"
+summary = "stpm2"
+tags = ["stpm2","survival","software","Stata","proportional hazards"]
+external_link = "" 
+math = true
+[header]
+image = ""
+caption = ""
++++
+
+# Proportional hazards model
+
+We first load the example breast cancer data data using `webuse` and then use `stset` to declare the survival time and event indicator.
+
+```stata
+<<dd_do>>
+webuse brcancer, clear
+stset rectime, f(censrec==1) scale(365.24)
+<</dd_do>>
+```
+
+The `scale(365.25)` option converts the times recorded in days to years.
+
+A standard Cox proportional hazards model can be defined as follows,
+
+$$
+h_i(t|\mathbf{x}\_i)=h_0(t)\exp\left(\mathbf{x}\_i\boldsymbol{\beta}\right)
+$$
+
+A key point about the Cox model is that we do not estimate the baseline hazard, $h\_0(t)$, as this cancels out in the partial likelihood, so we only estimate the relative effects, i.e. hazard ratios.
+ 
+We can now fit a Cox model in Stata with `hormon` as the only covariate.
+
+```stata
+<<dd_do>>
+stcox hormon, 
+<</dd_do>>
+```
+
+We will now fit a flexible parametric survival model. Here are model is on the log *cumulative* hazard scale, so our model is defined using uppercase H rather than lowercase h.
+
+$$
+H_i(t|\mathbf{x}\_i)=H_0(t)\exp\left(\mathbf{x}\_i\boldsymbol{\beta}\right)
+$$
+
+Do we have to worry about the switch from hazard function to cumulative hazard function? Well, the answer is "No" as if we have proportional hazards we also have proportional cumulative hazards.
+
+In the flexible parametric survival model we estimate the baseline using restriced cubic splines. So we need additional parameters to estimate the baseline (the log cumulative hazard in this case).  The linear predictor is,
+
+$$
+\ln[H(t|\mathbf{x}\_i)] = \eta_i(t) = s\left(\ln(t)|\boldsymbol{\gamma}, \mathbf{k}\_{0}\right) + \mathbf{x}\_i \boldsymbol{\beta} 
+$$
+
+where $s\left(\ln(t)|\boldsymbol{\gamma}, \mathbf{k}_{0}\right)$ is a restriced cubic spline function of log(time).  
+
+We now fit this model in Stata using `stpm2`.
+
+```stata
+<<dd_do>>
+stpm2 hormon, df(3) scale(hazard) eform
+<</dd_do>>
+```
+I have used three options. The `df(3)` option requests there to be 3 restricted cubic spline parameters (4 knots). These are at the default knot locations, which are at evenly spaced centiles of the uncensored event times. The `scale()` option defines the link function and `scale(hazard)` asks for a log(-log) link function, i.e. our linear predictor is on the log cumulative hazard scale. The `eform` option means that the coefficients will be exponentiated.
+
+The key point here is the similarity between the hazard ratios form the two models. This is nearly always the case. I will try to convince anyone who does not believe this in future posts.
+
+A sensible question is, _if we get the same anwers, why not just fit a Cox model_?  Well, if all you want is a single hazard ratio and proportional hazards is a reasonable assumption then I agree with you. However, as I will show in other examples, there are many advantages of the parametric approach.
+
+There are a number of issues that people may raise. This include how many knots to use and where to put the knots. I will cover these in future tutorials.
+
+
+
+ 
+

@@ -12,7 +12,7 @@ You can [download the datasets and code](https://www.stata-press.com/data/fpsaus
 
 A review of the book can be found [here](https://www.stata-journal.com/sjpdf.html?articlenum=gn0057).
 
-We are writing a second addition of the book with [Mark Rutherford](https://le.ac.uk/people/mark-rutherford) included as an additional author.
+We are writing a second edition of the book with [Mark Rutherford](https://le.ac.uk/people/mark-rutherford) included as an additional author.
 
 ## My publications
 

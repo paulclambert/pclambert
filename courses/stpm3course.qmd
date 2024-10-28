@@ -1,0 +1,38 @@
+---
+title: "stpm3course (Stockholm 27 September 2024)"
+highlight-style: monochrome
+
+---
+
+## Course material
+
+A zip file containing the course material can be found [here](stpm3course.zip)
+
+Or you can just download the [lecture notes](stpm3course_Stockholm_27Sept2024.pdf){target="_blank"}.
+
+
+## Required software.
+
+If you want to run the examples in the lecture notes / examples you will need
+to install some software in Stata. 
+
+> **Installing**
+You will need to install the latest versions of the `stpm3`, `standsurv`, `gensplines`, `survsim` and `addplot` commands.
+You can install these from within Stata from SSC using
+the code below. 
+
+```stata
+ssc install stpm3
+ssc install standsurv
+ssc install gensplines
+ssc install survsim
+ssc install addplot
+```
+
+## Previous versions of the course
+
+### Oslo 9 September 2024
+
+ - [zipfile](previous/stpm3course_Oslo_9Sept2024.zip)
+ - <a href="./previous/stpm3course_Oslo_9Sept2024.pdf" target="_blank">lecture notes</a>
+ 

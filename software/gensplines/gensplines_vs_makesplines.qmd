@@ -1,0 +1,371 @@
+---
+title: "Comparison of `gensplines` and `makespline`"
+---
+
+
+Stata has it's own command, `makespline` to generate spline basis functions.
+This will show similarities and differeneces between the commands.
+
+I will show how to obtain identical basis functions for B-splines, and 
+how when using restricted cubic splines, the basis functions are different,
+but give identical fitted values when included in a statistical model.
+
+## B-Splines
+
+I will use the auto data. 
+
+```stata
+. sysuse auto, clear
+(1978 automobile data)
+
+```
+
+I will first use Stata's `makespline` command to obtain the spline variables 
+for `weight`.
+
+```stata
+. makespline bspline weight, bsepsilon(0) basis(bs_ms)
+
+```
+
+Five new variables have been created, `bs_ms_1_1`-`bs_ms_1_5`.
+I have used the option `bsepsilon(0)` as by default `makespline` adds a 
+small value to the minimum and subtracts a small value from the maxiumum when
+considering knot placement. The `gensplines` command happily put knots at the
+minimum and maximum values.
+
+We can add these spline variables to a regression model.
+For example, in the auto data, we can let `mpg` be a non-linear function of `weight`.
+
+```stata
+. regress mpg bs_ms*, nocons
+
+      Source |       SS           df       MS      Number of obs   =        74
+-------------+----------------------------------   F(5, 69)        =    612.79
+       Model |  35214.9626         5  7042.99252   Prob > F        =    0.0000
+    Residual |  793.037383        69  11.4932954   R-squared       =    0.9780
+-------------+----------------------------------   Adj R-squared   =    0.9764
+       Total |       36008        74  486.594595   Root MSE        =    3.3902
+
+------------------------------------------------------------------------------
+         mpg | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   bs_ms_1_1 |   30.81413   1.650387    18.67   0.000      27.5217    34.10656
+   bs_ms_1_2 |    25.6187   2.130947    12.02   0.000     21.36758    29.86982
+   bs_ms_1_3 |    17.1258   3.125635     5.48   0.000     10.89032    23.36127
+   bs_ms_1_4 |   15.97043   2.794922     5.71   0.000     10.39471    21.54615
+   bs_ms_1_5 |   12.16523   2.676801     4.54   0.000     6.825159     17.5053
+------------------------------------------------------------------------------
+
+. predict mu_ms1
+(option xb assumed; fitted values)
+
+. twoway (scatter mpg weight) ///
+>        (line mu_ms1 weight, sort)
+
+```
+
+
+![](/statasvg/gensplines_makespline_ms1.svg)
+
+
+Note I have used the `nocons` option. If I do not then one of the spline variables
+would be dropped due to collinearity. I can get exactly the same fitted values if 
+I drop either the first of last spline variable and now estimate a constant term.
+Below I drop the first spline variable and show the predicted values are essentially
+the same.
+
+```stata
+. regress mpg bs_ms_1_2-bs_ms_1_5, 
+
+      Source |       SS           df       MS      Number of obs   =        74
+-------------+----------------------------------   F(4, 69)        =     35.90
+       Model |  1650.42208         4  412.605519   Prob > F        =    0.0000
+    Residual |  793.037383        69  11.4932954   R-squared       =    0.6754
+-------------+----------------------------------   Adj R-squared   =    0.6566
+       Total |  2443.45946        73  33.4720474   Root MSE        =    3.3902
+
+------------------------------------------------------------------------------
+         mpg | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   bs_ms_1_2 |  -5.195432   3.401967    -1.53   0.131    -11.98217    1.591308
+   bs_ms_1_3 |  -13.68834   2.884242    -4.75   0.000    -19.44224   -7.934431
+   bs_ms_1_4 |   -14.8437   3.596973    -4.13   0.000    -22.01946   -7.667934
+   bs_ms_1_5 |   -18.6489   3.040172    -6.13   0.000    -24.71388   -12.58392
+       _cons |   30.81413   1.650387    18.67   0.000      27.5217    34.10656
+------------------------------------------------------------------------------
+
+. predict mu_ms2
+(option xb assumed; fitted values)
+
+. compare mu_ms1 mu_ms2
+
+                                        ---------- Difference ----------
+                            Count       Minimum      Average     Maximum
+------------------------------------------------------------------------
+mu_ms1<mu_ms2                  39     -3.55e-14    -1.72e-14   -3.55e-15
+mu_ms1=mu_ms2                   6
+mu_ms1>mu_ms2                  29      3.55e-15     1.78e-14    4.09e-14
+                       ----------
+Jointly defined                74     -3.55e-14    -2.11e-15    4.09e-14
+                       ----------
+Total                          74
+
+```
+
+I will now use the `gensplines` command.
+
+```stata
+. gensplines weight, type(bs) df(4) gen(bs_gs) 
+
+```
+
+Four splines variables have been created. This is one less than `makespline` as
+it is assumed that a model with an intercept term will be fitted. 
+Fitting a model (with an intercept) will give essentially 
+identical fitted values to when using `makespline`.
+
+
+```stata
+. regress mpg bs_gs1-bs_gs4, 
+
+      Source |       SS           df       MS      Number of obs   =        74
+-------------+----------------------------------   F(4, 69)        =     35.90
+       Model |  1650.42208         4  412.605519   Prob > F        =    0.0000
+    Residual |  793.037383        69  11.4932954   R-squared       =    0.6754
+-------------+----------------------------------   Adj R-squared   =    0.6566
+       Total |  2443.45946        73  33.4720474   Root MSE        =    3.3902
+
+------------------------------------------------------------------------------
+         mpg | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+      bs_gs1 |  -5.195432   3.401967    -1.53   0.131    -11.98217    1.591308
+      bs_gs2 |  -13.68834   2.884242    -4.75   0.000    -19.44224   -7.934431
+      bs_gs3 |   -14.8437   3.596973    -4.13   0.000    -22.01946   -7.667934
+      bs_gs4 |   -18.6489   3.040172    -6.13   0.000    -24.71388   -12.58392
+       _cons |   30.81413   1.650387    18.67   0.000      27.5217    34.10656
+------------------------------------------------------------------------------
+
+. predict mu_gs1
+(option xb assumed; fitted values)
+
+. compare mu_gs1 mu_ms2
+
+                                        ---------- Difference ----------
+                            Count       Minimum      Average     Maximum
+------------------------------------------------------------------------
+mu_gs1<mu_ms2                  20     -7.11e-15    -3.91e-15   -3.55e-15
+mu_gs1=mu_ms2                  40
+mu_gs1>mu_ms2                  14      3.55e-15     4.82e-15    7.11e-15
+                       ----------
+Jointly defined                74     -7.11e-15    -1.44e-16    7.11e-15
+                       ----------
+Total                          74
+
+```
+
+In `gensplines` the intercept option can be used which will calculate the 
+additional spline variable (i.e. the default behavior of `makespline`).
+
+```stata
+. drop bs_gs*
+
+. gensplines weight, type(bs) df(4) gen(bs_gs) intercept
+
+. regress mpg bs_gs1-bs_gs5, nocons
+
+      Source |       SS           df       MS      Number of obs   =        74
+-------------+----------------------------------   F(5, 69)        =    612.79
+       Model |  35214.9626         5  7042.99252   Prob > F        =    0.0000
+    Residual |  793.037383        69  11.4932954   R-squared       =    0.9780
+-------------+----------------------------------   Adj R-squared   =    0.9764
+       Total |       36008        74  486.594595   Root MSE        =    3.3902
+
+------------------------------------------------------------------------------
+         mpg | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+      bs_gs1 |   30.81413   1.650387    18.67   0.000      27.5217    34.10656
+      bs_gs2 |    25.6187   2.130947    12.02   0.000     21.36758    29.86982
+      bs_gs3 |    17.1258   3.125635     5.48   0.000     10.89032    23.36127
+      bs_gs4 |   15.97043   2.794922     5.71   0.000     10.39471    21.54615
+      bs_gs5 |   12.16523   2.676801     4.54   0.000     6.825159     17.5053
+------------------------------------------------------------------------------
+
+. predict mu_gs2
+(option xb assumed; fitted values)
+
+. compare mu_gs1 mu_gs2
+
+                                        ---------- Difference ----------
+                            Count       Minimum      Average     Maximum
+------------------------------------------------------------------------
+mu_gs1<mu_gs2                  30     -2.31e-14    -7.70e-15   -3.55e-15
+mu_gs1=mu_gs2                   3
+mu_gs1>mu_gs2                  41      3.55e-15     1.15e-14    2.13e-14
+                       ----------
+Jointly defined                74     -2.31e-14     3.24e-15    2.13e-14
+                       ----------
+Total                          74
+
+```
+
+## Restricted Cubic Splines
+
+I will now use the default behaviour for calculating restricted cubic splines
+using `makespline`.
+
+```stata
+. sysuse auto, clear
+(1978 automobile data)
+
+. makespline rcs weight, knots(5) basis(rcs_ms) 
+
+```
+
+`makespline` creates 3 spline variables, `rcs_ms_1_1`-`rcs_ms_1_3`.
+In addition it creates the rescaled weight variable named `_rs_rcs_1`.
+I found this confusing and would prefer this variable to be named 
+the same way as defined in the `basis()` option. 
+The  default behaviour of `makespline` is to rescale the variable (`weight`)
+to be in the range [0,1].
+
+I will store the knots so I can use these later in `gensplines`.
+
+```stata
+. mata: st_local("knots",invtokens(strofreal(st_matrix("r(knots)"))))
+
+```
+
+I now fit a regression model where a model `mpg` as a non-linear function of
+`weight`. Note that I have to include `_rs_rcs_1` as well as the variables created
+and named due to the `basis()` option.
+
+```stata
+. regress mpg _rs_rcs_1 rcs_ms_1_*
+
+      Source |       SS           df       MS      Number of obs   =        74
+-------------+----------------------------------   F(4, 69)        =     37.05
+       Model |  1667.16739         4  416.791848   Prob > F        =    0.0000
+    Residual |  776.292068        69  11.2506097   R-squared       =    0.6823
+-------------+----------------------------------   Adj R-squared   =    0.6639
+       Total |  2443.45946        73  33.4720474   Root MSE        =    3.3542
+
+------------------------------------------------------------------------------
+         mpg | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   _rs_rcs_1 |  -36.44172    8.54955    -4.26   0.000     -53.4976   -19.38583
+  rcs_ms_1_1 |   69.72852   45.95646     1.52   0.134    -21.95212    161.4092
+  rcs_ms_1_2 |  -226.4863   177.8215    -1.27   0.207    -581.2306    128.2579
+  rcs_ms_1_3 |   587.4961   573.0472     1.03   0.309    -555.7019    1730.694
+       _cons |   31.33251    1.27378    24.60   0.000     28.79139    33.87363
+------------------------------------------------------------------------------
+
+. predict mu_ms1
+(option xb assumed; fitted values)
+
+. twoway (scatter mpg weight)                        ///
+>        (line mu_ms1 weight, sort),                 ///
+>        xline(`knots', lcolor(gs10) lpattern(dash)) ///
+>        plotr(margin(1 0 1 0))
+
+```
+
+![](/statasvg/gensplines_makespline_rcs1.svg)
+
+
+
+Now I will use `gensplines`. As the default location of the knots in `gensplines`
+is different from `makespline`, I define the knots using the `allknots()` option.
+
+```stata
+. gensplines weight, type(rcs) gen(rcs_gs) allknots(`knots')  
+
+. regress mpg rcs_gs*
+
+      Source |       SS           df       MS      Number of obs   =        74
+-------------+----------------------------------   F(4, 69)        =     37.05
+       Model |  1667.16739         4  416.791848   Prob > F        =    0.0000
+    Residual |  776.292068        69  11.2506097   R-squared       =    0.6823
+-------------+----------------------------------   Adj R-squared   =    0.6639
+       Total |  2443.45946        73  33.4720474   Root MSE        =    3.3542
+
+------------------------------------------------------------------------------
+         mpg | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     rcs_gs1 |  -.0118317   .0027758    -4.26   0.000    -.0173694   -.0062941
+     rcs_gs2 |  -2.80e-08   2.20e-08    -1.27   0.207    -7.19e-08    1.59e-08
+     rcs_gs3 |   7.27e-08   7.09e-08     1.03   0.309    -6.87e-08    2.14e-07
+     rcs_gs4 |  -6.80e-08   7.06e-08    -0.96   0.339    -2.09e-07    7.28e-08
+       _cons |   52.15635   6.015477     8.67   0.000      40.1558     64.1569
+------------------------------------------------------------------------------
+
+. predict mu_gs1
+(option xb assumed; fitted values)
+
+. compare mu_ms1 mu_gs1
+
+                                        ---------- Difference ----------
+                            Count       Minimum      Average     Maximum
+------------------------------------------------------------------------
+mu_ms1<mu_gs1                  30     -4.50e-12    -1.88e-12   -3.55e-15
+mu_ms1>mu_gs1                  44      2.13e-14     1.28e-12    3.11e-12
+                       ----------
+Jointly defined                74     -4.50e-12    -4.08e-15    3.11e-12
+                       ----------
+Total                          74
+
+```
+
+The predicted values are essentially the same.
+
+
+It is unclear where the boundary knots are placed in `makespline`. I could not
+find details in the documentation. The graph shows they are fairly far from the 
+miniumum and maximum values. When using restricted cubic splines, we usually
+have the boundary knots at the minimum and maximum values. This means that we are
+not imposing linearity in the range of the data, but allowing the function to be
+stable towards the boundaries, due to the linearity assumption beyond. This is
+the default behaviour in `gensplines`, as I show below.
+
+
+```stata
+. drop rcs_gs*
+
+. gensplines weight, type(rcs) gen(rcs_gs) df(4)
+
+. local knots `r(knots)'
+
+. regress mpg rcs_gs*
+
+      Source |       SS           df       MS      Number of obs   =        74
+-------------+----------------------------------   F(4, 69)        =     35.99
+       Model |  1651.83963         4  412.959907   Prob > F        =    0.0000
+    Residual |  791.619832        69  11.4727512   R-squared       =    0.6760
+-------------+----------------------------------   Adj R-squared   =    0.6572
+       Total |  2443.45946        73  33.4720474   Root MSE        =    3.3871
+
+------------------------------------------------------------------------------
+         mpg | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     rcs_gs1 |  -.0119595   .0048096    -2.49   0.015    -.0215545   -.0023645
+     rcs_gs2 |  -4.98e-09   8.72e-09    -0.57   0.570    -2.24e-08    1.24e-08
+     rcs_gs3 |   2.24e-09   1.17e-08     0.19   0.848    -2.10e-08    2.55e-08
+     rcs_gs4 |  -8.44e-10   8.74e-09    -0.10   0.923    -1.83e-08    1.66e-08
+       _cons |   52.21262   9.841582     5.31   0.000      32.5792    71.84604
+------------------------------------------------------------------------------
+
+. predict mu_gs2
+(option xb assumed; fitted values)
+
+. twoway (scatter mpg weight)                         ///
+>        (line mu_ms1 weight, sort),                  ///
+>        xline(`knots',  lcolor(gs10) lpattern(dash)) ///
+>        plotr(margin(1 0 1 0))
+
+```      
+
+![](/statasvg/gensplines_makespline_rcs2.svg) 
+
+In `makespline` it is not possible to obtain the basis functions for the 
+derivative and intergral of the fitted function, 
+[as is possible in `gensplines`](derivatives_and_integrals_of_spline_functions.qmd)

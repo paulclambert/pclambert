@@ -1,0 +1,62 @@
+@charset "utf-8";
+
+/* axis definitions */
+/* Applies to both z and y axes */
+.grid .tick {
+    stroke: lightgrey;
+    opacity: 0.7;
+}
+.grid path {
+      stroke-width: 0;
+}
+
+.axis path {
+    stroke: black	;
+	fill:none;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+
+.axis line {
+    fill: none;
+    stroke: black;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+
+.axis text {
+    font-family: sans-serif;
+    font-size: 16px;
+    fill: black;
+	stroke:none;
+}
+.xlabel {
+    font-family: sans-serif;
+    font-size: 12px;
+    fill: black;
+	stroke:none;
+}
+
+.ylabel {
+    font-family: sans-serif;
+    font-size: 12px;
+    fill: black;
+	stroke:none;
+}
+
+.GraphTitle {
+   font-family: sans-serif;
+    font-size: 16px;
+    fill: black;
+	stroke:none;
+}
+
+path.line {
+	fill: none;
+	stroke-width: 1;
+	stroke-opacity: 0.8;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	stroke: #6600FF;
+}
+

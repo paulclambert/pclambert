@@ -1,0 +1,234 @@
+---
+title: "External age standardization in marginal relative survival models"
+---
+
+
+```stata
+```
+
+## Background
+
+I have described how to fit a [marginal relative survival moded](mrsprep_marginal_relative_survival.qmd) which gives an 
+internally standardized estimate of marginal relative survival.
+This example shows how introducing inidvidual level weights can be used to standardize to an external population.
+
+
+## Example
+
+I again use the Melanoma data, restricting to those diagnosed in the later calendar perdiod, 1985-1994. 
+I restrict follow-up to 10 years after diagnosis using the `exit()` option. 
+
+```stata
+. use https://pclambert.net/data/melanoma.dta if year8594 == 1 
+(Skin melanoma, diagnosed 1975-94, follow-up to 1995)
+
+. stset surv_mm, failure(status=1,2) id(id) exit(time 120.5) scale(12)
+
+Survival-time data settings
+
+           ID variable: id
+         Failure event: status==1 2
+Observed time interval: (surv_mm[_n-1], surv_mm]
+     Exit on or before: time 120.5
+     Time for analysis: time/12
+
+--------------------------------------------------------------------------
+      4,744  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+      4,744  observations remaining, representing
+      4,744  subjects
+      1,401  failures in single-failure-per-subject data
+ 22,003.417  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =  10.04167
+
+```
+
+I will first estimate the non-parametric estimate of marginal relative survival using [`stpp`](/software/stpp.qmd), but externally age standardize to the 
+age distribution defined in the International Cancer Survival Standard (ICSS) (Corazziari **et al.**). For melanoma the ICSS age distribution is
+
+|Age Group | Proportion | 
+|:-------- | :--------- |
+| 0-44     | 0.28       |
+| 45-54    | 0.17       |
+| 55-64    | 0.21       |
+| 65-74    | 0.20       |
+| 75+      | 0.14       |
+
+
+When we age standardize we estimate what the marginal relative survival would be if the study population had the
+age distribution seen in the above table.
+
+The following code calculates the ICSS age groups (`agegrp`) and a variable containing the ICSS weighs (`ICSSwt`).
+
+```stata
+. // change age groups to those defined in ICSS
+. drop agegrp
+
+. egen agegrp=cut(age), at(0  45 55 65 75 200) icodes
+
+. replace agegrp = agegrp + 1
+(4,744 real changes made)
+
+. label variable agegrp "Age group"
+
+. label define agegrplab 1 "0-44" 2 "45-54" 3 "55-64" 4 "65-74" 5 "75+", replace
+
+. label values agegrp agegrplab
+
+. 
+. recode agegrp (1=0.28) (2=0.17) (3=0.21) (4=0.20) (5=0.14), gen(ICSSwt)
+(4,744 differences between agegrp and ICSSwt)
+
+```
+
+`mrsprep` calculates time-dependent weights based on the inverse of the expected survival.
+To standardize to an external population we need to up or down weight individuals 
+relative to the reference population.
+Let $p^a_i$ be the proportion in the age group to which the $i^{th}$ individual belongs 
+and $p^R_i$ be the corresponding proportion in the reference population. 
+Weights, $w_i^a$ are defined as the ratio between these two proportions.
+
+$$
+w_i^a = \frac{p^R_i}{p^a_i}
+$$
+These weights can then be combined with the inverse expected survival weights,
+$$
+w_i(t) = \frac{w_i^a}{S^*_i(t)}
+$$
+
+`mrsprep` has an `indweights()` option where the individual level weights are passed to the command.
+These can be calculated as follows,
+
+```stata
+. // Proportion within each age group
+. local total= _N
+
+. bysort agegrp: gen a_age = _N/`total'
+
+. gen double wt_age = ICSSwt/a_age
+
+```
+
+These same weights can also be used in the non-parametric Pohar Perme estimator (Rutherford *et al* 2020 ), as shown below.
+
+```stata
+. stpp R_pp using https://pclambert.net/data/popmort.dta, /// 
+>                 agediag(age) datediag(dx) pmother(sex)  ///
+>                 indweights(wt_age)
+
+. frame put R_pp* _t, into(PP)
+
+```
+
+I have saved the Pohar Perme estimates in a frame, so I can plot them after using `mrsprep`.
+
+
+The same option can be used with `mrsprep`. The code for `mrsprep` is shown below.
+```stata
+. mrsprep using https://pclambert.net/data/popmort.dta   ///
+>               , pmother(sex) agediag(age) datediag(dx) ///
+>                 breaks(0(0.2)10)                       ///
+>                 indweights(wt_age)                     
+
+```
+
+Then a marginal model can be fitted in exactly the same way as when using internal age standardization.
+
+```stata
+. stset tstop [iweight=wt], enter(tstart) failure(event==1)                                          
+
+Survival-time data settings
+
+         Failure event: event==1
+Observed time interval: (0, tstop]
+     Enter on or after: time tstart
+     Exit on or before: failure
+                Weight: [iweight=wt]
+
+--------------------------------------------------------------------------
+    112,229  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+    112,229  observations remaining, representing
+      1,401  failures in single-record/single-failure data
+ 21,994.417  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =         0
+                                          Last observed exit t =        10
+
+. stpm3, scale(lncumhazard) df(5) bhazard(meanhazard_wt) vce(cluster id)
+
+Iteration 0:  Log pseudolikelihood = -5385.7819  
+Iteration 1:  Log pseudolikelihood =  -5311.682  
+Iteration 2:  Log pseudolikelihood = -5311.5243  
+Iteration 3:  Log pseudolikelihood = -5311.5239  
+
+                                                       Number of obs = 112,229
+                                                       Wald chi2(5)  =  631.15
+Log pseudolikelihood = -5311.5239                      Prob > chi2   =  0.0000
+
+                                 (Std. err. adjusted for 4,744 clusters in id)
+------------------------------------------------------------------------------
+             |               Robust
+             | Coefficient  std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+time         |
+        _ns1 |  -18.02865   1.035765   -17.41   0.000    -20.05872   -15.99859
+        _ns2 |   4.655575     .52232     8.91   0.000     3.631846    5.679303
+        _ns3 |   -1.05223   .0921339   -11.42   0.000    -1.232809    -.871651
+        _ns4 |  -.5956499   .0756741    -7.87   0.000    -.7439684   -.4473313
+        _ns5 |  -.1368423   .1214885    -1.13   0.260    -.3749555    .1012709
+       _cons |  -1.267081   .0773336   -16.38   0.000    -1.418652   -1.115509
+------------------------------------------------------------------------------
+
+. predict s_mrsprep, surv timevar(0 10, step(0.1)) ci frame(mrs)
+Predictions are stored in frame - mrs
+
+```
+
+After fitting the model, the marginal relative survival has been predicted. 
+This can now be compared to the Pohar Perme non-parametric estimate.
+
+
+```stata
+. frame PP {
+.   twoway (rarea R_pp_lci R_pp_uci _t, sort connect(stairstep) color(%30))   ///
+>          (line R_pp _t, sort connect(stairstep) pstyle(p1line))             ///
+>          , ylabel(0.6(0.1)1, format(%3.1f))                                 ///
+>            ytitle("Marginal relative survival")                             ///
+>            xtitle("Years from diagnosis")                                   ///
+>            name(int_stand_standsurv, replace)      
+. }           
+
+. frame mrs: addplot: (line s_mrsprep* tt, pstyle(p2line..)           ///
+>                                          lpattern(solid dash dash)  ///
+>                                          norescaling                ///
+>                      legend(order(2 "Pohar Perme"                   ///
+>                                   3 "Marginal stpm3 model")         ///
+>                             ring(0) cols(1) pos(7)))
+
+.            
+```
+
+![](/statasvg/int_stand_standsurv.svg)
+
+There is good agreement between the model based and the non parametric Pohar Perme estimtor. 
+
+The estimate here is an externally age standardized estimate, but is actually very similar to
+the internally age standardized estimate as the age distribution in the study population is
+similar to the age distribution in the reference population.
+
+## References
+
+Lambert PC, Syriopoulou E,  Rutherford MJ. [Direct modelling of age standardized marginal relative survival through incorporation of time-dependent weights.](https://doi.org/10.1186/s12874-021-01266-1)
+*BMC Medical Research Methodology* 2021;**21**:84 
+
+Corazziari I, Quinn M, Capocaccia R. Standard cancer patient population for age standardising survival ratios. 
+*European Journalo of Cancer* 2004;**40**:2307-2316 
+
+Rutherford, M.J., Dickman, P.W., Coviello, E. & Lambert, P.C. Estimation of age-standardized net survival, even when age-specific data are sparse. 
+*Cancer Epidemiology* 2020;**67**:101745.
+

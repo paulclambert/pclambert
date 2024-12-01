@@ -24,7 +24,7 @@ website:
         text: "Home"
       - publications.qmd
       - href: software.qmd
-        text: "Software"
+        text: "Software & Tutorials"
       - talks.qmd
       - courses.qmd
       - href: interactive_graphs.qmd

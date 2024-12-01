@@ -28,7 +28,7 @@ about:
 I am a biostatistician working at the [Cancer Registry of Norway (Kreftregisteret)](https://www.kreftregisteret.no/). 
 I also work part-time as a Guest Professor in the [Biostatistics Group](https://ki.se/en/meb/research/meb-biostatistics-group) in the Department of Medical Epidemiology and Biostatistics, Karolinska Institutet, Stockholm, Sweden. Previously, I worked at the [Biostatistics Research Group](https://le.ac.uk/biostatistics/biostatistics-research-group) at the University of Leicester, UK.
 
-I have a variety of interests, mainly in the area of survival analysis in epidemiology. Much of my work focuses on the analysis from data from national cancer registries. I particularly enjoy writing software (mainly in Stata) to enable transferal of new methods into practice.
+I have a variety of interests, mainly in the area of survival analysis in epidemiology. Much of my work focuses on the analysis from data from national cancer registries. I particularly enjoy writing [software}(software.qmd) (mainly in Stata) to enable transferal of new methods into practice.
 
 My teaching is now mainly specialist [courses](courses.qmd). and have developed some [interactive graphs](interactive_graphs.qmd) to help with communication.
 

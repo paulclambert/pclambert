@@ -4,7 +4,7 @@ title: "Talks"
 
 **Recent (and not so recent) Talks:**  
 
-31 October 2024[Reference-adjusted cancer survival in population-based cancer studies](pdf/University_of_Oslo2024.pdf)
+31 October 2024 [Reference-adjusted cancer survival in population-based cancer studies](pdf/University_of_Oslo2024.pdf)
 Oslo Centre for Biostatistics and Epidemiology, Oslo, Norway
 
 10 September 2024 [Improving the speed and accuracy when fitting flexible parametric survival models on the log

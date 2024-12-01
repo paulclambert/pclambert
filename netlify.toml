@@ -1,2 +1,2 @@
 [[plugins]]
-package = "@quarto/netlify-plugin-quarto
+package = "@quarto/netlify-plugin-quarto"

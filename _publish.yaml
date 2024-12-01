@@ -1,4 +1,0 @@
-source: project
-netlify:
-  - id: "147d5449-60d7-4b46-806d-a3462a254150"
-    url: "https://pclambert.netlify.app/"

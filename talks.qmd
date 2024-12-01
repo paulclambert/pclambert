@@ -4,6 +4,12 @@ title: "Talks"
 
 **Recent (and not so recent) Talks:**  
 
+31 October 2024[Reference-adjusted cancer survival in population-based cancer studies](pdf/University_of_Oslo2024.pdf)
+Oslo Centre for Biostatistics and Epidemiology, Oslo, Norway
+
+10 September 2024 [Improving the speed and accuracy when fitting flexible parametric survival models on the log
+hazard scale](pdf/Stata2024_Oslo_Paul_Lambert.pdf) 2024 Northern European Stata Conference, Oslo, Norway
+
 30 August 2024 [A practical approach to fitting cancer survival models when data can’t move across borders.](pdf/Paul_LambertANCR2024.pdf) Association of Nordic Cancer Registries (ANCR) Symposium 2024, Bodø, Norway
 
 7 June 2024 [Recent developments in the fitting and assessment of flexible parametric survival models](pdf/Stata2024_Germany_Paul_Lambert.pdf) 2024 German Stata Conference, Mannheim, Germany.

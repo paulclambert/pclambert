@@ -8,7 +8,7 @@ Now my teaching is mainly delivery of specialist courses.
 
 ## Upcoming courses
 
- - June 2025. We (Paul Dickman, Mark Rutherford, Therese Andersson and Betty Syriopoulou and I) hope to teach our 5-day course on statistical methods for population-based cancer survival analysis in Veneto Italy. Further details will be available [here](https://cansurv.net/).
+ - June 2025. We (Paul Dickman, Mark Rutherford, Therese Andersson and Betty Syriopoulou and I) will teach our 5-day course on statistical methods for population-based cancer survival analysis in Veneto Italy. Further details are available [here](https://cansurv.net/).
  
 ## Past (recent) courses
  

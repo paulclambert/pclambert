@@ -1,3 +1,48 @@
 ---
-title: "mlad"
+title: "`mlad` - maximizing likelihood functions using automatic differentiation"
 ---
+
+`mlad` maximizes a log-likelihood function where the log-likelihood function is programmed in Python. This enables the gradients and Hessian matrix to be obtained using automatic differentiation and makes better use of multiple CPUs. With large datasets mlad tends to be substantially faster than `ml` and has the important advantage that you don’t have to derive the gradients and the Hessian matrix analytically.
+
+> **Installing** 
+You can install `mlad` within Stata using
+
+. ssc install mlad
+
+
+You will also need access to Python from Stata and the following Python modules installed, `jax`, `numpy`, `scipy` and `importlib.`  
+Use `pip install` or however you usually install Python modules.
+
+Please note that I have only tested using the CPU only version of JAX. I have used `mlad` using Linux and Windows.
+
+You can find installation details for JAX on the [Jax GitHub page](https://github.com/jax-ml/jax).
+
+Note that to install the CPU only versions you need to use `pip install jax[cpu]`.
+
+I have not tested on different versions of Python. I am using Python 3.10.10 The current minimum Python version to use JAX is 3.10 (31 November 2024).
+
+# Using mlad
+
+## Examples of using mlad
+
+I have developed some tutorial examples using `mlad.` There are speed tests and of course speed depends on the capabilities of your computer. All speed tests are performed on the following.
+
+AMD Ryzen 9 5900X - 12 Cores (2 threads per core)
+CPU speed 4800 MHz
+RAM 32Gb
+Running Windows 11
+
+I have Stata MP2, but I restrict to 1 processor for most examples.
+
+The examples are below - I may add more examples in the future.
+
+  - [A Weibull model - a first example](/software/mlad/weibull_model.qmd)
+  - [Interval censoring](/software/mlad/interval_censored.qmd)
+  - Cure Models
+  - [Splines for the log hazard function](/software/mlad/rcs_hazard.qmd)
+  - [Splines for the log hazard function - using `pysetup()`](/software/mlad/rcs_hazard_pysetup.qmd)
+  - Flexible parametric model with random effects
+  - Poisson regression (post back estimates to `glm`)
+
+## Updates
+See [mlad_updates.txt](/software/mlad/mlad_updates.txt)

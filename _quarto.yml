@@ -54,3 +54,5 @@ format:
     page-layout: full
     highlight-style: monochrome
 
+execute:
+  freeze: auto

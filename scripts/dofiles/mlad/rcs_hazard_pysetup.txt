@@ -1,0 +1,137 @@
+---
+title: "Using mlad for splines on the log hazard scale - with pysetup."
+---
+
+<<dd_do: quietly>>
+set processors 1
+timer clear
+set scheme fpsaus_c
+<</dd_do>>
+
+## Restricted cubic splines for the log hazard function.
+
+Here I will fit the same model as the [previous example](/software/mlad/rcs_hazard.qmd), but use the `pysetup()` option. 
+This will pre-calculate the spline basis functions at the nodes rather than repeatedly calculate them everytime the function is called,
+as was done in the [previous example](/software/mlad/rcs_hazard.qmd).
+
+First I will run mlad as in [previous example](/software/mlad/rcs_hazard.qmd) on the rott3 data. 
+I use expand 400 to increase the sample size to 1,192,800
+
+
+```stata
+<<dd_do >>
+use https://www.pclambert.net/data/rott3, clear
+expand 400
+tab size, gen(size)
+stset os, failure(osi=1) scale(12) exit (time 120)
+timer clear
+timer on 1
+gen double lnt = ln(_t)
+rcsgen lnt, gen(_rcs) df(5) if2(_d==1) orthog
+mata: st_matrix("knots",strtoreal(tokens(st_global("r(knots)"))))  
+matrix R_bhazard = r(R)
+
+scalar Nnodes = 50
+mlad (xb: = hormon age size2 size3 enodes er pr_1, nocons )  ///
+     (rcs: = _rcs1 _rcs2 _rcs3 _rcs4 _rcs5)                  ///
+     , llfile(rcs_hazard)                                    ///
+       othervars(_t0 _t _d)                                  ///
+       othervarnames(t0 t d)                                 ///
+       matrices(knots R_bhazard)                             ///
+       staticscalars(Nnodes) 
+ml display       
+timer off 1
+<</dd_do>>
+```
+
+
+Now I will write a setup file which will slightly change the function to calculate the log-likelihood.
+The key points is that an array of the nodes rqeuired for the numerical integration will be calculated once 
+in the setup file rather than every time the likelihood function is called.
+The gradient and Hessian functions (obtained through automatic differentiation) will also benefit from this.
+
+This setup Python file is shown below.
+
+ 
+```stata
+<<dd_do >>
+type setup_rcs_hazard.py
+<</dd_do>>
+```
+
+- The setup function must be called **mlad_setup()** and has one argument, **M**, the Python dictionary-
+
+- First I use **vmap** on the **rcsgen()** function to vectorise it, 
+i.e. the function **vrcsgen** will be able to return the restricted cubic splines basis functions at all of the nodes.
+
+- The nodes and weights for Gauss-Legendre quadrature are then calculated using **roots_legendre()**. 
+
+- The Gauss-Legendre nodes are for an integral from [-1,1], but are transformed using a change of interval rule and stored in **nodes2**.
+
+- The basis functions are then calculated at each node and stored in **M["allnodes"]** and the weights stored in M["weights"].
+
+- The updated dictionary, **M** is then returned.
+
+
+The python log-likelihood file is listed below.
+
+
+```stata
+<<dd_do >>
+type rcs_hazard_pysetup.py
+<</dd_do>>
+```
+
+- The linear predictor for the restricted cubic splines and the covariates effects are calculated using `mu.linpred()`.
+
+- The cumulative hazard at each of the nodes for each individual is then calculated.
+
+- These are then used in conjunction with the weights to obtain the cumulative hazard at each event/censoring time.
+
+- Finally, the log-likelhood is returned.
+
+
+
+Now the model can be fitted again, but this time making use of the setup program.
+This is passed to `mlad` using the `pysetup()` option.
+
+```stata
+<<dd_do >>
+drop lnt _rcs*
+timer on 2
+gen double lnt = ln(_t)
+rcsgen lnt, gen(_rcs) df(5) if2(_d==1) orthog
+mata: st_matrix("knots",strtoreal(tokens(st_global("r(knots)"))))  
+matrix R_bhazard = r(R)
+
+scalar Nnodes = 50
+mlad (xb: = hormon age size2 size3 enodes er pr_1, nocons ) ///
+     (rcs: = _rcs1 _rcs2 _rcs3 _rcs4 _rcs5)                 ///
+     , llfile(rcs_hazard_pysetup)                           ///
+       pysetup(setup_rcs_hazard)                            ///
+       othervars(_t0 _t _d)                                 ///
+       othervarnames(t0 t d)                                ///
+       matrices(knots R_bhazard)                            ///
+       scalars(Nnodes) 
+ml display       
+timer off 2       
+<</dd_do>>
+```
+
+The estimates from the models are identical. The times to fit each model can be seen below.
+
+```stata
+<<dd_do >>
+timer list
+<</dd_do>>
+```
+
+In this dataset using the setup file has a speed gain of <<dd_display:  %4.1f  100*(1 - `r(t2)'/`r(t1)')>>% over the previous example.
+
+The approach here is esentially what is implemented in `stpm3` when using the `python` option.
+
+<<dd_do: quietly >>
+set processors `c(processors_lic)'
+<</dd_do>>
+
+

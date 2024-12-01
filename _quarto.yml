@@ -11,16 +11,10 @@ project:
     - software/*
     - courses/*
 
-  
-    
-  post-render:
-    - scripts/make_lambert_bold.R
-    
   resources:    
     - data/
     - downloads/
     - interactive_graphs/
-    - scripts/
 
 website:
   navbar:

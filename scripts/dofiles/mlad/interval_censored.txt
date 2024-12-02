@@ -1,0 +1,187 @@
+---
+title: "Using mlad for interval censored data"
+---
+
+<<dd_do: quietly>>
+set processors 1
+set scheme fpsaus_c
+timer clear
+<</dd_do>>
+
+## Interval censoring
+
+Interval censoring occurs when the exact time of an event is unknown, but it is known that it occurs between two time-points. 
+The `stintreg` command was introduced in Stata 16 for fitting parametric models with interval censoring.
+However, `stintreg` uses a `lf0` evaluator, which means derivatives are obtained numerically, 
+so there is some potential for speed improvements when using `mlad`.
+
+
+
+
+The log-likelihood function needs to incorporate situations where there are a combination of exact uncensored observations (UC),
+exact right censored (RC) observations,
+left censored (LC) observations, and
+interval censored (IC) observations. Stata uses the following notation in the `stintreg` manual, 
+
+| Type              | $t_l$ | $t_u$ | Event time  |
+|-------------------|------ |-------|-------------|
+| uncensored        | a     | a     |     a       |  
+| Interval censored | a     | b     |  (a,b]      | 
+| left censored     | .     | b     |  (0,b]      | 
+| left censored     | 0     | b     |  (0,b]      |
+| right censored    | a     | .     |  (a,$\infty$) |
+
+where $t_l$ and $t_u$ represent the lower and upper enpoints of the interval.
+
+The log-likelihood for a general parametric distribution with the 4 types of censoring can be expressed as follows,
+
+
+$$
+\begin{align*}
+\ln L =&  \sum_{i \in UC} \ln\left[f_i(t_{li})\right] \ \ + \\\\
+  &\sum_{i \in RC} \ln\left[S_i(t_{li})\right] \ \  + \\\\
+  &\sum_{i \in LC} \ln\left[1-S_i(t_{ui})\right] \ \ + \\\\
+  &\sum_{i \in IC} \ln\left[S_i(t_{li})-S_i(t_{ui})\right] 
+\end{align*}
+$$
+
+where $f\_i(t)$ is the density function for the $i^{th}$ subject and $S\_i(t)$
+is the survival function.
+
+## Using `stintreg`
+
+To develop the `mlad` Python function I will use the small example included in the manual for `stintreg` comparing
+the cosmetic effects of two cancer treatments: radiotherapy alone versus radiotherapy plus adjuvant chemotherapy 
+on breast retraction. 
+I will illustrate using a Weibull model, but the approach is easily extended to other distributions.
+First the model can be fitted using `stintreg` as follows,
+
+```stata
+<<dd_do >>
+use https://www.stata-press.com/data/r17/cosmesis, clear
+stintreg treat age, interval(ltime rtime) distribution(weibull)
+estimates store stintreg
+<</dd_do>>
+```
+
+I have stored the model estimates so they be compared to the estimates from mlad.
+
+## Using `mlad`
+
+In order to fit the model using `mlad` it is necessary to create a variable to denote the type of censoring.
+I create the variable `ctype` below.
+
+```stata
+<<dd_do >>
+gen byte ctype = .
+qui replace ctype = 1 if ltime==rtime                         // UC
+qui replace ctype = 2 if rtime >= .                           // RC
+qui replace ctype = 3 if (ltime >= . | ltime==0)              // LC
+qui replace ctype = 4 if (rtime-ltime)>0 & !inlist(ctype,2,3) // IC 
+tab ctype
+<</dd_do>>
+```
+
+I will later pass `ctype` to Python.
+
+The Python likelihood function used by `mlad` is shown below 
+
+```stata
+<<dd_do >>
+type weib_ic_ll.py
+<</dd_do>>
+```
+
+The log-likelihood is simple and consists of extracting the parameters using `mu.linpred`,
+defining the individual contributions to the log-likelihood and then summing these so that a single value for the log-likelhood can be returned.
+
+Something important to note here is that in the function we must ensure that `jnp.log()` function does not return a missing value, e.g. when taking the log of zero. This is still the case when the log of zero is actually not used through use of the `jnp.where()` function. Below I give create `ltime2` and `rtime2` that replace incompatable values. It is important to note that these do not feed into the likelihood function due to the use of `jnp.where()`.
+
+The Python function and the required variables are then passed to mlad.
+
+```stata
+<<dd_do >>
+gen double ltime2 = cond(ltime==0,1e-8,ltime)
+gen double rtime2 = cond(rtime==.,99,rtime)
+mlad (ln_lambda: = treat age, )   ///
+     (ln_gamma: = ),              ///
+     othervars(ctype ltime2 rtime2) ///
+     othervarnames(ctype ltime rtime) ///
+     llfile(weib_ic_ll)  
+ml display     
+estimates store mlad
+<</dd_do>>
+```
+
+The coefficients can be compared using `estimate tables`
+
+
+```stata
+<<dd_do >>
+estimates table stintreg mlad, equations(1,2) se
+<</dd_do>>
+```
+
+The estimates are the same to 7 decimal decimal places.
+
+
+## Speed comparison
+
+The above was useful for developing the Python log-likelihood file, but speed gains will
+only be worthwhile for larger data sets.
+
+The code below simlulates interval censored data for various sample sizes with 10 covariates.
+The 10 covariates are also included to model the shape parameter in both `stgenreg` and `mlad`.
+The methods are then compared in terms of execution time.
+
+```stata
+<<dd_do >>
+foreach ss in  1000 10000 100000 1000000 {
+  quietly {
+    clear
+    timer clear
+    set obs `ss'
+    forvalues i = 1/10 {
+      gen x`i' = rnormal()
+      local cov `cov' x`i' 0.1
+    }  
+
+    survsim rtime d, dist(weib) lambda(0.2) gamma(0.8) maxt(5) cov(`cov') 
+  
+    gen double ltime = cond(runiform()<75 & d==1,runiform()*rtime,rtime) 
+    replace ltime = rtime if d==0
+    replace rtime = . if d==0
+
+    timer on 1
+    stintreg x1-x10, interval(ltime rtime) distribution(weibull) anc(x1-x10)
+    timer off 1
+
+    timer on 2
+    gen byte ctype = .
+    qui replace ctype = 1 if ltime==rtime                         // UC
+    qui replace ctype = 2 if rtime >= .                           // RC
+    qui replace ctype = 3 if (ltime >= . | ltime==0)              // LC
+    qui replace ctype = 4 if (rtime-ltime)>0 & !inlist(ctype,2,3) // IC 
+  
+    replace ltime = 1 if ltime ==0 
+    replace rtime = 1 if rtime ==. 
+    mlad (ln_lambda: = x1-x10, )      ///
+         (ln_gamma:  = x1-x10),       ///
+         othervars(ctype ltime rtime) ///
+         llfile(weib_ic_ll)           ///
+         search(off) 
+    timer off 2
+  }
+  
+  di _newline "Sample Size: `ss'"
+  timer list
+  di "(1) stintreg, (2) mlad" 
+}
+<</dd_do>>
+```
+
+`stintreg` is faster for sample sizes of 1,000 and 10,000. `mlad` has a speed improvement of ~70% for a sample size of 100,000 and of ~90% for a sample size of 1,000,000.
+
+<<dd_do: quietly>>
+set processors `c(processors_lic)'
+<</dd_do>>

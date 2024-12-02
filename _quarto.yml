@@ -1,6 +1,6 @@
 project:
   type: website
-  output-dir: docs
+  output-dir: _site
   render: 
     - index.qmd
     - publications.qmd
@@ -11,11 +11,6 @@ project:
     - software/*
     - courses/*
 
-  
-    
-  post-render:
-    - scripts/make_lambert_bold.R
-    
   resources:    
     - data/
     - downloads/
@@ -29,7 +24,7 @@ website:
         text: "Home"
       - publications.qmd
       - href: software.qmd
-        text: "Software"
+        text: "Software & Tutorials"
       - talks.qmd
       - courses.qmd
       - href: interactive_graphs.qmd
@@ -54,3 +49,5 @@ format:
     page-layout: full
     highlight-style: monochrome
 
+execute:
+  freeze: auto

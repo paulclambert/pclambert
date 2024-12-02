@@ -1,5 +1,5 @@
 ---
-title: "Software"
+title: "Software & Tutorials"
 bread-crumbs: true
 ---
 
@@ -11,7 +11,7 @@ I occasionally add to these.
 - [**stpm3**](software/stpm3.qmd) - flexible parametric survival models
 - [**standsurv**](software/standsurv.qmd) - standardized survival curves and more after fitting various types of survival models.
 - [**mrsprep**](software/mrsprep.qmd) - prepare data to directly fit marginal relative survival models.
-- [**stpp**](software/stpp.qmd) - Non-parametric marginal relative (net) survival using Pohar Perme estimator
+- [**stpp**](software/stpp.qmd) - Non-parametric marginal relative (net) survival and more.
 - [**mlad**](software/mlad.qmd) - Maximum likelIhood estimation with automatic differentiation using Python
 - [**stcrprep**](software/stcrprep.qmd) - data-preparation command to fit a range of competing risks models.
 - [**gensplines**](software/gensplines.qmd) - obtain basis functions for various types of splines.

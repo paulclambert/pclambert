@@ -311,18 +311,18 @@ AF(t) = \frac{E[F(t|Z)] - E[F(t|X=0,Z)]}{E[F(t|Z)]} = 1 - \frac{E[F(t|X=0,Z)]}{E
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>(1 <span class="fu">missing</span> <span class="ot">value</span> generated)</span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>.   <span class="ot">list</span> timevar F_hormon1 F_all AF_tmp <span class="kw">if</span> <span class="fu">inlist</span>(timevar,1,5,10), <span class="kw">noobs</span></span>
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  +--------------------------------------------+</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  | timevar   F_hormon1       F_all     AF_tmp |</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  |--------------------------------------------|</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  |       1   .01685169   .02035349    .172049 |</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  |       5   .22362896   .26167585    .145397 |</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  |      10   .39250923   .44808119   .1240221 |</span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  +--------------------------------------------+</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  +---------------------------------------------+</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  | timevar   F_hormon1       F_all      AF_tmp |</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  |---------------------------------------------|</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  |       1   .01685169   .02035349   .17204904 |</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  |       5   .22362896   .26167585   .14539701 |</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  |      10   .39250923   .44808119   .12402208 |</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  +---------------------------------------------+</span>
 <span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>. }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>I have listed the <span class="math inline">\(AF\)</span> at 1, 5 and 10 years. If I just wanted a point estimate I could stop here. However, generally we will want to calculate confidence intervals. This is where the <code>userfunction()</code> option comes in. We can calculate a transformation of our standardized estimates with standard errors estimated using the delta method where derivatives are calculated numerically (similar to <code>nlcom</code> and <code>predictnl</code>). I “borrowed” the idea of a <code>userfunction()</code> from Arvid&nbsp;Sjölander’s <code>stdReg</code> R package (Sjölander 2018).</p>
 <p>The user function needs to be written in Mata. The function should receive one argument <code>at</code>, which refer to the various <code>at</code> options and can be indexed by <code>at[1]</code>, <code>at[2]</code> etc. The code below calculates the AF assuming that <code>at1</code> is the standardized failure function in the population as a whole and <code>at2</code> is the standardized failure function assuming everyone is unexposed (takes hormonal treatment). We need to be careful to specify the <code>at()</code> options is this order.</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>. <span class="kw">mata</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>------------------------------------------------- <span class="kw">mata</span> (<span class="dv">type</span> <span class="kw">end</span> to <span class="kw">exit</span>) --------------------------------------------------------</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>------------------------------------------------- <span class="kw">mata</span> (<span class="dv">type</span> <span class="kw">end</span> to <span class="kw">exit</span>) -----------------------------------------------------------------------</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>: <span class="kw">function</span> calcAF(<span class="fu">at</span>) {</span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>&gt;     <span class="co">// at2 is F(t|unexposed,Z)</span></span>
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>&gt;     <span class="co">// at1 is F(t,Z)</span></span>
@@ -330,7 +330,7 @@ AF(t) = \frac{E[F(t|Z)] - E[F(t|X=0,Z)]}{E[F(t|Z)]} = 1 - \frac{E[F(t|X=0,Z)]}{E
 <span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>&gt; }</span>
 <span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>: <span class="kw">end</span></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>----------------------------------------------------------------------------------------------------------------------------------</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>-------------------------------------------------------------------------------------------------------------------------------------------------</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Having defined the Mata function I just pass this to <code>standsurv</code> using the <code>userfunction()</code> option.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>. standsurv, failure timevar(timevar) <span class="kw">ci</span> frame(Ft2, <span class="kw">replace</span>)   <span class="co">///</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>&gt;            at1(.) at2(hormon 0) atvar(F_hormon1 F_all)       <span class="co">///    </span></span>
@@ -352,7 +352,7 @@ AF(t) = \frac{E[F(t|Z)] - E[F(t|X=0,Z)]}{E[F(t|Z)]} = 1 - \frac{E[F(t|X=0,Z)]}{E
 AHF(t) = \frac{E[\lambda(t|Z)] - E[\lambda(t|X=0,Z)]}{E[\lambda(t|Z)]} = 1 - \frac{E[\lambda(t|X=0,Z)]}{E[\lambda(t|Z)]}
 \]</span></p>
 <p>This give the proportion of preventable events <strong>at</strong> time <span class="math inline">\(t\)</span> rather than <strong>by</strong> time <span class="math inline">\(t\)</span>.</p>
-<p>See the page of <a href="../..\docs/software/standsurv/standardized_survival_hazard.qmd">The hazard function of the standardized survival curve.</a> for a description of standardized hazard functions.</p>
+<p>See the page of <a href="../../software/standsurv/standardized_survival_hazard.html">The hazard function of the standardized survival curve.</a> for a description of standardized hazard functions.</p>
 <p>As I just have to replace the failure probability with the hazard function, I can just use the same Mata function. This means that I just have the change the option <code>failure</code> to <code>hazard</code> in <code>standsurv</code>.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>. standsurv, hazard timevar(timevar) <span class="kw">ci</span> frame(haz, <span class="kw">replace</span>)   <span class="co">///</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>&gt;            at1(.) at2(hormon 0) atvar(F_hormon1 F_all)      <span class="co">///    </span></span>

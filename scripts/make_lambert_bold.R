@@ -1,11 +1,11 @@
 ## copy latest allrefs.bib file
-if (!nzchar(Sys.getenv("QUARTO_PROJECT_RENDER_ALL"))) {
-  quit()
-}
+#if (!nzchar(Sys.getenv("QUARTO_PROJECT_RENDER_ALL"))) {
+#  quit()
+#}
 
-file.copy(from="../../survbib/allrefs.bib",
-          to="scripts/allrefs.bib",
-          overwrite=TRUE)
+#file.copy(from="../../survbib/allrefs.bib",
+#          to="scripts/allrefs.bib",
+#          overwrite=TRUE)
 
 rmarkdown::render("scripts/allrefs.Rmd")
 

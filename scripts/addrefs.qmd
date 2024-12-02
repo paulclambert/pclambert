@@ -1,0 +1,6 @@
+---
+title: "My Document"
+bibliography: pclambert.bib
+---
+
+[@Lundberg2024]

@@ -6,11 +6,12 @@ output: md_document
 csl: national-institute-of-health-research.csl
 categories: []
 link-citations: true
-bibliography: allrefs.bib
+bibliography: pclambert.bib
 ---
 
 ---
 nocite: |
+ @Lundberg2024; 
  @Johansson2024;
  @Lundberg2024;
  @Hall2024;
@@ -42,11 +43,11 @@ nocite: |
  @Andersson2022a;
  @Rutherford2022;
  @Andersson2022;
+ @Sweeting2022;
  @Lee2022;
  @Riley2021;
  @Skourlis2021;
  @Syriopoulou2021a;
- @Sweeting2021;
  @Coles2021;
  @Lambert2021;
  @Mozumder2021;
@@ -54,10 +55,10 @@ nocite: |
  @Hill2021;
  @Weibull2021;
  @Andersson2021;
- @TSD21;
+ @Rutherford2021;
  @Andersson2021a;
  @Syriopoulou2021;
- @Smith2020;
+ @Smith2021;
  @Lundberg2020;
  @Lambert2020;
  @Myklebust2020;
@@ -75,32 +76,33 @@ nocite: |
  @Weibull2019;
  @Syriopoulou2018;
  @Plym2018;
+ @Mozumder2018a;
  @Mozumder2018;
  @Weibull2018;
  @Latimer2018;
  @Mozumder2017;
- @Mozumder2016;
+ @Mozumder2017a;
  @Bower2017;
  @Latimer2017;
  @Peters2017;
- @Crowther2016a;
+ @Crowther2017;
  @Cramb2016;
- @Lambert2016a;
- @Lambert2016;
+ @Lambert2017a;
+ @Lambert2017;
  @Syriopoulou2017;
  @Bower2016a;
  @Bower2016b;
- @Bower2016c;
+ @Bower2016;
  @Edgren2016;
  @Crowther2016;
  @Andersson2015;
  @Hultcrantz2015;
- @Rutherford2015d;
+ @Rutherford2015;
  @Rutherford2015c;
+ @Rutherford2015a;
  @Crowther2015;
  @Lambert2015;
  @Rutherford2015b;
- @Rutherford2013c;
  @Crowther2014;
  @Eloranta2014;
  @Feldman2014;
@@ -113,15 +115,15 @@ nocite: |
  @Crowther2013;
  @Crowther2013c;
  @Crowther2013b;
- @Cvancarova2013;
+ @Cvancarova2012;
  @Eloranta2013;
  @Eloranta2013a;
  @Hinchliffe2013b;
  @Hinchliffe2013;
  @Hinchliffe2013d;
- @Hinchliffe2013e;
+ @Hinchliffe2013c;
  @Hinchliffe2013a;
- @Rutherford2013b;
+ @Rutherford2013;
  @Rutherford2013a;
  @Dickman2013;
  @Shah2013;
@@ -143,7 +145,7 @@ nocite: |
  @Eaker2011;
  @Hakulinen2011;
  @Lambert2011;
- @Coleman2011a;
+ @Coleman2011;
  @Morden2011;
  @Morris2011;
  @Andersson2010;
@@ -180,6 +182,7 @@ nocite: |
  @Minelli2005;
  @Sutton2005;
  @Taub2005;
+ @Waugh2005;
  @Lambert2004;
  @Riley2004a;
  @Riley2004;
@@ -196,11 +199,12 @@ nocite: |
  @Waugh2003b;
  @Riley2003b;
  @Smith2003;
- @Waugh2003;
+ @Waugh2003a;
  @Lambert2002;
  @Young2002;
  @Sutton2002;
  @Lambert2001;
+ @Waugh2001;
  @Mckean2001;
  @Waugh2000;
  @Bell1999;

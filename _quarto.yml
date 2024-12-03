@@ -39,13 +39,10 @@ website:
         - standsurv.qmd
         - stpp.qmd    
 
-  cookie-consent:
-    type: express
-    style: headline
-    palette: dark  
   google-analytics:
     tracking-id: "G-JT233ENTVR"
-    anonymize-ip: true            
+    anonymize-ip: true    
+    storage: none        
 
 format:
   html:

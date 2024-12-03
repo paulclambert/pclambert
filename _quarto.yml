@@ -37,7 +37,15 @@ website:
       contents:
         - stpm3.qmd
         - standsurv.qmd
-        - stpp.qmd        
+        - stpp.qmd    
+
+  cookie-consent:
+    type: express
+    style: headline
+    palette: dark  
+  google-analytics:
+    tracking-id: "G-JT233ENTVR"
+    anonymize-ip: true            
 
 format:
   html:

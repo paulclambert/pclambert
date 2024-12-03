@@ -41,8 +41,6 @@ website:
 
   google-analytics:
     tracking-id: "G-JT233ENTVR"
-    anonymize-ip: true    
-    storage: none        
 
 format:
   html:

@@ -70,4 +70,10 @@
 							
 2024-09-05 Version 1.13  -- Fixed issue with lnhazard models with 3 part
                             tanh-sinh integration when having multiple at
-							options.
+                            options.
+                            
+2024-12-04 Version 1.14  -- Fixed an issue with knots positions for extended 
+                            functions using splines not incorporating the if 
+                            expression.
+                            
+

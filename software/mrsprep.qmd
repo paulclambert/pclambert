@@ -1,5 +1,7 @@
 ---
 title: "mrsprep"
+aliases:
+  - mrsprep/
 ---
 
 The `mrsprep` command restructures survival data and calculates weighted mean expected mortality rates and time-dependent weights 

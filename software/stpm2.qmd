@@ -1,5 +1,7 @@
 ---
 title: "`stpm2`"
+aliases:
+  - stpm2/
 ---
 
 `stpm2` fits flexible parametric survival models. 

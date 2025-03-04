@@ -1,5 +1,7 @@
 ---
 title: "`stpp`"
+aliases:
+  - stpp/
 ---
 
 `stpp` calculates the Pohar-Perme non-parametric estimate of marginal relative survival, which under assumptions can be interpreted as marginal net survival. The estimate is a step function and changes at each event time. 

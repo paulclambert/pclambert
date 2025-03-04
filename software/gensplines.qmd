@@ -1,5 +1,7 @@
 ---
 title: "gensplines"
+aliases:
+  - gensplines/
 ---
 
 The `genplines` command calculates various types of spline basis functions. 

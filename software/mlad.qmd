@@ -1,5 +1,7 @@
 ---
 title: "`mlad` - maximizing likelihood functions using automatic differentiation"
+aliases:
+  - mlad/
 ---
 
 `mlad` maximizes a log-likelihood function where the log-likelihood function is programmed in Python. This enables the gradients and Hessian matrix to be obtained using automatic differentiation and makes better use of multiple CPUs. With large datasets mlad tends to be substantially faster than `ml` and has the important advantage that you don’t have to derive the gradients and the Hessian matrix analytically.

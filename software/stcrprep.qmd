@@ -1,5 +1,7 @@
 ---
 title: "`stcrprep`"
+aliases:
+  - stcrprep/
 ---
 
 `stcrprep` prepares data for estimating and modelling cause-specific cumulative incidence functions using time-dependent weights. Once the data has been prepared and the weights incorporated using `stset` it is possible to obtain a graph of the non-parametric estimates of the cause-specific cumulative incidence function using `sts graph`. In addition a model that estimates subhazard ratios (equivalent to the Fine and Gray model) can be fitted using `stcox`. It is also possible to fit parametric models to directly estimate the cause-specific CIF (my main reason for developing the command), for example using `stpm3`.

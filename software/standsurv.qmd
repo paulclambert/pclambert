@@ -1,5 +1,7 @@
 ---
 title: "`standsurv`"
+aliases:
+  - standsurv/
 ---
 
 The `standsurv` command estimates standardized survival curves and related measures. It also allows various contrasts between the standardized functions. It is a post-estimation command and can be used after fitting a wide range of survival models. These include `streg` models (except generalized gamma), `stpm2` models, `stpm3`models and `strcs` models. 

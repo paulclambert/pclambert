@@ -37,7 +37,7 @@ ssc install gensplines
 - [Using `standsurv` with factor variables](/software/stpm3/standsurv.qmd)
 
 ## Other Details
-- [Numerical integration for models on log hazard scale]
+- [Numerical integration for `stpm3` models on log hazard scale]
 
 
 ## Releases

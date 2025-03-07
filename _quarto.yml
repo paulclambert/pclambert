@@ -51,6 +51,7 @@ format:
     toc: true
     page-layout: full
     highlight-style: monochrome
+    canonical-url: true
 
 execute:
   freeze: auto

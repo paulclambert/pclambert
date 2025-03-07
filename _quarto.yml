@@ -8,8 +8,8 @@ project:
     - software.qmd
     - talks.qmd
     - interactive_graphs.qmd
-    - software/*
-    - courses/*
+    - software/*.qmd
+    - courses/*.qmd
 
   resources:    
     - data/

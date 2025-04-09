@@ -10,8 +10,6 @@
 rmarkdown::render("scripts/allrefs.Rmd")
 
 
-
-
 ## remove first 5 line from references
 inputtext <- readLines("scripts/allrefs.md")
 file.remove("scripts/allrefs.md")

@@ -9,7 +9,15 @@ project:
     - talks.qmd
     - interactive_graphs.qmd
     - software/*.qmd
+    - software/gensplines/*.qmd
+    - software/mlad/*.qmd
+    - software/mrsprep/*.qmd
+    - software/standsurv/*.qmd
+    - software/stpm2/*.qmd
+    - software/stpm3/*.qmd
+    - software/stpp/*.qmd
     - courses/*.qmd
+
 
   resources:    
     - data/
@@ -41,6 +49,7 @@ website:
 
   google-analytics:
     tracking-id: "G-JT233ENTVR"
+
 
 format:
   html:

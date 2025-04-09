@@ -1,7 +1,5 @@
 ---
 title: "`stpm3`"
-aliases:
-  - /software/stpm3
 ---
 
 `stpm3` fits flexible parametric survival models. These models use splines to model the effect of the time scale. 
@@ -25,18 +23,18 @@ ssc install gensplines
 ```
 
 ## Fitting `stpm3` models.
-- [Change to the scale option](/software/stpm3/scale_option.qmd)
-- [Use of factor variables](/software/stpm3/factor_variables.qmd)
+- [Change to the scale option](./stpm3/scale_option.qmd)
+- [Use of factor variables](./stpm3/factor_variables.qmd)
 
 ## Predictions (conditional on covariate values)
-- [Frames for prediction](/software/stpm3/predictions.qmd)
-- [Extended functions](/software/stpm3/extended_functions.qmd)
-- [Multiple `at` options and contrasts](/software/stpm3/contrasts.qmd)
-- [Relative survival models](/software/stpm3/relative_survival_models.qmd)
+- [Frames for prediction](stpm3/predictions.qmd)
+- [Extended functions](stpm3/extended_functions.qmd)
+- [Multiple `at` options and contrasts](stpm3/contrasts.qmd)
+- [Relative survival models](stpm3/relative_survival_models.qmd)
 
 
 ## Marginal predictions 
-- [Using `standsurv` with factor variables](/software/stpm3/standsurv.qmd)
+- [Using `standsurv` with factor variables](stpm3/standsurv.qmd)
 
 ## Other Details
 - [Numerical integration for `stpm3` models on log hazard scale]
@@ -44,5 +42,5 @@ ssc install gensplines
 
 ## Releases
 
-See [stpm3_releases.txt](/software/stpm3/stpm3_releases.txt)
+See [stpm3_releases.txt](stpm3/stpm3_releases.txt)
 

@@ -11,9 +11,13 @@ bibliography: pclambert.bib
 
 ---
 nocite: |
+ @Jennings2025;
+ @Abiodun2025;
+ @Stannard2025;
+ @Abiodun2024;
  @Lundberg2024; 
  @Johansson2024;
- @Lundberg2024;
+ @Lundberg2024a;
  @Hall2024;
  @Lee2024;
  @Jennings2023;

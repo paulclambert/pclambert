@@ -3,9 +3,9 @@
 #  quit()
 #}
 
-#file.copy(from="../../survbib/allrefs.bib",
-#          to="scripts/allrefs.bib",
-#          overwrite=TRUE)
+file.copy(from="../pclsurvbib/allrefs.bib",
+          to="scripts/allrefs.bib",
+          overwrite=TRUE)
 
 rmarkdown::render("scripts/allrefs.Rmd")
 

@@ -1,0 +1,19 @@
+v 3
+* d lines display package description text
+* the first d line is the title, and the remaining ones are text
+* blank d lines display a blank line
+d stpm3
+d
+d Distribution-Date: 20250907
+d
+d contact:  paul.lambert@fhi.no
+d
+: :
+* f identifies the component files
+f joinpoint.ado
+f joinpoint.sthlp
+f joinpoint_pred.ado
+f joinpoint_plot.ado
+f joinpoint_postestimation.sthlp
+: : :
+e

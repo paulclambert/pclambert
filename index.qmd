@@ -16,7 +16,7 @@ about:
       href: https://twitter.com/pclambert123      
     - icon: envelope
       text: Email
-      href: mailto:pclt@kreftregisteret.no
+      href: mailto:pclt@fhi.no
 
 ---
 

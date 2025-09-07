@@ -1,0 +1,20 @@
+---
+title: "joinpoint"
+aliases:
+  - joinpoint/
+---
+
+The `joinpoint` command fits joinpoint models.
+These models summarise trends using linear splines where the number and locations of knots are derived through a model fitting algorithm.  
+The models are usually used to summarise temporal trends in cancer incidence and mortality rates.
+
+`joinpoint` fits similar models to the the [joinpoint software](https://surveillance.cancer.gov/joinpoint/) developed by the Surveillance Research Program , National Cancer Institute.
+
+`joinpoint` will select a model using different model selection methods. All possible combinations of models are fitted for a maxiumum number of knots and based on some restrictions on the minimum number of data points between knots and before the first knot and after the last knot.
+
+> I**nstallation**
+
+This is currently a test version of `joinpoint` and can be 
+installed as follows.
+
+`. net install joinpoint, from(https://www.pclambert.net/downloads/joinpoint)`

@@ -15,6 +15,7 @@ I occasionally add to these.
 - [**mlad**](software/mlad.qmd) - Maximum likelIhood estimation with automatic differentiation using Python
 - [**stcrprep**](software/stcrprep.qmd) - data-preparation command to fit a range of competing risks models.
 - [**gensplines**](software/gensplines.qmd) - obtain basis functions for various types of splines.
+- [**joinpoint**](software/joinpoint.qmd) - fit joinpoint models. 
 
 ## Older (and less used now)
 

@@ -11,6 +11,8 @@ bibliography: pclambert.bib
 
 ---
 nocite: |
+ @Larsen2025;
+ @Lambert2025;
  @Jennings2025;
  @Abiodun2025;
  @Stannard2025;
@@ -84,9 +86,9 @@ nocite: |
  @Mozumder2018;
  @Weibull2018;
  @Latimer2018;
+ @Bower2018;
  @Mozumder2017;
  @Mozumder2017a;
- @Bower2017;
  @Latimer2017;
  @Peters2017;
  @Crowther2017;

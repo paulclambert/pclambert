@@ -11,6 +11,14 @@ bibliography: pclambert.bib
 
 ---
 nocite: |
+ @Timmins2026;
+ @Ahlqvist2026;
+ @Lambert2026;
+ @Leithe2026;
+ @Leontyeva2026;
+ @Mozumder2025;
+ @Ow2025;
+ @TrewinNybraaten2025;
  @Larsen2025;
  @Lambert2025;
  @Jennings2025;
@@ -49,7 +57,7 @@ nocite: |
  @Andersson2022a;
  @Rutherford2022;
  @Andersson2022;
- @Sweeting2022;
+ @Sweeting2021;
  @Lee2022;
  @Riley2021;
  @Skourlis2021;
@@ -61,7 +69,7 @@ nocite: |
  @Hill2021;
  @Weibull2021;
  @Andersson2021;
- @Rutherford2021;
+ @TSD21;
  @Andersson2021a;
  @Syriopoulou2021;
  @Smith2021;
@@ -82,16 +90,15 @@ nocite: |
  @Weibull2019;
  @Syriopoulou2018;
  @Plym2018;
- @Mozumder2018a;
  @Mozumder2018;
  @Weibull2018;
  @Latimer2018;
  @Bower2018;
- @Mozumder2017;
  @Mozumder2017a;
+ @Mozumder2016;
  @Latimer2017;
  @Peters2017;
- @Crowther2017;
+ @Crowther2016a;
  @Cramb2016;
  @Lambert2017a;
  @Lambert2017;
@@ -103,9 +110,9 @@ nocite: |
  @Crowther2016;
  @Andersson2015;
  @Hultcrantz2015;
- @Rutherford2015;
+ @Rutherford2015d;
  @Rutherford2015c;
- @Rutherford2015a;
+ @Rutherford2013c;
  @Crowther2015;
  @Lambert2015;
  @Rutherford2015b;
@@ -121,15 +128,15 @@ nocite: |
  @Crowther2013;
  @Crowther2013c;
  @Crowther2013b;
- @Cvancarova2012;
+ @Cvancarova2013;
  @Eloranta2013;
  @Eloranta2013a;
  @Hinchliffe2013b;
  @Hinchliffe2013;
  @Hinchliffe2013d;
- @Hinchliffe2013c;
+ @Hinchliffe2013e;
  @Hinchliffe2013a;
- @Rutherford2013;
+ @Rutherford2013b;
  @Rutherford2013a;
  @Dickman2013;
  @Shah2013;

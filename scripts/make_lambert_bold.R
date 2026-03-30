@@ -4,7 +4,7 @@
 #}
 
 file.copy(from="../pclsurvbib/allrefs.bib",
-          to="scripts/allrefs.bib",
+          to="scripts/pclambert.bib",
           overwrite=TRUE)
 
 rmarkdown::render("scripts/allrefs.Rmd")

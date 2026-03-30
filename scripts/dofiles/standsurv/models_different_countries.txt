@@ -281,7 +281,7 @@ frame RS {
 ```  
 <<dd_do: quietly>>
 graph export ${DRIVE}/github/pclambert/statasvg/standsurv_diff_countries_RS.svg, replace width(700px)
-//graph export C:\Users\pclt\Temp\tempgraphs/standsurv_diff_countries_RS.pdf, replace 
+graph export "C:\Users\pala\OneDrive - Folkehelseinstituttet\Documents\Projects\FederatedStata\Presentations\NCI2025\Figures/standsurv_diff_countries_RS.pdf", replace 
 
 <</dd_do>>
 
@@ -343,7 +343,7 @@ frame ageplot {
 
 <<dd_do: quietly>>
 graph export ${DRIVE}/github/pclambert/statasvg/standsurv_diff_countries_RS_ageplot.svg, replace width(700px)
-//graph export C:\Users\pclt\Temp\tempgraphs/standsurv_diff_countries_RS_ageplot.pdf, replace 
+graph export "C:\Users\pala\OneDrive - Folkehelseinstituttet\Documents\Projects\FederatedStata\Presentations\NCI2025\Figures/standsurv_diff_countries_RS_ageplot.pdf", replace 
 
 <</dd_do>>
 
@@ -517,7 +517,7 @@ frame RefAdj {
 ```  
 <<dd_do: quietly>>
 graph export ${DRIVE}/github/pclambert/statasvg/standsurv_diff_countries_AC_refadj.svg, replace width(700px)
-//graph export C:\Users\pclt\Temp\tempgraphs/standsurv_diff_countries_AC_refadj.pdf, replace 
+graph export "C:\Users\pala\OneDrive - Folkehelseinstituttet\Documents\Projects\FederatedStata\Presentations\NCI2025\Figures/standsurv_diff_countries_AC_refadj.pdf", replace 
 
 <</dd_do>>
 

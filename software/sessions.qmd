@@ -6,12 +6,12 @@ aliases:
 
 The sessions command allows the user to run multiple Stata sessions. 
 
-This is currently a test version of `sessions` and can be 
-installed as follows.
+This is currently a test version of `sessions`.
+More dertail will be added to this page (hopefully) soon.
 
 > **Installation**
 
 `. net install sessions, from(https://www.pclambert.net/downloads/sessions)`
 
-A simple example shown at the Northern European Stata Conference can be downloaded here.
+A simple example shown at the Northern European Stata Conference can be downloaded [here](https://www.pclambert.net/downloads/sessions_example.zip).
 

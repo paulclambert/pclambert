@@ -13,5 +13,5 @@ More dertail will be added to this page (hopefully) soon.
 
 `. net install sessions, from(https://www.pclambert.net/downloads/sessions)`
 
-A simple example shown at the Northern European Stata Conference can be downloaded [here](downloads/sessions_example.zip).
+A simple example shown at the Northern European Stata Conference can be downloaded [here](../downloads/sessions_example.zip).
 

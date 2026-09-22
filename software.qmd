@@ -16,6 +16,7 @@ I occasionally add to these.
 - [**stcrprep**](software/stcrprep.qmd) - data-preparation command to fit a range of competing risks models.
 - [**gensplines**](software/gensplines.qmd) - obtain basis functions for various types of splines.
 - [**joinpoint**](software/joinpoint.qmd) - fit joinpoint models. 
+- [**sessions**](software/sessions.qmd) - Run multiple Stata sessions
 
 ## Older (and less used now)
 

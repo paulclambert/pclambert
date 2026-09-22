@@ -1,0 +1,17 @@
+---
+title: "`sessions`"
+aliases:
+  - sessions/
+---
+
+The sessions command allows the user to run multiple sessios commands. 
+
+This is currently a test version of `sessions` and can be 
+installed as follows.
+
+> **Installation**
+
+`. net install sessions, from(https://www.pclambert.net/downloads/sessions)`
+
+A simple example shown at the Northern European Stata Conference can be downloaded here.
+

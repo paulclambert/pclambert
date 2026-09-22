@@ -1,0 +1,19 @@
+v 3
+* d lines display package description text
+* the first d line is the title, and the remaining ones are text
+* blank d lines display a blank line
+d stpm3
+d
+d Distribution-Date: 20260922
+d
+d contact:  paul.lambert@fhi.no
+d
+: :
+* f identifies the component files
+f sessions.ado
+f _sessions.ado
+f sessions.sthlp
+f sessions_monitor.sthlp
+f sessions_interactive.sthlp
+: : :
+e

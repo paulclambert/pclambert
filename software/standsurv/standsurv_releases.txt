@@ -146,4 +146,5 @@
 	   -- predicting all cause survival for competing risks models with more than 2 events
 	      gave error. Now fixed.
      
-     
+1.10 - 2026-08-10
+     -- you can now use with stpm3, splinetype(rcs) models     

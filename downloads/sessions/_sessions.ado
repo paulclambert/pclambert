@@ -175,6 +175,7 @@ program define sessions_monitor
                                    FREEMEMory(integer 25)                                 ///
                                    GRAPHICSON                                             ///
                                    LOGDELETE                                              ///
+                                   LOGSUBFOLDER(passthru)                                 ///
                                    MAXSessions(integer 10)                                ///
                                    STARTGap(integer 1)                                    ///
                                    STARTPath(string)                                      ///
@@ -250,8 +251,9 @@ program define sessions_monitor
   }
 
   // create/tidy folders 
-  sessions_create_tidy_folders, `logdelete'
+  sessions_create_tidy_folders, `logdelete' `logsubfolder'
   
+  local lastsession_initiated 0 
   local wait 0
   local i 1 
 
@@ -281,6 +283,7 @@ program define sessions_monitor
     
     // check if completed, no available resources or start a new session.
     frame `monitorframe': qui count if inlist(status,"Completed","ERROR") & lastrow
+
     if `r(N)' == `TotalSessions' {
       di _newline _newline "{bf: All sessions completed at ${S_DATE}: ${S_TIME}}"
       local listif = cond("`detail'"=="","if lastrow","")
@@ -303,8 +306,9 @@ program define sessions_monitor
       continue, break
     }
     else if (`obs_freememory'<`freememory' | `obs_cpuload'>`cpuload' | ///
-             `Nactive'>=`maxsessions' /*| `i'> `TotalSessions'*/              | ///
+             `Nactive'>=`maxsessions' | `lastsession_initiated'      | ///
              `wait') {
+
       sessions_monitor_listframe, starttime(`updatetime_start') frame(`monitorframe') ///
                                  list(`monitorframe_list') updatetime(`updatetime') `detail' ///
                                  `compress'
@@ -332,9 +336,10 @@ program define sessions_monitor
         continue
       }
       local startpathopt startpath(`startpath')
-      sessions_create_session_do,   session(`session_number') dofiles(`dofiles')   ///
-                                    arguments(`arguments') commondo(`commondo')  ///
-                                    frame(`monitorframe') `graphicson' `startpathopt'
+      sessions_create_session_do,   session(`session_number') dofiles(`dofiles')      ///
+                                    arguments(`arguments') commondo(`commondo')       ///
+                                    frame(`monitorframe') `graphicson' `startpathopt' ///
+                                    `logsubfolder'
       frame `monitorframe': qui replace lognames = "`r(logname)'" if ID==`i' & lastrow
 
       sessions_start "`startpath'/`nextdofile'",  frommonitor
@@ -347,12 +352,13 @@ program define sessions_monitor
         qui replace starttime = subinstr("${S_DATE}"," ","",.) + ": " +  ///
                                 substr("$S_TIME", 1, 8)                  ///
                                 if ID==`i' & lastrow
-        sessions_monitor_listframe, starttime(`updatetime_start')     ///
+        sessions_monitor_listframe, starttime(`updatetime_start')      ///
                                      frame(`monitorframe')             ///
                                      list(`monitorframe_list')         ///
-                                     updatetime(`updatetime') `detail'  ///
+                                     updatetime(`updatetime') `detail' ///
                                      `compress'   
       }
+      if `i' == `TotalSessions' local lastsession_initiated 1
       local ++i
       sleep `startgap'
     }
@@ -387,7 +393,7 @@ program define sessions_check_finished
         java, shared(sessions): Sessions.CheckActiveSession(`=ID[`rownum']')
         if !`active' {
           local logfile = lognames[`rownum']
-          mata: st_local("session_failed",strofreal(find_regex_in_file("`logfile'","r\(([0-9]+)\)")))
+          mata: st_local("session_failed",strofreal(find_regex_in_file("`logfile'","r\(([0-9]+)\);")))
           qui replace status = cond(`session_failed',"ERROR","Completed") if ID==`i' & lastrow
           qui replace stoptime = subinstr("${S_DATE}"," ","",.) + ": " + substr("$S_TIME", 1, 8) if ID==`i' & lastrow
           capture erase sessions`i'.log
@@ -401,7 +407,7 @@ end
 // -----sessions_create_sessions_do (start)------
 program define sessions_create_session_do, rclass
   syntax, session(string) dofiles(string) arguments(string)     ///
-          commondo(string asis) frame(string) [startpath(string)]
+          commondo(string asis) frame(string) [startpath(string) logsubfolder(string)]
 
   frame `frame' {
     tempname tmprow
@@ -416,8 +422,11 @@ program define sessions_create_session_do, rclass
   }
   
   file open sessiondo using _sessionsdo/sessions`session'.do, write 
+  file write sessiondo `"cd "`startpath'""' _newline
   local datetime_suffix: display %tcCCYYNNDD!THHMMSS clock("`c(current_date)'`c(current_time)'", "DMYhms")
-  local logname _sessionslog/session`session'_`datetime_suffix'.log
+  local logname _sessionslog
+  if "`logsubfolder'" != "" local logname `logname'/`logsubfolder'
+  local logname `logname'/session`session'_`datetime_suffix'.log
   file write sessiondo "log using `logname', text name(session`session')" _newline
   file write sessiondo `"cd "`startpath'""' _newline
   if "`graphicson'" == "" {
@@ -454,7 +463,8 @@ end
 
 // -----sessions_create_tidy_folders (start)------
 program define sessions_create_tidy_folders
-  syntax, [logdelete]
+  syntax, [logdelete logsubfolder(string)]
+
   // check _sessionsdo  exists and create if needed
   mata: st_local("direxists",strofreal(direxists("_sessionsdo")))
   if !`direxists' mkdir _sessionsdo
@@ -465,7 +475,11 @@ program define sessions_create_tidy_folders
   // check _sessionslog  exists and create if needed
   mata: st_local("direxists",strofreal(direxists("_sessionslog")))
   if !`direxists' mkdir _sessionslog 
-  
+
+  if "`logsubfolder'" != "" {
+    mata: st_local("direxists",strofreal(direxists("_sessionslog/"+"`logsubfolder'")))
+    if !`direxists' mkdir "_sessionslog/`logsubfolder'"
+  }
   // delete log file of -logdelete- option specified
   if "`logdelete'" != "" mata: sessions_erase_logfiles()
 end
@@ -501,6 +515,7 @@ end
 
 mata: 
 void sessions_erase_sessionsdo() {
+  folder = "_sessionsdo/"
   dofiles = dir("_sessionsdo","files","*")
   for(f=1;f<=rows(dofiles);f++) {
     unlink("_sessionsdo/" + dofiles[f])
@@ -508,9 +523,10 @@ void sessions_erase_sessionsdo() {
 }
 
 void sessions_erase_logfiles() {
-  logfiles = dir("_sessionslog","files","*")
+  folder = "_sessionslog/" + st_local("logsubfolder") + "/"
+  logfiles = dir(folder,"files","*")
   for(f=1;f<=rows(logfiles);f++) {
-    unlink("_sessionslog/" + logfiles[f])
+    unlink(folder + logfiles[f])
   }
 }
 

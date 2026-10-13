@@ -27,13 +27,14 @@
 {synopt :{opt common:do({it:files})}}dofiles to run in every session{p_end}
 {synopt :{opt compress}}Compressed output{p_end}
 {synopt :{opt detail}}Expanded output{p_end}
-{synopt :{opt freemem:ory({#})}}Only start sessions if >{it:#}{p_end}
+{synopt :{opt freemem:ory({#})}}Only start sessions if free memory >{it:#}{p_end}
 {synopt :{opt graphicson}}display graphics window{p_end}
 {synopt :{opt logdelete}}delete existing logfile in _sessionslog folder{p_end}
+{synopt :{opt logsubfolder}({it:folder})}save log files to a subfolder{p_end}
 {synopt :{opt maxsessions(#)}}maximum number of Stata sessions{p_end}
 {synopt :{opt startg:ap(#)}}gap in seconds between starting Stats sessions{p_end}
 {synopt :{opt startp:ath(folder)}}startingfolder in new Stata session{p_end}
-{synopt :{opt update:time}}time in seconds between displaying update of progress{p_end}
+{synopt :{opt update:time(#)}}time in seconds between displaying update of progress{p_end}
 {synopt :{opt wait:var(varname)}}variable detailing when to wait between starting sesssions{p_end}
 
 {p2colreset}{...}
@@ -85,6 +86,8 @@ See the examples below for further details.
 The {it:_sessionsdo} folder contains a short do files that are run within each Stata
 session.
 The {it:_sessionslog} folder contains the log file for each session.
+If the {cmd:logsubfolder()} is used then the log files are saved to
+a to a subfolder within the {it:_sessionslog} folder.
 
 {title:Options}
 
@@ -139,13 +142,20 @@ a new Stata session starts. The default value is 25.
 are being run in batch mode. 
 
 {phang}
-{opt logdelete} will delete all existing log files in the _sessionslog folder.
+{opt logdelete} will delete all existing log files in the {it:_sessionslog} folder
 before the new Stata sessions are initiated. 
+If the {cmd:logsubfolder} option is used, then the log files within the
+specified subfolder are deleted (and not within the main {it:_sessionslog} folder).
+
+{phang}
+{opt logsubfolder(folder)} give the name of subfolder within the
+{it:_sessionslog} folder to save the log files in. This option is useful if
+you run {cmd: sessions monitor} for different components of a project.
 
 {phang}
 {opt maxsessions(#)} give the maximum number of Stata sessions to be running 
 simultaneously running. The number excludes the calling session.
-The default value is 10. (CHANGE THIS????).
+The default value is 10. 
 
 {phang}
 {opt startgap(#)} give the time in seconds between starting Stata sessions.
@@ -156,7 +166,7 @@ The default is 1 second.
 The default is current working path.
 
 {phang}
-{opt updatetime(#)}} gives the time in seconds between display updates
+{opt updatetime(#)} gives the time in seconds between display updates
 of the progress of the different sessions.
 
 {phang}

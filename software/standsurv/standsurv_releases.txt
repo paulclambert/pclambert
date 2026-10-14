@@ -146,5 +146,8 @@
 	   -- predicting all cause survival for competing risks models with more than 2 events
 	      gave error. Now fixed.
      
-1.10 - 2026-08-10
+1.10 - 2026-10-14
      -- you can now use with stpm3, splinetype(rcs) models     
+     -- fixed expected rmst error with relative models for variables names
+     -- rmst with relative survival models errored out without the required 
+        the ci option. Fixed.

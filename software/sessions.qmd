@@ -7,7 +7,7 @@ aliases:
 The sessions command allows the user to run multiple Stata sessions. 
 
 This is currently a test version of `sessions`.
-More dertail will be added to this page (hopefully) soon.
+More detail will be added to this page (hopefully) soon.
 
 > **Installation**
 
